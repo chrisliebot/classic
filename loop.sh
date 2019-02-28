@@ -11,7 +11,7 @@ while true; do
 			-Dconfig.dir=prod \
 			-Xmx100m \
 			-XX:+UseStringDeduplication \
-			-jar ../build/libs/chrisliebot-irc-*.jar
+			-jar ../chrisliebot-irc-*.jar
 	code=$?
 
 	case $code in

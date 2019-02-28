@@ -21,6 +21,7 @@ import java.util.stream.Collectors;
 public final class C {
 	
 	public static final int EXIT_CODE_RESTART = 10;
+	public static final int EXIT_CODE_UPGRADE = 20;
 	
 	private static final int MAX_LENGHT_PER_MULTILINE = 1500;
 	

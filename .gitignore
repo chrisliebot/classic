@@ -9,3 +9,6 @@
 # application level
 /logs/
 /data/
+
+# binaries
+*.jar

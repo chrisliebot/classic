@@ -110,6 +110,8 @@ public final class ConfigContext {
 				"Beendet den Botprozess vollständig.");
 		addCommandDefinition("restart", new RestartCommand(chrisliebot),
 				"Beendet den Botprozess und startet ihn anschließend neu.");
+		addCommandDefinition("upgrade", new UpgradeCommand(chrisliebot),
+				"Läd den neusten Quellcode und Konfiguration von git und führt ein Upgrade durch.");
 		addCommandDefinition("reload", new ReloadCommand(chrisliebot),
 				"Versucht Teile der Konfiguration neu zu Laden.");
 		addCommandDefinition("reconnect", new ReconnectCommand(chrisliebot),
