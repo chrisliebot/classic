@@ -1,0 +1,66 @@
+plugins {
+	// gradle dependencyUpdates -Drevision=release
+	id "com.github.ben-manes.versions" version "0.20.0"
+	id "com.github.johnrengelman.shadow" version "4.0.4"
+	id 'java'
+}
+
+apply plugin: 'java'
+apply plugin: 'application'
+apply plugin: 'idea'
+
+group = "chrisliebaer"
+version = "2.0"
+mainClassName = "chrisliebaer.chrisliebot.ChrisliebotIrc"
+
+tasks.withType(JavaCompile) {
+	options.encoding = 'UTF-8'
+}
+
+repositories {
+	mavenLocal()
+	mavenCentral()
+	jcenter()
+}
+
+dependencies {
+	compileOnly "org.projectlombok:lombok:1.18.6"
+
+	// logging
+	ext.slf4j = "1.7.25"
+	ext.log4j2 = "2.11.2"
+	implementation "org.slf4j:slf4j-api:$slf4j"
+	implementation "org.apache.logging.log4j:log4j-core:$log4j2"
+	implementation "org.apache.logging.log4j:log4j-slf4j-impl:$log4j2"
+
+	// commons stuff you don't know you actually want until you realise it's missing
+	implementation group: 'commons-io', name: 'commons-io', version: '2.6'
+	implementation group: 'org.apache.commons', name: 'commons-lang3', version: '3.8.1'
+	implementation group: 'org.apache.commons', name: 'commons-text', version: '1.6'
+	implementation "com.google.code.gson:gson:2.8.5"
+	implementation "com.google.guava:guava:27.0.1-jre"
+
+	// retrofit
+	implementation "com.squareup.retrofit2:retrofit:2.5.0"
+	implementation "com.squareup.retrofit2:converter-gson:2.5.0"
+
+	// okhttp
+	compile 'com.squareup.okhttp3:okhttp:3.13.1'
+	implementation 'com.squareup.okhttp3:logging-interceptor:3.13.1'
+
+	// features
+	compile 'dnsjava:dnsjava:2.1.8'
+	compile 'org.nibor.autolink:autolink:0.10.0'
+	compile 'org.jsoup:jsoup:1.11.3'
+	compile 'org.mariadb.jdbc:mariadb-java-client:2.4.0'
+
+	// protocols
+	compile 'org.kitteh.irc:client-lib:6.0.0'
+}
+
+idea {
+	module {
+		downloadJavadoc = true
+		downloadSources = true
+	}
+}

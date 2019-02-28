@@ -1,0 +1,14 @@
+# gradle related
+.gradle
+/build/
+/out/
+
+# IDE
+/.idea/
+
+# application level
+/logs/
+/data/
+
+# config directory
+/config

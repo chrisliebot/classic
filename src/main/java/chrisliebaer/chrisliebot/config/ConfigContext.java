@@ -1,0 +1,266 @@
+package chrisliebaer.chrisliebot.config;
+
+import chrisliebaer.chrisliebot.C;
+import chrisliebaer.chrisliebot.ChrisliebotIrc;
+import chrisliebaer.chrisliebot.CommandDispatcher;
+import chrisliebaer.chrisliebot.SharedResources;
+import chrisliebaer.chrisliebot.abstraction.Message;
+import chrisliebaer.chrisliebot.command.CommandContainer;
+import chrisliebaer.chrisliebot.command.CommandExecutor;
+import chrisliebaer.chrisliebot.command.basic.*;
+import chrisliebaer.chrisliebot.command.bottlespin.BottleSpinCommand;
+import chrisliebaer.chrisliebot.command.dns.DnsCommand;
+import chrisliebaer.chrisliebot.command.help.HelpCommand;
+import chrisliebaer.chrisliebot.command.manage.*;
+import chrisliebaer.chrisliebot.command.random.CoinCommand;
+import chrisliebaer.chrisliebot.command.random.DiceCommand;
+import chrisliebaer.chrisliebot.command.special.KlaxaCommand;
+import chrisliebaer.chrisliebot.config.ChrislieConfig.BotConfig;
+import chrisliebaer.chrisliebot.config.ChrislieConfig.CommandConfig;
+import chrisliebaer.chrisliebot.config.ChrislieConfig.CommandDefinition;
+import chrisliebaer.chrisliebot.config.ChrislieConfig.ListenerDefinition;
+import chrisliebaer.chrisliebot.listener.ChatListener;
+import chrisliebaer.chrisliebot.listener.ListenerContainer;
+import com.google.common.base.Function;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.gson.Gson;
+import com.google.gson.JsonElement;
+import lombok.Getter;
+import lombok.NonNull;
+import org.kitteh.irc.client.library.element.User;
+import org.kitteh.irc.client.library.util.CtcpUtil;
+
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.util.*;
+import java.util.stream.Collectors;
+
+
+public final class ConfigContext {
+	
+	private static final String INSTACE_METHOD_NAME = "fromJson";
+	
+	private Gson gson = SharedResources.INSTANCE().gson();
+	
+	private ChrisliebotIrc chrisliebot;
+	@Getter private BotConfig botCfg;
+	private Map<String, CommandContainer> cmdDefs = new HashMap<>();
+	private Map<String, String> bindings = new HashMap<>();
+	private List<ListenerContainer> listener = new ArrayList<>();
+	
+	private Map<String, CommandDefinition> cfgCmdDefs;
+	private Map<String, List<String>> cfgCmdBindings;
+	private List<ListenerDefinition> cfgListener;
+	
+	private ConfigContext(@NonNull ChrisliebotIrc chrisliebot,
+						  @NonNull BotConfig botCfg,
+						  @NonNull Map<String, CommandDefinition> cfgCmdDefs,
+						  @NonNull Map<String, List<String>> cfgCmdBindings,
+						  @NonNull List<ListenerDefinition> cfgListener)
+			throws ClassNotFoundException, NoSuchMethodException, InvocationTargetException, IllegalAccessException {
+		Preconditions.checkNotNull(botCfg.admins(), "no admin array set");
+		Preconditions.checkNotNull(botCfg.prefix(), "no prefix set");
+		Preconditions.checkArgument(!botCfg.prefix().isEmpty(), "prefix is set but empty");
+		
+		this.chrisliebot = chrisliebot;
+		this.botCfg = botCfg;
+		this.cfgCmdDefs = cfgCmdDefs;
+		this.cfgCmdBindings = cfgCmdBindings;
+		this.cfgListener = cfgListener;
+		
+		createDefaultCommands();
+		createDefaultListener();
+		
+		loadCommandDefinitions();
+		loadCommandBindings();
+		loadListener();
+	}
+	
+	public boolean isAdmin(User u) {
+		if (u == null)
+			return false;
+		
+		return u.getAccount().map((Function<String, Boolean>) acc -> botCfg.admins().contains(acc)).orElse(false);
+	}
+	
+	public void start() throws Exception {
+		for (var en : cmdDefs.entrySet()) {
+			try {
+				en.getValue().start();
+			} catch (Exception e) {
+				throw new IllegalArgumentException("cmdDef " + en.getKey() + " failed to start", e);
+			}
+		}
+	}
+	
+	public void stop() throws Exception {
+		for (var en : cmdDefs.entrySet()) {
+			try {
+				en.getValue().stop();
+			} catch (Exception e) {
+				throw new IllegalArgumentException("cmdDef " + en.getKey() + " failed to stop", e);
+			}
+		}
+	}
+	
+	private void createDefaultCommands() {
+		addCommandDefinition("shutdown", new ShutdownCommand(chrisliebot),
+				"Beendet den Botprozess vollständig.");
+		addCommandDefinition("restart", new RestartCommand(chrisliebot),
+				"Beendet den Botprozess und startet ihn anschließend neu.");
+		addCommandDefinition("reload", new ReloadCommand(chrisliebot),
+				"Versucht Teile der Konfiguration neu zu Laden.");
+		addCommandDefinition("reconnect", new ReconnectCommand(chrisliebot),
+				"Trennt die Verbindung mit dem aktuellen IRC Server und baut sie erneut auf.");
+		addCommandDefinition("dirty", new DirtyCheck(chrisliebot),
+				"Prüft ob ein Konfigurationsfehler aufgetreten ist, der einen ungültigen Zustand erzeugt haben könnte.");
+		addCommandDefinition("help", new HelpCommand(bindings, cmdDefs),
+				"Zeigt Informationen über den übergebenen Befehl an.");
+		addCommandDefinition("verbose", (m, arg) -> m.reply("Verbose Logging wird in " + C.highlight(botCfg.logTarget()) + " bereitgestellt."),
+				"Das sag ich dir erst wenn du den Befehl aufrufst.");
+		addCommandDefinition("channellist", new ChannelListCommand(),
+				"Zeigt dir an in welchen Channeln du mich gerade findest.");
+		addCommandDefinition("uptime", new UptimeCommand(),
+				"Lass mal gucken wer den längeren hat.");
+		addCommandDefinition("join", new JoinCommand(),
+				"Joint dem angegebenen Channel (mit optionalem Passwort).");
+		addCommandDefinition("part", new PartCommand(),
+				"Verlässt den angegebenen Channel.");
+		addCommandDefinition("nick", new NickCommand(),
+				"Setzt den Nickname des Bots.");
+		addCommandDefinition("echo", Message::reply,
+				"Gibt den übergebenen Inhalt wieder aus.");
+		addCommandDefinition("say", new SayCommand(),
+				"Sendet eine Nachricht an ein beliebiges Ziel.");
+		addCommandDefinition("me", (m, s) -> m.reply(CtcpUtil.toCtcp("ACTION " + s)),
+				"Ich tu was du willst.");
+		addCommandDefinition("ping", (m, s) -> m.reply("pong"),
+				"Eine Runde Ping-Pong.");
+		addCommandDefinition("pong", (m, s) -> m.reply("ping"),
+				"Eine Runde Pong-Ping.");
+		addCommandDefinition("dice", new DiceCommand(6),
+				"Keine Ahnung welche Antwort die richtige ist? Werf einen Würfel!");
+		addCommandDefinition("coin", new CoinCommand(),
+				"Wirf eine Münze und lass den Zufall für dich entscheiden. Sei faul!");
+		addCommandDefinition("bottlespin", new BottleSpinCommand(), "Drehe eine Flasche und finde einen zufälligen User aus dem Channel.");
+		addCommandDefinition("dns", new DnsCommand(),
+				"<host> [<type>]");
+		addCommandDefinition("klaxa", new KlaxaCommand(),
+				"Shortcut um klaxa zu begrüßen.");
+		
+		// do it the lazy way, every command is also bound to it's own name
+		cmdDefs.keySet().forEach(d -> addCommandBinding(d, d));
+		
+		// but also add some aliases
+		addCommandBinding("action", "me");
+		addCommandBinding("h", "help");
+		addCommandBinding("random", "dice");
+		addCommandBinding("spinbottle", "bottlespin");
+		addCommandBinding("flaschendrehen", "bottlespin");
+		
+		// some default commands are not ment to be invoked by commands and are therefore defined later
+		
+	}
+	
+	private void createDefaultListener() {
+		// there aren't any right now
+	}
+	
+	private void addCommandDefinition(@NonNull String name, @NonNull CommandExecutor executor, String help) {
+		Preconditions.checkArgument(!cmdDefs.containsKey(name), "duplicated command definition: " + name);
+		cmdDefs.put(name, new CommandContainer(executor, help));
+	}
+	
+	private void addCommandBinding(@NonNull String exposed, @NonNull String def) {
+		Preconditions.checkArgument(!bindings.containsKey(exposed), "duplicated binding, exposed name: " + exposed);
+		Preconditions.checkArgument(cmdDefs.containsKey(def), "no command definition with name: " + def);
+		bindings.put(exposed, def);
+	}
+	
+	private void loadCommandDefinitions()
+			throws ClassNotFoundException, NoSuchMethodException, IllegalAccessException, InvocationTargetException {
+		for (var e : cfgCmdDefs.entrySet()) {
+			var executor = instanceExecutor(e.getValue());
+			addCommandDefinition(e.getKey(), executor, e.getValue().help());
+			
+			if (e.getValue().map())
+				addCommandBinding(e.getKey(), e.getKey());
+		}
+	}
+	
+	private void loadCommandBindings() {
+		for (var e : cfgCmdBindings.entrySet()) {
+			e.getValue().forEach(s -> addCommandBinding(s, e.getKey()));
+		}
+	}
+	
+	private void loadListener() throws ClassNotFoundException, NoSuchMethodException, IllegalAccessException, InvocationTargetException {
+		for (var listenerDef : cfgListener) {
+			List<CommandContainer> trigger = listenerDef.trigger().stream()
+					.map(input -> {
+						var container = cmdDefs.get(input);
+						Preconditions.checkArgument(container != null, "trigger to unknown command definition: " + input);
+						
+						return cmdDefs.get(input);
+					}).collect(Collectors.toList());
+			
+			listener.add(new ListenerContainer(instanceListener(listenerDef), trigger));
+		}
+	}
+	
+	/**
+	 * Compacts the indirection over the binding table for use within the {@link CommandDispatcher}.
+	 *
+	 * @return Immutable command table.
+	 */
+	public Map<String, CommandContainer> getCommandTable() {
+		HashMap<String, CommandContainer> t = new HashMap<>(bindings.size());
+		for (var e : bindings.entrySet()) {
+			// all values are set, this in enforced in the accessor methods
+			t.put(e.getKey(), cmdDefs.get(e.getValue()));
+		}
+		return ImmutableMap.copyOf(t);
+	}
+	
+	public Collection<ListenerContainer> getChatListener() {
+		return ImmutableList.copyOf(listener);
+	}
+	
+	private CommandExecutor instanceExecutor(CommandDefinition def)
+			throws ClassNotFoundException, NoSuchMethodException, InvocationTargetException, IllegalAccessException {
+		String clazzStr = def.clazz();
+		Class<?> clazz = Class.forName(clazzStr);
+		Method method = clazz.getMethod(INSTACE_METHOD_NAME, Gson.class, JsonElement.class);
+		return (CommandExecutor) method.invoke(null, gson, def.config());
+	}
+	
+	private ChatListener instanceListener(ListenerDefinition def)
+			throws ClassNotFoundException, NoSuchMethodException, InvocationTargetException, IllegalAccessException {
+		String clazzStr = def.clazz();
+		Class<?> clazz = Class.forName(clazzStr);
+		Method method = clazz.getMethod(INSTACE_METHOD_NAME, Gson.class, JsonElement.class);
+		return (ChatListener) method.invoke(null, gson, def.config());
+	}
+	
+	public static ConfigContext fromConfig(@NonNull ChrisliebotIrc bot, @NonNull BotConfig botCfg, @NonNull CommandConfig cmdCfg)
+			throws ClassNotFoundException, NoSuchMethodException, IllegalAccessException, InvocationTargetException {
+		return new ConfigContext(bot,
+				botCfg,
+				cmdCfg.cmdDef(),
+				cmdCfg.cmdBinding(),
+				cmdCfg.listener());
+	}
+	
+	public static ConfigContext emergencyContext(@NonNull ChrisliebotIrc bot, @NonNull BotConfig botCfg)
+			throws ClassNotFoundException, NoSuchMethodException, IllegalAccessException, InvocationTargetException {
+		
+		// emergency context doesn't have any external command definitions
+		return new ConfigContext(bot,
+				botCfg,
+				Map.of(),
+				Map.of(),
+				List.of());
+	}
+}
