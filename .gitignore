@@ -9,6 +9,3 @@
 # application level
 /logs/
 /data/
-
-# config directory
-/config

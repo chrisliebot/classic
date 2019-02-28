@@ -205,7 +205,7 @@ public class ChrisliebotIrc {
 			throw t;
 		}
 		
-		// invalidate dispatcher and context to catch "free after use" bugs
+		// invalidate dispatcher and context to catch "use after free" bugs
 		dispatcher = null;
 		configContext = null;
 	}

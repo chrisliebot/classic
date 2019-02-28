@@ -14,17 +14,8 @@
 					pattern="%highlight{[%d{HH:mm:ss]}[%p{length=3}][%15.15c{1}] %m%n}{FATAL=black, ERROR=red, WARN=yellow, INFO=green, DEBUG=blue, TRACE=white}"
 					disableAnsi="false"/>
 		</Console>
-		
-		<!-- Log outputs to file and rotate every day -->
 	</Appenders>
 	<Loggers>
-		<!--
-		<Logger name="net.dv8tion" level="INFO"/>
-		<Logger name="com.github.lupinus.loldata.harvester.database.MatchWizard" level="DEBUG"/>
-		<Logger name="com.github.lupinus.loldata.harvester.module.AbstractRecentGames" level="DEBUG"/>
-		<Logger name="com.github.lupinus.loldata.harvester." level="DEBUG"/>
-		-->
-		
 		<Logger name="io.netty" level="INFO"/>
 		
 		<Root level="TRACE">
