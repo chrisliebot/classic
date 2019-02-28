@@ -16,13 +16,6 @@
 		</Console>
 		
 		<!-- Log outputs to file and rotate every day -->
-		<RollingFile name="RollingFile" fileName="logs/app.log" filePattern="logs/app-%d{yyyy-MM-dd}-%i.log.gz">
-			<PatternLayout pattern="[%d{HH:mm:ss]}[%p{length=3}][%15.15c{1}] %m%n"/>
-			<Policies>
-				<TimeBasedTriggeringPolicy/>
-			</Policies>
-			<DefaultRolloverStrategy max="10"/>
-		</RollingFile>
 	</Appenders>
 	<Loggers>
 		<!--
@@ -31,6 +24,8 @@
 		<Logger name="com.github.lupinus.loldata.harvester.module.AbstractRecentGames" level="DEBUG"/>
 		<Logger name="com.github.lupinus.loldata.harvester." level="DEBUG"/>
 		-->
+		
+		<Logger name="io.netty" level="INFO"/>
 		
 		<Root level="TRACE">
 			<AppenderRef ref="ConsoleDebug"/>

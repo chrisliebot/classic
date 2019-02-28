@@ -27,6 +27,13 @@ import java.util.concurrent.atomic.AtomicBoolean;
 @Slf4j
 public class ChrisliebotIrc {
 	
+	// proper shutdown of logging framework
+	static {
+		System.setProperty("log4j.shutdownCallbackRegistry", "com.djdch.log4j.StaticShutdownCallbackRegistry");
+	}
+	
+	private static final String PROPERTY_CONFIG_DIR = "config.dir";
+	
 	@Getter private boolean dirty; // indicates that at least one start() or stop() cycle failed, application may be inconsistent
 	
 	private final AtomicBoolean managmentLock = new AtomicBoolean(false);
@@ -44,13 +51,19 @@ public class ChrisliebotIrc {
 	private CommandDispatcher dispatcher;
 	
 	public static void main(String[] args) throws Exception {
-		ChrisliebotIrc bot = new ChrisliebotIrc(new File("bot.json"), new File("commands.json"));
+		File configDir = new File(System.getProperty(PROPERTY_CONFIG_DIR, "."));
+		
+		ChrisliebotIrc bot = new ChrisliebotIrc(
+				new File(configDir, "bot.json"),
+				new File(configDir, "commands.json"));
 		bot.start();
 	}
 	
 	public ChrisliebotIrc(@NonNull File botCfgFile, @NonNull File cmdCfgFile) {
 		this.botCfgFile = botCfgFile;
 		this.cmdCfgFile = cmdCfgFile;
+		
+		log.info("using config files: {}, {}", botCfgFile, cmdCfgFile);
 	}
 	
 	private static void exceptionLogger(Throwable t) {
@@ -90,6 +103,7 @@ public class ChrisliebotIrc {
 			}
 		}
 		
+		log.info("bot is up and running for your enjoyment");
 	}
 	
 	private void loadBotConfig() throws IOException {
@@ -171,8 +185,6 @@ public class ChrisliebotIrc {
 		this.configContext = configContext;
 		this.dispatcher = dispatcher;
 		client.getEventManager().registerEventListener(dispatcher);
-		
-		log.debug("successfully attached command dispatcher");
 		
 		// we did it
 	}
