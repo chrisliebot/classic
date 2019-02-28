@@ -79,7 +79,7 @@ public class ShellCommand implements CommandExecutor {
 		try {
 			handleProcess(builder.start(), m);
 		} catch (@SuppressWarnings("OverlyBroadCatchBlock") Throwable e) {
-			m.reply(C.error("Bei der Verbeitung dieses Befehls ging etwas schief."));
+			m.reply(C.error("Bei der Verarbeitung dieses Befehls ging etwas schief."));
 			log.warn(C.LOG_IRC, "failed to execute remote command: {} ({})", builder.command(), e.getMessage());
 		}
 	}
