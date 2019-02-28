@@ -11,5 +11,5 @@ git submodule update
 gradle :shadowJar
 
 # delete old jar and copy new jar
-rm *.jar
+rm -f *.jar
 cp build/libs/*.jar ./
