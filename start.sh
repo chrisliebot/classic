@@ -1,4 +1,4 @@
 #!/bin/bash
 
-cd "$(dirname "$0")/config"
+cd "$(dirname "$0")"
 screen -dmS chrisliebot-irc ./loop.sh

@@ -1,14 +1,17 @@
 #!/bin/bash
 
 
+# switch to config directory
+cd "config"
+
 while true; do
 	java \
 			-Dfile.encoding=UTF-8 \
 			-Dlog4j.configurationFile=log4j2.xml \
-			-Dconfig.dir=prod
+			-Dconfig.dir=prod \
 			-Xmx100m \
 			-XX:+UseStringDeduplication \
-			-jar ../build/libs/chrisliebot-irc-*-all.jar
+			-jar ../build/libs/chrisliebot-irc-*.jar
 	code=$?
 
 	case $code in
@@ -18,6 +21,11 @@ while true; do
 		;;
 		10) # restart request
 			echo "Bot requested to restart"
+			continue
+		;;
+		20) # upgrade requested
+			echo "Bot requested to upgrade"
+			../upgrade.sh
 			continue
 		;;
 		*)
