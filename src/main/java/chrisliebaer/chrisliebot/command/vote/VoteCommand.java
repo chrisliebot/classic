@@ -29,12 +29,21 @@ public class VoteCommand implements CommandExecutor {
 		}
 		
 		String channelName = m.channel().get().getName();
-		PendingVote vote = pending.get(channelName);
+		PendingVote pendingVote = pending.get(channelName);
 		
-		if (vote == null)
+		if (pendingVote == null) {
 			startVote(m, arg);
-		else
-			parseVote(m, arg);
+		} else {
+			if ("stop".equalsIgnoreCase(arg)) {
+				if (m.user().getNick().equals(pendingVote.nickname()) || m.isAdmin()) {
+					completion(pendingVote);
+				} else {
+					m.reply(C.error("Du bist nicht der Besitzer dieser Umfrage und kannst sie daher nicht beenden."));
+				}
+			} else {
+				parseVote(m, arg, pendingVote);
+			}
+		}
 	}
 	
 	private synchronized void startVote(Message m, String arg) {
@@ -89,6 +98,7 @@ public class VoteCommand implements CommandExecutor {
 					.append(" ");
 		
 		PendingVote pendingVote = new PendingVote()
+				.nickname(m.user().getNick())
 				.channel(m.channel().get())
 				.question(question)
 				.options(options);
@@ -98,10 +108,9 @@ public class VoteCommand implements CommandExecutor {
 		m.reply("Umfrage gestartet: " + C.highlight(question) + " Antwortmöglichkeiten: " + optsOut);
 	}
 	
-	private synchronized void parseVote(Message m, String arg) {
+	private synchronized void parseVote(Message m, String arg, PendingVote pendingVote) {
 		try {
 			int index = Integer.parseInt(arg) - 1;
-			var pendingVote = pending.get(m.channel().get().getName());
 			var options = pendingVote.options();
 			if (index < 0 || index >= options.size()) {
 				m.reply(C.error("Das ist leider keine mögliche Auswahlmöglichkeit."));
@@ -125,6 +134,9 @@ public class VoteCommand implements CommandExecutor {
 	}
 	
 	private synchronized void completion(PendingVote vote) {
+		// cancel task in case we got completed prematurely
+		vote.task().cancel();
+		
 		// remove vote from pending
 		pending.remove(vote.channel().getName(), vote);
 		
@@ -133,7 +145,7 @@ public class VoteCommand implements CommandExecutor {
 		
 		C.sendChannelMessage(vote.channel(), "Umfrage beendet: " + vote.question() + " "
 				+ results.stream()
-				.map(input -> String.format("%s(%s)", input.option(), C.highlight(input.votes())))
+				.map(input -> String.format("%s (%s)", input.option(), C.highlight(input.votes())))
 				.collect(Collectors.joining(", ")));
 	}
 	
@@ -144,6 +156,7 @@ public class VoteCommand implements CommandExecutor {
 		// has to be set after creation
 		private TimerTask task;
 		
+		private @NonNull String nickname; // owning nickname
 		private @NonNull Channel channel;
 		private @NonNull String question;
 		private @NonNull List<String> options;
