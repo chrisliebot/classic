@@ -15,6 +15,7 @@ import chrisliebaer.chrisliebot.command.manage.*;
 import chrisliebaer.chrisliebot.command.random.CoinCommand;
 import chrisliebaer.chrisliebot.command.random.DiceCommand;
 import chrisliebaer.chrisliebot.command.special.KlaxaCommand;
+import chrisliebaer.chrisliebot.command.vote.VoteCommand;
 import chrisliebaer.chrisliebot.config.ChrislieConfig.BotConfig;
 import chrisliebaer.chrisliebot.config.ChrislieConfig.CommandConfig;
 import chrisliebaer.chrisliebot.config.ChrislieConfig.CommandDefinition;
@@ -151,6 +152,8 @@ public final class ConfigContext {
 				"<host> [<type>]");
 		addCommandDefinition("klaxa", new KlaxaCommand(),
 				"Shortcut um klaxa zu begrüßen.");
+		addCommandDefinition("vote", new VoteCommand(),
+				"Starte eine Umfrage mit: !vote <Frage>? Option1, Option2, Option3, ... oder nimm an einer Umfrage Teil mit !vote <OptNum>");
 		
 		// do it the lazy way, every command is also bound to it's own name
 		cmdDefs.keySet().forEach(d -> addCommandBinding(d, d));
@@ -158,6 +161,7 @@ public final class ConfigContext {
 		// but also add some aliases
 		addCommandBinding("action", "me");
 		addCommandBinding("h", "help");
+		addCommandBinding("v", "vote");
 		addCommandBinding("random", "dice");
 		addCommandBinding("spinbottle", "bottlespin");
 		addCommandBinding("flaschendrehen", "bottlespin");

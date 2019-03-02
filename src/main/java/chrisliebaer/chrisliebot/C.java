@@ -8,6 +8,7 @@ import org.jsoup.Jsoup;
 import org.kitteh.irc.client.library.element.Channel;
 import org.kitteh.irc.client.library.element.User;
 import org.kitteh.irc.client.library.element.mode.ChannelUserMode;
+import org.kitteh.irc.client.library.util.CtcpUtil;
 import org.kitteh.irc.client.library.util.Format;
 import org.slf4j.Marker;
 import org.slf4j.MarkerFactory;
@@ -23,7 +24,7 @@ public final class C {
 	public static final int EXIT_CODE_RESTART = 10;
 	public static final int EXIT_CODE_UPGRADE = 20;
 	
-	private static final int MAX_LENGHT_PER_MULTILINE = 1500;
+	private static final int MAX_LENGHT_PER_MULTILINE = 1000;
 	
 	public static final char[] EMPTY_CHAR_ARRAY = new char[0];
 	
@@ -36,6 +37,20 @@ public final class C {
 	
 	public static final char ZERO_WIDTH_NO_BREAK_SPACE = '\uFEFF';
 	public static final Marker LOG_IRC = MarkerFactory.getMarker("LOG_IRC");
+	
+	public static void sendChannelMessage(Channel channel, String s) {
+		if (s == null || s.isEmpty())
+			return;
+		
+		// strip formatting if channel doesn't support it
+		if (!C.channelSupportsFormatting(channel))
+			s = Format.stripAll(s);
+		
+		if (!CtcpUtil.isCtcp(s))
+			s = C.ZERO_WIDTH_NO_BREAK_SPACE + s;
+		
+		channel.sendMultiLineMessage(C.sanitizeForSend(C.escapeNickname(channel, s)));
+	}
 	
 	public static String highlight(Object s) {
 		if (s == null)

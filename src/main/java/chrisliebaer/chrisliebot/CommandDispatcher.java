@@ -53,8 +53,7 @@ public class CommandDispatcher {
 	}
 	
 	public boolean parseCommand(Message m) {
-		// sanitize input if user messed up
-		String s = m.message().trim();
+		String s = m.message();
 		if (!s.startsWith(prefix))
 			return false;
 		

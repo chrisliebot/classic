@@ -28,7 +28,7 @@ public interface QwantService {
 	public static final String TYPE_IMAGES = "images";
 	
 	@Deprecated // dont call directly
-	@GET("api/search/{type}?uiv=4?locale=" + DEFAULT_LOCALE)
+	@GET("api/search/{type}?uiv=4&locale=" + DEFAULT_LOCALE)
 	@SuppressWarnings({"MissingDeprecatedAnnotation", "DeprecatedIsStillUsed"})
 	public Call<QwantResponse> search(
 			@Path("type") String type,
