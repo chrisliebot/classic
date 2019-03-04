@@ -45,10 +45,14 @@ public final class SimpleCommandMappedOutput implements SimpleCommandOutput {
 			if (INPUT_MAPPING.equals(key))
 				return in;
 			else
-				return mapping.get(key).out(in);
+				return getMapping(key).out(in);
 		});
 		
-		return sub.replace(mapping.get(DEFAULT_MAPPING).out(null));
+		return sub.replace(getMapping(DEFAULT_MAPPING).out(null));
+	}
+	
+	private SimpleCommandOutput getMapping(String key) {
+		return mapping.getOrDefault(key, SimpleCommandOutput.staticCommandOutput("$${" + key + "}"));
 	}
 	
 	public static SimpleCommandMappedOutput fromMap(@NonNull Map<String, SimpleCommandOutput> map) {
