@@ -25,6 +25,7 @@ public class ChrislieConfig {
 		private Map<String, CommandDefinition> cmdDef;
 		private Map<String, List<String>> cmdBinding;
 		private List<ListenerDefinition> listener;
+		private List<String> unbind;
 	}
 	
 	@Data

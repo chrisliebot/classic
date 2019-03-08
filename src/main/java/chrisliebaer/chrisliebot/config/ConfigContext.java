@@ -54,12 +54,14 @@ public final class ConfigContext {
 	private Map<String, CommandDefinition> cfgCmdDefs;
 	private Map<String, List<String>> cfgCmdBindings;
 	private List<ListenerDefinition> cfgListener;
+	private List<String> unbind;
 	
 	private ConfigContext(@NonNull ChrisliebotIrc chrisliebot,
 						  @NonNull BotConfig botCfg,
 						  @NonNull Map<String, CommandDefinition> cfgCmdDefs,
 						  @NonNull Map<String, List<String>> cfgCmdBindings,
-						  @NonNull List<ListenerDefinition> cfgListener)
+						  @NonNull List<ListenerDefinition> cfgListener,
+						  @NonNull List<String> unbind)
 			throws ClassNotFoundException, NoSuchMethodException, InvocationTargetException, IllegalAccessException {
 		Preconditions.checkNotNull(botCfg.admins(), "no admin array set");
 		Preconditions.checkNotNull(botCfg.prefix(), "no prefix set");
@@ -70,6 +72,7 @@ public final class ConfigContext {
 		this.cfgCmdDefs = cfgCmdDefs;
 		this.cfgCmdBindings = cfgCmdBindings;
 		this.cfgListener = cfgListener;
+		this.unbind = unbind;
 		
 		createDefaultCommands();
 		createDefaultListener();
@@ -166,6 +169,9 @@ public final class ConfigContext {
 		addCommandBinding("spinbottle", "bottlespin");
 		addCommandBinding("flaschendrehen", "bottlespin");
 		
+		// we want to unbind commands by their definition, not by their binding, so we need to filter by binding entry
+		bindings.entrySet().removeIf(bnd -> unbind.contains(bnd.getValue()));
+		
 		// some default commands are not ment to be invoked by commands and are therefore defined later
 		
 	}
@@ -256,7 +262,8 @@ public final class ConfigContext {
 				botCfg,
 				cmdCfg.cmdDef(),
 				cmdCfg.cmdBinding(),
-				cmdCfg.listener());
+				cmdCfg.listener(),
+				cmdCfg.unbind());
 	}
 	
 	public static ConfigContext emergencyContext(@NonNull ChrisliebotIrc bot, @NonNull BotConfig botCfg)
@@ -267,6 +274,7 @@ public final class ConfigContext {
 				botCfg,
 				Map.of(),
 				Map.of(),
+				List.of(),
 				List.of());
 	}
 }
