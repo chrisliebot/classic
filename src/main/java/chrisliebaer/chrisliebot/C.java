@@ -13,8 +13,10 @@ import org.kitteh.irc.client.library.util.Format;
 import org.slf4j.Marker;
 import org.slf4j.MarkerFactory;
 
+import java.time.DayOfWeek;
 import java.util.Arrays;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -142,6 +144,64 @@ public final class C {
 	
 	private static String inject(String in, int pos, char c) {
 		return in.substring(0, pos) + c + in.substring(pos);
+	}
+	
+	public static Optional<DayOfWeek> stringToDay(@NonNull String day) {
+		day = day.trim().toLowerCase();
+		
+		switch (day) {
+			case "montag":
+			case "mon":
+			case "mo":
+			case "monday":
+				return Optional.of(DayOfWeek.MONDAY);
+			case "dienstag":
+			case "di":
+			case "tuesday":
+			case "tue":
+			case "tues":
+			case "tu":
+				return Optional.of(DayOfWeek.TUESDAY);
+			case "mittwoch":
+			case "mi":
+			case "mit":
+			case "mitt":
+			case "mittw":
+			case "wednesday":
+			case "wed":
+				return Optional.of(DayOfWeek.WEDNESDAY);
+			case "donnerstag":
+			case "do":
+			case "donn":
+			case "thursday":
+			case "th":
+			case "thu":
+			case "thur":
+			case "thurs":
+				return Optional.of(DayOfWeek.THURSDAY);
+			case "freitag":
+			case "fr":
+			case "fri":
+			case "friday":
+				return Optional.of(DayOfWeek.FRIDAY);
+			case "samstag":
+			case "sonnabend":
+			case "sa":
+			case "sam":
+			case "sams":
+			case "saturday":
+			case "sat":
+				return Optional.of(DayOfWeek.SATURDAY);
+			case "sonntag":
+			case "so":
+			case "sonn":
+			case "sunday":
+			case "su":
+			case "sun":
+				return Optional.of(DayOfWeek.SUNDAY);
+		}
+		
+		return Optional.empty();
 	}
 	
 	private C() {}
