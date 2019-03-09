@@ -26,6 +26,10 @@ public interface Message extends ClientLinked {
 		return user().getClient();
 	}
 	
+	public default String source() {
+		return channel().map(Channel::getName).orElse(user().getNick());
+	}
+	
 	public boolean isAdmin();
 	
 	public static Message of(PrivateMessageEvent ev, ConfigContext ctx) {

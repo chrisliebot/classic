@@ -14,6 +14,7 @@ import org.kitteh.irc.client.library.util.Format;
 
 import java.io.IOException;
 import java.net.URL;
+import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -29,11 +30,13 @@ public class GenericUrlPreview implements Callback {
 	
 	private URL url;
 	private Message m;
+	private Set<UrlPreviewCommand.HistoryEntry> titleHistory;
 	
 	@SneakyThrows
-	public GenericUrlPreview(@NonNull URL url, @NonNull Message m) {
+	public GenericUrlPreview(@NonNull URL url, @NonNull Message m, Set<UrlPreviewCommand.HistoryEntry> titleHistory) {
 		this.url = url;
 		this.m = m;
+		this.titleHistory = titleHistory;
 	}
 	
 	public void start() {
@@ -106,6 +109,18 @@ public class GenericUrlPreview implements Callback {
 			// limit output to 500 characters at max
 			if (summary.length() > MAX_IRC_MESSAGE_LENGTH)
 				summary = summary.substring(0, MAX_IRC_MESSAGE_LENGTH).trim() + "[...]";
+			
+			// check if summary was posted before within timeout window
+			UrlPreviewCommand.HistoryEntry historyLookup = new UrlPreviewCommand.HistoryEntry(summary, m.source());
+			if (titleHistory.contains(historyLookup)) {
+				// output has been posted, don't repeat
+				log.debug(C.LOG_IRC, "not posting summary of {} in {} since it's identical with a recently posted summary",
+						url.toExternalForm(), m.source());
+				return;
+			}
+			
+			// add output to history
+			titleHistory.add(historyLookup);
 			
 			if (!summary.isEmpty())
 				m.reply(C.format("Linkvorschau: ", Format.BOLD) + summary);
