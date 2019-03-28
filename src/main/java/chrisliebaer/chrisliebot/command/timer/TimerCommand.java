@@ -188,7 +188,7 @@ public class TimerCommand implements CommandExecutor {
 			try (FileReader fr = new FileReader(file)) {
 				TimerDescription description = gson.fromJson(fr, TimerDescription.class);
 				long id = Long.parseLong(file.getName().split("\\.")[0]);
-				timers.put(id, description);
+				queueTimer(description, false);
 			}
 		}
 	}
