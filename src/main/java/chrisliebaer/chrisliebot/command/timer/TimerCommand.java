@@ -188,7 +188,7 @@ public class TimerCommand implements CommandExecutor {
 			try (FileReader fr = new FileReader(file)) {
 				TimerDescription description = gson.fromJson(fr, TimerDescription.class);
 				long id = Long.parseLong(file.getName().split("\\.")[0]);
-				queueTimer(description, false);
+				queueTimer(description, false, id);
 			}
 		}
 	}
@@ -202,9 +202,10 @@ public class TimerCommand implements CommandExecutor {
 	}
 	
 	private synchronized long queueTimer(TimerDescription description, boolean writeToDisk) throws IOException {
-		// reserve id and put in map
-		long id = getNewTimerId();
-		
+		return queueTimer(description, writeToDisk, getNewTimerId());
+	}
+	
+	private synchronized long queueTimer(TimerDescription description, boolean writeToDisk, long id) throws IOException {
 		// write timer file to disk
 		if (writeToDisk) {
 			try (FileWriter fw = new FileWriter(new File(dir, id + ".json"))) {
