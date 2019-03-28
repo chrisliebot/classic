@@ -173,10 +173,7 @@ public class TimerCommand implements CommandExecutor {
 	@Override
 	public synchronized void init(Client client) throws Exception {
 		this.client = client;
-	}
-	
-	@Override
-	public synchronized void start() throws Exception {
+		
 		// load tasks and start timer but don't recreate files
 		if (!dir.exists())
 			Preconditions.checkState(dir.mkdirs(), "failed to create timer task dir: " + dir);
@@ -192,7 +189,7 @@ public class TimerCommand implements CommandExecutor {
 			}
 		}
 	}
-	
+
 	@Override
 	public synchronized void stop() throws Exception {
 		// stop pending timer but keep files
