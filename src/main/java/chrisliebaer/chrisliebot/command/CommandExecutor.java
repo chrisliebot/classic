@@ -1,6 +1,7 @@
 package chrisliebaer.chrisliebot.command;
 
 import chrisliebaer.chrisliebot.abstraction.Message;
+import org.kitteh.irc.client.library.Client;
 
 @FunctionalInterface
 public interface CommandExecutor {
@@ -15,6 +16,8 @@ public interface CommandExecutor {
 	public default boolean requireAdmin() {
 		return false;
 	}
+	
+	public default void init(Client client) throws Exception {}
 	
 	public default void start() throws Exception {}
 	

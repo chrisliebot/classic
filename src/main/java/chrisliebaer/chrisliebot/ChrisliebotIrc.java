@@ -168,6 +168,7 @@ public class ChrisliebotIrc {
 		
 		try {
 			configContext.start();
+			configContext.passClient(client);
 		} catch (@SuppressWarnings("OverlyBroadCatchBlock") Throwable t) {
 			// error in start may result in inconsistent state
 			makeDirty();
@@ -184,6 +185,7 @@ public class ChrisliebotIrc {
 		// we need to wait before we assign this new dispatcher since it will be cleared during unload
 		this.configContext = configContext;
 		this.dispatcher = dispatcher;
+		
 		client.getEventManager().registerEventListener(dispatcher);
 		
 		// we did it

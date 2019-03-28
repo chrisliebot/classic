@@ -2,6 +2,7 @@ package chrisliebaer.chrisliebot.command;
 
 import chrisliebaer.chrisliebot.abstraction.Message;
 import lombok.NonNull;
+import org.kitteh.irc.client.library.Client;
 
 /**
  * Seperates command execution logic from meta data such as help text.
@@ -23,6 +24,11 @@ public class CommandContainer implements CommandExecutor {
 		if (help == null || help.isEmpty())
 			return NO_HELP_AVAILABLE;
 		return help;
+	}
+	
+	@Override
+	public void init(Client client) throws Exception {
+		executor.init(client);
 	}
 	
 	@Override

@@ -51,6 +51,7 @@ dependencies {
 	implementation 'com.squareup.okhttp3:logging-interceptor:3.13.1'
 
 	// features
+	compile 'com.joestelmach:natty:0.11'
 	compile 'dnsjava:dnsjava:2.1.8'
 	compile 'org.nibor.autolink:autolink:0.10.0'
 	compile 'org.jsoup:jsoup:1.11.3'

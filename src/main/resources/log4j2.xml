@@ -17,6 +17,8 @@
 	</Appenders>
 	<Loggers>
 		<Logger name="io.netty" level="INFO"/>
+		<Logger name="chrisliebaer.chrisliebot.command.mensa.MensaCommand" level="DEBUG"/>
+		<Logger name="com.joestelmach.natty" level="OFF"/>
 		
 		<Root level="TRACE">
 			<AppenderRef ref="ConsoleDebug"/>

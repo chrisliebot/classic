@@ -30,6 +30,7 @@ import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import lombok.Getter;
 import lombok.NonNull;
+import org.kitteh.irc.client.library.Client;
 import org.kitteh.irc.client.library.element.User;
 import org.kitteh.irc.client.library.util.CtcpUtil;
 
@@ -276,5 +277,11 @@ public final class ConfigContext {
 				Map.of(),
 				List.of(),
 				List.of());
+	}
+	
+	public void passClient(@NonNull Client client) throws Exception {
+		for (CommandContainer container : cmdDefs.values()) {
+			container.init(client);
+		}
 	}
 }
