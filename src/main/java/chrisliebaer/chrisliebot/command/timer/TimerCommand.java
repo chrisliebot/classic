@@ -112,6 +112,7 @@ public class TimerCommand implements CommandExecutor {
 						return;
 					}
 					timers.remove(id);
+					description.task().cancel();
 					m.reply("Der Timer '" + C.highlight(description.message()) + "' wurde gelöscht.");
 				}
 				
@@ -235,6 +236,14 @@ public class TimerCommand implements CommandExecutor {
 	
 	private synchronized void completeTimer(long id) {
 		TimerDescription description = timers.remove(id);
+		
+		/* If a timer is removed by a user, the queued task might already be running, in this case the
+		 * timer list will no longer contain this timer, so in order to account for that, we need to check if
+		 * the timer is actually in the map or we crash the shared timer thread.
+		 */
+		if (description == null) {
+			return;
+		}
 		
 		// remove timer file from disk
 		File timerFile = new File(dir, id + ".json");
