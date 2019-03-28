@@ -155,19 +155,24 @@ public class TimerCommand implements CommandExecutor {
 	}
 	
 	private synchronized Optional<Pair<Date, String>> shrinkingParse(String arg) {
-		// shorten the input string one word at a time and find largest matching string as date
-		String[] w = arg.split(" ");
-		for (int i = w.length; i >= 0; i--) {
-			String part = String.join(" ", Arrays.copyOfRange(w, 0, i));
-			List<DateGroup> parse = parser.parse(part);
-			var dates = parse.stream().flatMap(in -> in.getDates().stream()).collect(Collectors.toList());
-			
-			if (dates.size() == 1 && parse.get(0).getText().length() == part.length()) {
-				String message = String.join(" ", Arrays.copyOfRange(w, i, w.length));
-				return Optional.of(Pair.of(dates.get(0), message));
+		try {
+			// shorten the input string one word at a time and find largest matching string as date
+			String[] w = arg.split(" ");
+			for (int i = w.length; i >= 0; i--) {
+				String part = String.join(" ", Arrays.copyOfRange(w, 0, i));
+				List<DateGroup> parse = parser.parse(part);
+				var dates = parse.stream().flatMap(in -> in.getDates().stream()).collect(Collectors.toList());
+				
+				if (dates.size() == 1 && parse.get(0).getText().length() == part.length()) {
+					String message = String.join(" ", Arrays.copyOfRange(w, i, w.length));
+					return Optional.of(Pair.of(dates.get(0), message));
+				}
 			}
+			return Optional.empty();
+		} catch (Throwable ignore) {
+			// absolutely don't care about bugs in this library
+			return Optional.empty();
 		}
-		return Optional.empty();
 	}
 	
 	@Override
