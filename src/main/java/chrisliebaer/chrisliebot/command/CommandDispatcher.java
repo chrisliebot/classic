@@ -61,7 +61,7 @@ public class CommandDispatcher {
 	
 	protected boolean checkCommand(Message m) {
 		Optional<Invocation> invocation = parseCommand(invocationPattern.matcher(m.message()));
-		return invocation.isEmpty() || executeCommand(m, invocation.get());
+		return invocation.filter(invocation1 -> executeCommand(m, invocation1)).isPresent();
 	}
 	
 	protected Optional<Invocation> parseCommand(Matcher matcher) {
