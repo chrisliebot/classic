@@ -15,6 +15,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.time.DurationFormatUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.kitteh.irc.client.library.Client;
 import org.kitteh.irc.client.library.element.Channel;
@@ -33,8 +34,8 @@ import java.util.stream.Collectors;
 @Slf4j
 public class TimerCommand implements CommandExecutor {
 	
+	private static final long SHORT_DURATION_LIMIT = 7 * 24 * 60 * 60 * 1000; // switch into month/day mode
 	private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("EE dd.MM.yyyy HH:mm:ss", Locale.GERMAN);
-	
 	private static final Pattern FILENAME_PATTERN = Pattern.compile("^[0-9]+\\.json$");
 	
 	private Client client;
@@ -54,7 +55,6 @@ public class TimerCommand implements CommandExecutor {
 			m.reply(C.error("Timer sind aktuell nur in Channeln verfügbar.")); // TODO: change that
 			return;
 		}
-		
 		
 		if (arg.startsWith("info")) {
 			var split = arg.split(" ", 2);
@@ -128,12 +128,21 @@ public class TimerCommand implements CommandExecutor {
 				return;
 			}
 			
+			long timestamp = result.get().getLeft().getTime();
+			long diff = timestamp - System.currentTimeMillis();
+			String mesage = result.get().getRight();
+			
+			if (diff < 0) {
+				m.reply(C.error("Für diesen Zeitpunkt brauchst du eine Zeitmaschiene."));
+				return;
+			}
+			
 			TimerDescription description = TimerDescription.builder()
 					.channel(m.channel().map(Channel::getName).orElse(null))
 					.nick(m.user().getNick())
 					.account(m.user().getAccount().orElse(null))
-					.when(result.get().getLeft().getTime())
-					.message(result.get().getRight())
+					.when(timestamp)
+					.message(mesage)
 					.build();
 			
 			long id;
@@ -144,8 +153,15 @@ public class TimerCommand implements CommandExecutor {
 				log.warn(C.LOG_IRC, "failed to write timer {} to disk", description, e);
 				return;
 			}
-			m.reply("Timer gestellt für: " + DATE_FORMAT.format(result.get().getLeft()) + " die Id lautet " + id);
 			
+			
+			String durationStr = DurationFormatUtils.formatDuration(diff,
+					diff > SHORT_DURATION_LIMIT ?
+							"yyyy 'Jahre' MM 'Monate' dd 'Tage'" :
+							"dd 'Tage' HH:mm:ss");
+			
+			m.reply("Timer gestellt für: " + DATE_FORMAT.format(result.get().getLeft()) + " die Id lautet " + id +
+					" das ist in " + C.highlight(C.durationToString(diff)));
 		}
 	}
 	
@@ -194,7 +210,7 @@ public class TimerCommand implements CommandExecutor {
 			}
 		}
 	}
-
+	
 	@Override
 	public synchronized void stop() throws Exception {
 		// stop pending timer but keep files

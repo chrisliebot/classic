@@ -4,6 +4,7 @@ import chrisliebaer.chrisliebot.abstraction.Message;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.Request;
+import org.apache.commons.lang3.StringUtils;
 import org.jsoup.Jsoup;
 import org.kitteh.irc.client.library.element.Channel;
 import org.kitteh.irc.client.library.element.User;
@@ -139,7 +140,34 @@ public final class C {
 		long hours = s / 3600;
 		s %= 3600;
 		long minutes = s / 60;
-		return String.format("%dd %dh %02dm %02ds", days, hours, minutes, s % 60);
+		long seconds = s % 60;
+		
+		String _days = "";
+		if (days == 1)
+			_days = "1 Tag";
+		else if (days > 1)
+			_days = days + " Tage";
+		
+		String _hours = "";
+		if (hours == 1)
+			_hours = "1 Stunde";
+		else if (hours > 1)
+			_hours = hours + " Stunden";
+		
+		String _minutes = "";
+		if (minutes == 1)
+			_minutes = "eine Minute";
+		else if (minutes > 1)
+			_minutes = String.format("%02d Minuten", minutes);
+		
+		String _seconds = "";
+		if (seconds == 1)
+			_seconds = "eine Sekunde";
+		else if (seconds > 1)
+			_seconds = String.format("%02d Sekunden", seconds);
+		
+		String[] strs = {_days, _hours, _minutes, _seconds};
+		return Arrays.stream(strs).filter(StringUtils::isNoneBlank).collect(Collectors.joining(" "));
 	}
 	
 	private static String inject(String in, int pos, char c) {
