@@ -21,6 +21,7 @@ public class UntilCommand implements CommandExecutor {
 	
 	@Override
 	public synchronized void execute(Message m, String arg) {
+		long now = System.currentTimeMillis();
 		
 		List<DateGroup> parse = parser.parse(arg);
 		var dates = parse.stream().flatMap(in -> in.getDates().stream()).collect(Collectors.toList());
@@ -31,7 +32,7 @@ public class UntilCommand implements CommandExecutor {
 		}
 		
 		Date date = dates.get(0);
-		long diff = date.getTime() - System.currentTimeMillis();
+		long diff = date.getTime() - now;
 		
 		String pre = diff < 0 ? "war vor" : "ist in";
 		
