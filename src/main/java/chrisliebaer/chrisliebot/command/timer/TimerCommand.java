@@ -15,7 +15,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.time.DurationFormatUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.kitteh.irc.client.library.Client;
 import org.kitteh.irc.client.library.element.Channel;
@@ -34,7 +33,6 @@ import java.util.stream.Collectors;
 @Slf4j
 public class TimerCommand implements CommandExecutor {
 	
-	private static final long SHORT_DURATION_LIMIT = 7 * 24 * 60 * 60 * 1000; // switch into month/day mode
 	private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("EE dd.MM.yyyy HH:mm:ss", Locale.GERMAN);
 	private static final Pattern FILENAME_PATTERN = Pattern.compile("^[0-9]+\\.json$");
 	
@@ -154,13 +152,7 @@ public class TimerCommand implements CommandExecutor {
 				return;
 			}
 			
-			
-			String durationStr = DurationFormatUtils.formatDuration(diff,
-					diff > SHORT_DURATION_LIMIT ?
-							"yyyy 'Jahre' MM 'Monate' dd 'Tage'" :
-							"dd 'Tage' HH:mm:ss");
-			
-			m.reply("Timer gestellt für: " + DATE_FORMAT.format(result.get().getLeft()) + " die Id lautet " + id +
+			m.reply("Timer gestellt für: " + C.highlight(DATE_FORMAT.format(result.get().getLeft())) + " die Id lautet " + id +
 					" das ist in " + C.highlight(C.durationToString(diff)));
 		}
 	}
@@ -291,19 +283,19 @@ public class TimerCommand implements CommandExecutor {
 		chan.sendMultiLineMessage(mention + " es ist so weit: " + C.escapeNickname(chan, description.message()));
 	}
 	
+	public static TimerCommand fromJson(Gson json, JsonElement element) {
+		return new TimerCommand(new File(element.getAsString()));
+	}
+	
 	@Data
 	@Builder
 	private static class TimerDescription {
-		
 		private long when;
 		private String channel;
 		private String nick;
 		private String account;
 		private String message;
 		private transient TimerTask task;
-	}
 	
-	public static TimerCommand fromJson(Gson json, JsonElement element) {
-		return new TimerCommand(new File(element.getAsString()));
 	}
 }

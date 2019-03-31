@@ -133,6 +133,8 @@ public final class C {
 	}
 	
 	public static String durationToString(long s) {
+		s = Math.abs(s);
+		
 		// SirYwell hauen wenn kaputt
 		s /= 1000;
 		long days = s / (24 * 3600);
@@ -142,31 +144,31 @@ public final class C {
 		long minutes = s / 60;
 		long seconds = s % 60;
 		
-		String _days = "";
+		String daysStr = "";
 		if (days == 1)
-			_days = "1 Tag";
+			daysStr = "einem Tag";
 		else if (days > 1)
-			_days = days + " Tage";
+			daysStr = days + " Tage";
 		
-		String _hours = "";
+		String hoursStr = "";
 		if (hours == 1)
-			_hours = "1 Stunde";
+			hoursStr = "einer Stunde";
 		else if (hours > 1)
-			_hours = hours + " Stunden";
+			hoursStr = hours + " Stunden";
 		
-		String _minutes = "";
+		String minutesStr = "";
 		if (minutes == 1)
-			_minutes = "eine Minute";
+			minutesStr = "einer Minute";
 		else if (minutes > 1)
-			_minutes = String.format("%02d Minuten", minutes);
+			minutesStr = String.format("%02d Minuten", minutes);
 		
-		String _seconds = "";
+		String secondsStr = "";
 		if (seconds == 1)
-			_seconds = "eine Sekunde";
+			secondsStr = "einer Sekunde";
 		else if (seconds > 1)
-			_seconds = String.format("%02d Sekunden", seconds);
+			secondsStr = String.format("%02d Sekunden", seconds);
 		
-		String[] strs = {_days, _hours, _minutes, _seconds};
+		String[] strs = {daysStr, hoursStr, minutesStr, secondsStr};
 		return Arrays.stream(strs).filter(StringUtils::isNoneBlank).collect(Collectors.joining(" "));
 	}
 	

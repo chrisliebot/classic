@@ -2,10 +2,10 @@ package chrisliebaer.chrisliebot.config;
 
 import chrisliebaer.chrisliebot.C;
 import chrisliebaer.chrisliebot.ChrisliebotIrc;
-import chrisliebaer.chrisliebot.command.CommandDispatcher;
 import chrisliebaer.chrisliebot.SharedResources;
 import chrisliebaer.chrisliebot.abstraction.Message;
 import chrisliebaer.chrisliebot.command.CommandContainer;
+import chrisliebaer.chrisliebot.command.CommandDispatcher;
 import chrisliebaer.chrisliebot.command.CommandExecutor;
 import chrisliebaer.chrisliebot.command.basic.*;
 import chrisliebaer.chrisliebot.command.bottlespin.BottleSpinCommand;
@@ -15,6 +15,7 @@ import chrisliebaer.chrisliebot.command.manage.*;
 import chrisliebaer.chrisliebot.command.random.CoinCommand;
 import chrisliebaer.chrisliebot.command.random.DiceCommand;
 import chrisliebaer.chrisliebot.command.special.KlaxaCommand;
+import chrisliebaer.chrisliebot.command.until.UntilCommand;
 import chrisliebaer.chrisliebot.command.vote.VoteCommand;
 import chrisliebaer.chrisliebot.config.ChrislieConfig.BotConfig;
 import chrisliebaer.chrisliebot.config.ChrislieConfig.CommandConfig;
@@ -158,6 +159,7 @@ public final class ConfigContext {
 				"Shortcut um klaxa zu begrüßen.");
 		addCommandDefinition("vote", new VoteCommand(),
 				"Starte eine Umfrage mit: !vote <Frage>? Option1, Option2, Option3, ... oder nimm an einer Umfrage Teil mit !vote <OptNum>");
+		addCommandDefinition("until", new UntilCommand(), "Kein Geld für einen Kalender. Ich berechne für dich, wie lange ein Datum noch entfernt ist.");
 		
 		// do it the lazy way, every command is also bound to it's own name
 		cmdDefs.keySet().forEach(d -> addCommandBinding(d, d));
@@ -169,6 +171,7 @@ public final class ConfigContext {
 		addCommandBinding("random", "dice");
 		addCommandBinding("spinbottle", "bottlespin");
 		addCommandBinding("flaschendrehen", "bottlespin");
+		addCommandBinding("bis", "until");
 		
 		// we want to unbind commands by their definition, not by their binding, so we need to filter by binding entry
 		bindings.entrySet().removeIf(bnd -> unbind.contains(bnd.getValue()));
