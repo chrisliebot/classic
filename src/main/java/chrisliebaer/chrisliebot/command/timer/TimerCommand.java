@@ -163,7 +163,7 @@ public class TimerCommand implements CommandExecutor {
 				List<DateGroup> parse = parser.parse(part);
 				var dates = parse.stream().flatMap(in -> in.getDates().stream()).collect(Collectors.toList());
 				
-				if (dates.size() == 1 && parse.get(0).getText().length() == part.length()) {
+				if (!parse.isEmpty() && parse.get(0).getText().equals(part)) {
 					String message = String.join(" ", Arrays.copyOfRange(w, i, w.length));
 					return Optional.of(Pair.of(dates.get(0), message));
 				}
