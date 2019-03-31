@@ -2,7 +2,7 @@ package chrisliebaer.chrisliebot.config;
 
 import chrisliebaer.chrisliebot.C;
 import chrisliebaer.chrisliebot.ChrisliebotIrc;
-import chrisliebaer.chrisliebot.CommandDispatcher;
+import chrisliebaer.chrisliebot.command.CommandDispatcher;
 import chrisliebaer.chrisliebot.SharedResources;
 import chrisliebaer.chrisliebot.abstraction.Message;
 import chrisliebaer.chrisliebot.command.CommandContainer;

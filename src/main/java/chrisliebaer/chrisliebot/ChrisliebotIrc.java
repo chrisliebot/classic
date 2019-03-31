@@ -1,6 +1,7 @@
 package chrisliebaer.chrisliebot;
 
 import chrisliebaer.chrisliebot.capabilities.EchoCapHandler;
+import chrisliebaer.chrisliebot.command.CommandDispatcher;
 import chrisliebaer.chrisliebot.config.ChrislieConfig.BotConfig;
 import chrisliebaer.chrisliebot.config.ChrislieConfig.CommandConfig;
 import chrisliebaer.chrisliebot.config.ConfigContext;
@@ -176,7 +177,7 @@ public class ChrisliebotIrc {
 		}
 		
 		// dispatcher can only be created after successfull .start()
-		dispatcher = new CommandDispatcher(configContext);
+		dispatcher = new CommandDispatcher.AprilFoolsDayDispatcher(configContext);
 		
 		// if we reached this point, we are safe to swap old dispatcher with new one
 		if (!firstRun)
