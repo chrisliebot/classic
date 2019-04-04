@@ -5,12 +5,15 @@ import chrisliebaer.chrisliebot.SharedResources;
 import chrisliebaer.chrisliebot.abstraction.Message;
 import chrisliebaer.chrisliebot.command.CommandExecutor;
 import chrisliebaer.chrisliebot.command.qwant.QwantService.QwantResponse;
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import lombok.Data;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.text.StringSubstitutor;
+import org.kitteh.irc.client.library.element.Channel;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
@@ -18,12 +21,20 @@ import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
 
 import java.util.Collections;
+import java.util.List;
 
 @Slf4j
 public class QwantSearchCommand implements CommandExecutor {
 	
+	private static final int MAX_RESULT_STORAGE = 10;
+	
 	private Config cfg;
 	private QwantService service;
+	
+	private final Cache<String, List<QwantResponse.QwantItem>> resultStorage =
+			CacheBuilder.newBuilder()
+					.maximumSize(MAX_RESULT_STORAGE)
+					.build();
 	
 	public QwantSearchCommand(@NonNull Config cfg) {
 		this.cfg = cfg;
@@ -38,10 +49,30 @@ public class QwantSearchCommand implements CommandExecutor {
 	@Override
 	public void execute(Message m, String arg) {
 		var query = arg.trim();
+		var context = m.channel().map(Channel::getName).orElse(m.user().getNick());
 		
 		if (query.isEmpty()) {
 			m.reply(C.error("Du hast keine Suchanfrage eingegeben."));
 			return;
+		}
+		
+		if ("next".equalsIgnoreCase(query)) {
+			synchronized (resultStorage) {
+				List<QwantResponse.QwantItem> pastResult = resultStorage.getIfPresent(context);
+				if (pastResult == null) {
+					m.reply(C.error("Es gibt keine aktive Suchanfrage."));
+					return;
+				}
+				
+				if (pastResult.isEmpty()) {
+					m.reply(C.error("Das waren alle Ergebnisse. Mehr hab ich nicht."));
+					resultStorage.invalidate(context);
+					return;
+				}
+				
+				printResultItem(m, pastResult.remove(0));
+				return; // don't forget to exit
+			}
 		}
 		
 		Call<QwantResponse> call = service.search(query, cfg.safeSearch(), cfg.count(), cfg.type());
@@ -55,7 +86,7 @@ public class QwantSearchCommand implements CommandExecutor {
 					return;
 				}
 				assert body != null; // shut up about body being null, it can't
-				var items = body.items();
+				List<QwantResponse.QwantItem> items = body.items();
 				
 				if (body.items().isEmpty()) {
 					m.reply("Deine Suche ergab leider keine Treffer.");
@@ -65,22 +96,11 @@ public class QwantSearchCommand implements CommandExecutor {
 				if (cfg.randomize())
 					Collections.shuffle(items);
 				
-				var item = items.get(0);
-				StringSubstitutor strSub = new StringSubstitutor(key -> {
-					switch (key) {
-						case "title":
-							return C.stripHtml(item.title());
-						case "media":
-							return item.media();
-						case "desc":
-							return C.stripHtml(item.desc());
-						case "url":
-							return item.url();
-						default:
-							return key.toUpperCase();
-					}
-				});
-				m.reply(strSub.replace(cfg.output()));
+				// add result to storage for later lookups
+				resultStorage.put(context, items);
+				
+				// pop and print
+				printResultItem(m, items.remove(0));
 			}
 			
 			@Override
@@ -88,6 +108,24 @@ public class QwantSearchCommand implements CommandExecutor {
 				C.remoteConnectionError(call.request(), m, t);
 			}
 		});
+	}
+	
+	private void printResultItem(Message m, QwantResponse.QwantItem item) {
+		StringSubstitutor strSub = new StringSubstitutor(key -> {
+			switch (key) {
+				case "title":
+					return C.stripHtml(item.title());
+				case "media":
+					return item.media();
+				case "desc":
+					return C.stripHtml(item.desc());
+				case "url":
+					return item.url();
+				default:
+					return key.toUpperCase();
+			}
+		});
+		m.reply(strSub.replace(cfg.output()));
 	}
 	
 	public static QwantSearchCommand fromJson(Gson gson, JsonElement json) {

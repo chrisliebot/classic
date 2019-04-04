@@ -27,7 +27,7 @@ public class UntilCommand implements CommandExecutor {
 		var dates = parse.stream().flatMap(in -> in.getDates().stream()).collect(Collectors.toList());
 		
 		if (dates.isEmpty()) {
-			m.reply(C.error("Ich seh da nichts was einen Zeitpuntk darstellt"));
+			m.reply(C.error("Ich seh da nichts was einen Zeitpunkt darstellt."));
 			return;
 		}
 		

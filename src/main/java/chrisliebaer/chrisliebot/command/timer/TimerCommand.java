@@ -131,7 +131,7 @@ public class TimerCommand implements CommandExecutor {
 			String mesage = result.get().getRight();
 			
 			if (diff < 0) {
-				m.reply(C.error("Für diesen Zeitpunkt brauchst du eine Zeitmaschiene."));
+				m.reply(C.error("Für diesen Zeitpunkt brauchst du eine Zeitmaschine."));
 				return;
 			}
 			
