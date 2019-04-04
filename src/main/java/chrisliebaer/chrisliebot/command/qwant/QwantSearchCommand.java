@@ -96,8 +96,10 @@ public class QwantSearchCommand implements CommandExecutor {
 				if (cfg.randomize())
 					Collections.shuffle(items);
 				
-				// add result to storage for later lookups
-				resultStorage.put(context, items);
+				synchronized (resultStorage) {
+					// add result to storage for later lookups
+					resultStorage.put(context, items);
+				}
 				
 				// pop and print
 				printResultItem(m, items.remove(0));
