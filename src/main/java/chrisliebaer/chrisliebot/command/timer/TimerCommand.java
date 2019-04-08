@@ -270,15 +270,17 @@ public class TimerCommand implements CommandExecutor {
 		
 		// locate user in channel for proper mention
 		var chan = channel.get();
-		var user = chan.getUsers().stream()
+		List<User> accounts = chan.getUsers().stream()
 				.filter(u -> u.getAccount().isPresent()
 						&& u.getAccount().get().equals(description.account()))
-				.findFirst();
+				.collect(Collectors.toList());
 		
 		// fall back to nickname match if account is not in channel
 		String mention = description.nick();
-		if (user.isPresent())
-			mention = user.get().getNick();
+		if (!accounts.isEmpty())
+			mention = accounts.stream()
+					.map(User::getNick)
+					.collect(Collectors.joining(", "));
 		
 		chan.sendMultiLineMessage(mention + " es ist so weit: " + C.escapeNickname(chan, description.message()));
 	}
