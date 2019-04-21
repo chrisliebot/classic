@@ -63,7 +63,7 @@ public class MemeDbCommand implements CommandExecutor {
 			return;
 		}
 		
-		m.reply("Ergebniss: " + cfg.baseUrl() + "hash/" + one.getReferent().hash());
+		m.reply("Ergebnis: " + cfg.baseUrl() + "hash/" + one.getReferent().hash());
 	}
 	
 	private void update() {
