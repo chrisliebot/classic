@@ -10,6 +10,7 @@ import chrisliebaer.chrisliebot.command.CommandExecutor;
 import chrisliebaer.chrisliebot.command.basic.*;
 import chrisliebaer.chrisliebot.command.bottlespin.BottleSpinCommand;
 import chrisliebaer.chrisliebot.command.dns.DnsCommand;
+import chrisliebaer.chrisliebot.command.flip.FlipCommand;
 import chrisliebaer.chrisliebot.command.help.HelpCommand;
 import chrisliebaer.chrisliebot.command.manage.*;
 import chrisliebaer.chrisliebot.command.random.CoinCommand;
@@ -160,6 +161,7 @@ public final class ConfigContext {
 		addCommandDefinition("vote", new VoteCommand(),
 				"Starte eine Umfrage mit: !vote <Frage>? Option1, Option2, Option3, ... oder nimm an einer Umfrage Teil mit !vote <OptNum>");
 		addCommandDefinition("until", new UntilCommand(), "Kein Geld für einen Kalender. Ich berechne für dich, wie lange ein Datum noch entfernt ist.");
+		addCommandDefinition("flip", new FlipCommand(), "˙ɟdoʞ ʇɥǝʇs ʇlǝM ǝᴉp");
 		
 		// do it the lazy way, every command is also bound to it's own name
 		cmdDefs.keySet().forEach(d -> addCommandBinding(d, d));
