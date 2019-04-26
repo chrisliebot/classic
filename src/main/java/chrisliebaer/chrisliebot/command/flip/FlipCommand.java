@@ -5,13 +5,21 @@ import chrisliebaer.chrisliebot.command.CommandExecutor;
 
 public class FlipCommand implements CommandExecutor {
 	
-	private static final String LOOKUP_NORMAL = "ABCDEFGHIJKLMNOPQRSTUVWXYZ" +
-			"abcdefghijklmnopqrstuvwxyz_,;.?!/\\\\'" +
-			"0123456789";
+	private static final String LOOKUP_NORMAL;
 	
-	private static final String LOOKUP_FLIP = "∀qϽᗡƎℲƃHIſʞ˥WNOԀὉᴚS⊥∩ΛMXʎZ" +
-			"ɐqɔpǝɟbɥıظʞןɯuodbɹsʇnʌʍxʎz‾'؛˙¿¡/\\\\," +
-			"0ƖᄅƐㄣϛ9ㄥ86";
+	private static final String LOOKUP_FLIP;
+	
+	static {
+		String normal = "ABCDEFGHIJKLMNOPQRSTUVWXYZ" +
+				"abcdefghijklmnopqrstuvwxyz_,;.?!/\\\\'" +
+				"0123456789";
+		String flip = "∀qϽᗡƎℲƃHIſʞ˥WNOԀὉᴚS⊥∩ΛMXʎZ" +
+				"ɐqɔpǝɟbɥıظʞןɯuodbɹsʇnʌʍxʎz‾'؛˙¿¡/\\\\," +
+				"0ƖᄅƐㄣϛ9ㄥ86";
+		
+		LOOKUP_NORMAL = normal + flip;
+		LOOKUP_FLIP = flip + normal;
+	}
 	
 	@Override
 	public void execute(Message m, String arg) {
