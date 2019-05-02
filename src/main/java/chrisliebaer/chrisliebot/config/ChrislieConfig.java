@@ -22,6 +22,7 @@ public class ChrislieConfig {
 	
 	@Data
 	public static class CommandConfig {
+		
 		private Map<String, CommandDefinition> cmdDef;
 		private Map<String, List<String>> cmdBinding;
 		private List<ListenerDefinition> listener;
@@ -47,7 +48,7 @@ public class ChrislieConfig {
 		private String help;
 		private String clazz;
 		private JsonElement config;
-		private boolean map; // set to true will automatically create command binding with same name
+		private boolean map = true; // set to true will automatically create command binding with same name
 	}
 	
 	@Data
