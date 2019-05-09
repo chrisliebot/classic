@@ -16,6 +16,7 @@ import chrisliebaer.chrisliebot.command.manage.*;
 import chrisliebaer.chrisliebot.command.random.CoinCommand;
 import chrisliebaer.chrisliebot.command.random.DiceCommand;
 import chrisliebaer.chrisliebot.command.special.KlaxaCommand;
+import chrisliebaer.chrisliebot.command.unicode.UnicodeCommand;
 import chrisliebaer.chrisliebot.command.until.UntilCommand;
 import chrisliebaer.chrisliebot.command.vote.VoteCommand;
 import chrisliebaer.chrisliebot.config.ChrislieConfig.BotConfig;
@@ -162,6 +163,7 @@ public final class ConfigContext {
 				"Starte eine Umfrage mit: !vote <Frage>? Option1, Option2, Option3, ... oder nimm an einer Umfrage Teil mit !vote <OptNum>");
 		addCommandDefinition("until", new UntilCommand(), "Kein Geld für einen Kalender. Ich berechne für dich, wie lange ein Datum noch entfernt ist.");
 		addCommandDefinition("flip", new FlipCommand(), "˙ɟdoʞ ʇɥǝʇs ʇlǝM ǝᴉp");
+		addCommandDefinition("unicode", new UnicodeCommand(), "Keine Ahnung von Unicode? Geb mir entweder ein Zeichen oder einen Codepoint (startet mit U+).");
 		
 		// do it the lazy way, every command is also bound to it's own name
 		cmdDefs.keySet().forEach(d -> addCommandBinding(d, d));

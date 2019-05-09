@@ -101,7 +101,7 @@ public class MemeDbCommand implements CommandExecutor {
 				}
 			}
 			this.taggedMemes = newTaggedMemes;
-			log.debug("refreshed meme database, containt {} elements and {} distinct tags", responseMemes.size(), newTaggedMemes.size());
+			log.debug("refreshed meme database, contains {} elements and {} distinct tags", responseMemes.size(), newTaggedMemes.size());
 			
 		} catch (@SuppressWarnings("OverlyBroadCatchBlock") Throwable t) {
 			log.warn(C.LOG_IRC, "failed to fetch meme database", t);
