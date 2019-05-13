@@ -9,6 +9,7 @@ import chrisliebaer.chrisliebot.command.CommandDispatcher;
 import chrisliebaer.chrisliebot.command.CommandExecutor;
 import chrisliebaer.chrisliebot.command.basic.*;
 import chrisliebaer.chrisliebot.command.bottlespin.BottleSpinCommand;
+import chrisliebaer.chrisliebot.command.choice.ChoiceCommand;
 import chrisliebaer.chrisliebot.command.dns.DnsCommand;
 import chrisliebaer.chrisliebot.command.flip.FlipCommand;
 import chrisliebaer.chrisliebot.command.help.HelpCommand;
@@ -164,6 +165,7 @@ public final class ConfigContext {
 		addCommandDefinition("until", new UntilCommand(), "Kein Geld für einen Kalender. Ich berechne für dich, wie lange ein Datum noch entfernt ist.");
 		addCommandDefinition("flip", new FlipCommand(), "˙ɟdoʞ ʇɥǝʇs ʇlǝM ǝᴉp");
 		addCommandDefinition("unicode", new UnicodeCommand(), "Keine Ahnung von Unicode? Geb mir entweder ein Zeichen oder einen Codepoint (startet mit U+).");
+		addCommandDefinition("choice", new ChoiceCommand(), "Ich treff für dich die wirklich wichtigen Entscheidungen. Auflistung der Auswahloptionen mit Komma.");
 		
 		// do it the lazy way, every command is also bound to it's own name
 		cmdDefs.keySet().forEach(d -> addCommandBinding(d, d));
