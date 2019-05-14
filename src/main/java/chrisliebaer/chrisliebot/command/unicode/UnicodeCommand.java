@@ -26,9 +26,6 @@ public class UnicodeCommand implements CommandExecutor {
 				m.reply(C.error("Das sah zwar gut aus, aber ich habs trotzdem nicht gerafft."));
 				return;
 			}
-		} else if (arg.isEmpty() || arg.length() != 1) {
-			m.reply(C.error("Du musst schon ein Zeichen eingeben. Aber auch nicht mehr. Genau ein Zeichen!"));
-			return;
 		} else {
 			cp = arg.codePointAt(0);
 		}
