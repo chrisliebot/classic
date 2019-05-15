@@ -178,8 +178,9 @@ public final class ConfigContext {
 		addCommandBinding("spinbottle", "bottlespin");
 		addCommandBinding("flaschendrehen", "bottlespin");
 		addCommandBinding("bis", "until");
+		addCommandBinding("wahl", "choice");
 		
-		// we want to unbind commands by their definition, not by their binding, so we need to filter by binding entry
+		// we want to unbind commands by their binding, not by their definition
 		bindings.entrySet().removeIf(bnd -> unbind.contains(bnd.getValue()));
 		
 		// some default commands are not ment to be invoked by commands and are therefore defined later
