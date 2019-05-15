@@ -11,7 +11,6 @@ public class ChrislieConfig {
 	
 	@Data
 	public static class BotConfig {
-		
 		private String prefix;
 		private String logTarget;
 		private String databasePool;
@@ -32,6 +31,7 @@ public class ChrislieConfig {
 	@Data
 	public static class ConnectionConfig {
 		
+		private boolean verbose;
 		private String host;
 		private Integer port;
 		private String user; // for login, not nickname

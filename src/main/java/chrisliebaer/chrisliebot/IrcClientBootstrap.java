@@ -17,9 +17,12 @@ public class IrcClientBootstrap {
 		
 		builder = Client.builder();
 		configureBuilder();
+		
+		if (config.verbose())
+			verboseLogging();
 	}
 	
-	public void verboseLogging() {
+	private void verboseLogging() {
 		builder.listeners().input(this::inLogger);
 		builder.listeners().output(this::outLogger);
 	}

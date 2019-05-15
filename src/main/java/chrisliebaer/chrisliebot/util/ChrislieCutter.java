@@ -15,7 +15,7 @@ public class ChrislieCutter implements Cutter {
 	
 	@Override
 	public @NonNull List<String> split(@NonNull String message, @NonNegative int limit) {
-		// limit is know to be bugged, so we simply reduce it by a fixed amount of characters and hope for the best
+		// limit is scewed when connected to znc, a hard coded offset should fix that
 		limit += LIMIT_CORRECTION;
 		
 		ArrayList<String> out = new ArrayList<>(1); // assume one liner
