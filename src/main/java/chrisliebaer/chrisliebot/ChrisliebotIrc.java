@@ -5,6 +5,7 @@ import chrisliebaer.chrisliebot.command.CommandDispatcher;
 import chrisliebaer.chrisliebot.config.ChrislieConfig.BotConfig;
 import chrisliebaer.chrisliebot.config.ChrislieConfig.CommandConfig;
 import chrisliebaer.chrisliebot.config.ConfigContext;
+import chrisliebaer.chrisliebot.util.ChrislieCutter;
 import chrisliebaer.chrisliebot.util.ClientLogic;
 import chrisliebaer.chrisliebot.util.IrcLogAppender;
 import chrisliebaer.chrisliebot.util.IrcToSqlLogger;
@@ -125,6 +126,7 @@ public class ChrisliebotIrc {
 		builder.listeners()
 				.exception(ChrisliebotIrc::exceptionLogger);
 		client = builder.build();
+		client.setMessageCutter(new ChrislieCutter());
 		
 		// this listener helps with certain edge cases that are otherwise poorly handled by kitteh irc
 		client.getEventManager().registerEventListener(new ClientLogic());

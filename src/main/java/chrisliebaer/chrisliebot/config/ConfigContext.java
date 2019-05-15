@@ -10,6 +10,7 @@ import chrisliebaer.chrisliebot.command.CommandExecutor;
 import chrisliebaer.chrisliebot.command.basic.*;
 import chrisliebaer.chrisliebot.command.bottlespin.BottleSpinCommand;
 import chrisliebaer.chrisliebot.command.choice.ChoiceCommand;
+import chrisliebaer.chrisliebot.command.debug.DebugCommand;
 import chrisliebaer.chrisliebot.command.dns.DnsCommand;
 import chrisliebaer.chrisliebot.command.flip.FlipCommand;
 import chrisliebaer.chrisliebot.command.help.HelpCommand;
@@ -115,6 +116,7 @@ public final class ConfigContext {
 	}
 	
 	private void createDefaultCommands() {
+		addCommandDefinition("debug", new DebugCommand(), "Hilft beim Debuggen, duh.");
 		addCommandDefinition("shutdown", new ShutdownCommand(chrisliebot),
 				"Beendet den Botprozess vollständig.");
 		addCommandDefinition("restart", new RestartCommand(chrisliebot),
