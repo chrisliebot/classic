@@ -27,6 +27,7 @@ import java.util.List;
 public class QwantSearchCommand implements CommandExecutor {
 	
 	private static final int MAX_RESULT_STORAGE = 10;
+	private static final int RATE_LIMIT_CODE = 429;
 	
 	private Config cfg;
 	private QwantService service;
@@ -81,8 +82,12 @@ public class QwantSearchCommand implements CommandExecutor {
 			public void onResponse(Call<QwantResponse> call, Response<QwantResponse> resp) {
 				QwantResponse body = resp.body();
 				if (!resp.isSuccessful() || (body != null && !"success".equals(body.status()))) { // bad error code or "error" in status field of json
-					m.reply("Remote Server meldet Fehlercode: " + resp.code() + " " + resp.message());
-					log.warn("remote host {} response code: {} ({})", call.request().url(), resp.code(), resp.message());
+					if (resp.code() == RATE_LIMIT_CODE) {
+						m.reply("Ich wurde ausgesperrt. Bitte helf mir: " + cfg.captchaUrl());
+					} else {
+						m.reply("Remote Server meldet Fehlercode: " + resp.code() + " " + resp.message());
+						log.warn("remote host {} response code: {} ({})", call.request().url(), resp.code(), resp.message());
+					}
 					return;
 				}
 				assert body != null; // shut up about body being null, it can't
@@ -142,5 +147,6 @@ public class QwantSearchCommand implements CommandExecutor {
 		private String type; // web, news, images
 		private boolean randomize;
 		private int count; // limited to 50
+		private String captchaUrl; // posted when rate limited
 	}
 }
