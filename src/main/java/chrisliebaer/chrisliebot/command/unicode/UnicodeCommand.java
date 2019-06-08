@@ -9,6 +9,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.StringJoiner;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -36,7 +37,18 @@ public class UnicodeCommand implements CommandExecutor {
 			cps = arg.codePoints().boxed().collect(Collectors.toList());
 		}
 		
-		String input = cps.stream().map(cp -> String.valueOf(Character.toChars(cp))).collect(Collectors.joining(", "));
+		StringJoiner joiner = new StringJoiner(", ");
+		try {
+			for (Integer cp : cps) {
+				String s = String.valueOf(Character.toChars(cp));
+				joiner.add(s);
+			}
+		} catch (IllegalArgumentException e) {
+			m.reply(C.error("Ungültiger Codepoint, versuch es mal mit einem anderen."));
+			return;
+		}
+		
+		String input = joiner.toString();
 		m.reply("Eingabe war: " + C.highlight(input) + ", zeige ersten " + MAX_CODEPOINT_DISPLAY + " von " + cps.size() + " Codepoints.");
 		cps.stream().limit(MAX_CODEPOINT_DISPLAY).forEachOrdered(i -> printCodePoint(i, m));
 	}
