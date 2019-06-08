@@ -17,12 +17,10 @@ import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
 import retrofit2.http.GET;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 @Slf4j
 public class MemeDbCommand implements CommandExecutor {
@@ -59,12 +57,18 @@ public class MemeDbCommand implements CommandExecutor {
 		
 		var query = arg.trim();
 		if (query.isEmpty()) {
-			m.reply(C.error("Du hast keine Suchanfrage eingegeben."));
+			var set = taggedMemes.values().stream()
+					.flatMap(Collection::stream)
+					.collect(Collectors.toSet());
+			var idx = ThreadLocalRandom.current().nextInt(set.size());
+			var it = set.iterator();
+			for (int i = 0; i < idx; i++)
+				it.next();
+			printResult(m, it.next());
 			return;
 		}
 		
 		var one = FuzzySearch.extractOne(query, taggedMemes.entrySet(), Map.Entry::getKey);
-		
 		
 		if (one.getScore() <= cfg.acceptScore()) {
 			m.reply(C.error("Ich habe leider keinen passenden Eintrag gefunden oder die Ergebnisse waren nicht gut genug."));
@@ -76,7 +80,11 @@ public class MemeDbCommand implements CommandExecutor {
 		
 		var choice = ThreadLocalRandom.current().nextInt(items.size());
 		var item = items.get(choice);
-		m.reply("Ergebnis: " + cfg.baseUrl() + "hash/" + item.hash() + " Score: " + one.getScore());
+		printResult(m, item);
+	}
+	
+	private void printResult(Message m, DatabaseEntry item) {
+		m.reply("Ergebnis: " + cfg.baseUrl() + "hash/" + item.hash());
 	}
 	
 	private void update() {
