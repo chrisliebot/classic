@@ -49,8 +49,8 @@ public class UnicodeCommand implements CommandExecutor {
 		}
 		
 		String input = joiner.toString();
-		m.reply("Eingabe war: " + C.highlight(input) +
-				", Anzahl Codepoints: " + cps.size() + " (Ausgabe limitiert auf maximal " + MAX_CODEPOINT_DISPLAY + " Codepoints)");
+		m.reply("Eingabe war: [" + C.highlight(input) +
+				"], Anzahl Codepoints: " + cps.size() + " (Ausgabe limitiert auf maximal " + MAX_CODEPOINT_DISPLAY + " Codepoints)");
 		cps.stream().limit(MAX_CODEPOINT_DISPLAY).forEachOrdered(i -> printCodePoint(i, m));
 	}
 	
