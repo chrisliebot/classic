@@ -1,13 +1,11 @@
 package chrisliebaer.chrisliebot.command.sed;
 
-import chrisliebaer.chrisliebot.C;
 import chrisliebaer.chrisliebot.abstraction.Message;
 import chrisliebaer.chrisliebot.command.CommandExecutor;
 import com.google.common.base.Preconditions;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.queue.CircularFifoQueue;
-import org.apache.commons.lang3.StringUtils;
 
 import java.util.Optional;
 import java.util.regex.Matcher;
@@ -16,9 +14,9 @@ import java.util.regex.Pattern;
 @Slf4j
 public class SedCommand implements CommandExecutor {
 	
-	private static final int BACKLOG_SIZE = 30;
+	private static final int BACKLOG_SIZE = 50;
 	
-	private static final Pattern SED_PATTERN = Pattern.compile("^s/(?<search>([^/]|\\\\/)+)/(?<replace>([^/]|\\\\/)+)/(?<flags>[g]*)$");
+	private static final Pattern SED_PATTERN = Pattern.compile("^s/(?<search>([^/]|\\\\/)+)/(?<replace>([^/]|\\\\/)*)/(?<flags>[g]*)$");
 	
 	// TODO: consider moving this to global state
 	private CircularFifoQueue<StoredMessage> backlog = new CircularFifoQueue<>(BACKLOG_SIZE);
@@ -66,9 +64,9 @@ public class SedCommand implements CommandExecutor {
 		
 		// g: enables global replacement
 		if (flags.contains("g"))
-			replaced = found.message.replace(search, C.highlight(replace));
+			replaced = found.message.replaceAll(search, replace);
 		else
-			replaced = StringUtils.replaceOnce(found.message, search, C.highlight(replace));
+			replaced = found.message.replaceFirst(search, replace);
 		
 		m.reply("<" + found.nickname + "> " + replaced);
 	}
