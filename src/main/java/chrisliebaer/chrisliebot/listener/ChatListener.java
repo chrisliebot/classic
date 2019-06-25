@@ -9,6 +9,7 @@ import java.util.function.Predicate;
 public interface ChatListener extends Predicate<Message> {
 	
 	public static class AllMessageListener implements ChatListener {
+		
 		@Override
 		public boolean test(Message m) {
 			return true;
@@ -20,6 +21,7 @@ public interface ChatListener extends Predicate<Message> {
 	}
 	
 	public static class ChannelMessageListener implements ChatListener {
+		
 		@Override
 		public boolean test(Message m) {
 			return m.channel().isPresent();
@@ -31,9 +33,10 @@ public interface ChatListener extends Predicate<Message> {
 	}
 	
 	public static class PrivateMessageListener implements ChatListener {
+		
 		@Override
 		public boolean test(Message m) {
-			return !m.channel().isPresent();
+			return m.channel().isEmpty();
 		}
 		
 		public static PrivateMessageListener fromJson(Gson gson, JsonElement json) {

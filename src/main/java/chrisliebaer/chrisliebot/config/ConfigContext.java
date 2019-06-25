@@ -17,6 +17,7 @@ import chrisliebaer.chrisliebot.command.help.HelpCommand;
 import chrisliebaer.chrisliebot.command.manage.*;
 import chrisliebaer.chrisliebot.command.random.CoinCommand;
 import chrisliebaer.chrisliebot.command.random.DiceCommand;
+import chrisliebaer.chrisliebot.command.sed.SedCommand;
 import chrisliebaer.chrisliebot.command.special.KlaxaCommand;
 import chrisliebaer.chrisliebot.command.unicode.UnicodeCommand;
 import chrisliebaer.chrisliebot.command.until.UntilCommand;
@@ -185,8 +186,8 @@ public final class ConfigContext {
 		// we want to unbind commands by their binding, not by their definition
 		bindings.entrySet().removeIf(bnd -> unbind.contains(bnd.getValue()));
 		
-		// some default commands are not ment to be invoked by commands and are therefore defined later
-		
+		// some default commands are not ment to be invoked by text commands and are therefore defined later
+		addCommandDefinition("sed", new SedCommand(), null);
 	}
 	
 	private void createDefaultListener() {
@@ -228,7 +229,7 @@ public final class ConfigContext {
 						var container = cmdDefs.get(input);
 						Preconditions.checkArgument(container != null, "trigger to unknown command definition: " + input);
 						
-						return cmdDefs.get(input);
+						return container;
 					}).collect(Collectors.toList());
 			
 			listener.add(new ListenerContainer(instanceListener(listenerDef), trigger));

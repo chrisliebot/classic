@@ -15,7 +15,7 @@ public class DiceCommand implements CommandExecutor {
 	}
 	
 	@Override
-	public synchronized void execute(Message m, String arg) {
+	public void execute(Message m, String arg) {
 		try {
 			long max = defNumber;
 			
