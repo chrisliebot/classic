@@ -7,7 +7,9 @@ import com.google.common.base.Preconditions;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.queue.CircularFifoQueue;
+import org.apache.commons.lang3.StringUtils;
 
+import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -16,7 +18,7 @@ public class SedCommand implements CommandExecutor {
 	
 	private static final int BACKLOG_SIZE = 30;
 	
-	private static final Pattern SED_PATTERN = Pattern.compile("^s/(?<search>([^/]|\\\\/)+)/(?<replace>([^/]|\\\\/)+)/$");
+	private static final Pattern SED_PATTERN = Pattern.compile("^s/(?<search>([^/]|\\\\/)+)/(?<replace>([^/]|\\\\/)+)/(?<flags>[g]*)$");
 	
 	// TODO: consider moving this to global state
 	private CircularFifoQueue<StoredMessage> backlog = new CircularFifoQueue<>(BACKLOG_SIZE);
@@ -37,20 +39,36 @@ public class SedCommand implements CommandExecutor {
 	private synchronized void doSed(Message m, Matcher matcher) {
 		String channel = m.channel().get().getName();
 		
-		String search = matcher.group("search");
-		String replace = matcher.group("replace");
+		// extract groups and reverse escaped slash
+		String search = matcher.group("search").replaceAll("\\\\/", "/");
+		String replace = matcher.group("replace").replaceAll("\\\\/", "/");
+		String flags = matcher.group("flags");
 		
-		// go back in messages and find first match
-		var match = backlog.stream()
-				.filter(sm -> sm.channel.equals(channel))
-				.filter(sm -> sm.message.contains(search)).findFirst();
+		Optional<StoredMessage> match = Optional.empty();
+		
+		// reverse loop to get last message first
+		for (int i = backlog.size() - 1; i >= 0; i--) {
+			var sm = backlog.get(i);
+			
+			// stop on first match
+			if (sm.channel.equals(channel) && sm.message.contains(search)) {
+				match = Optional.of(sm);
+				break;
+			}
+		}
 		
 		// don't print anything if no match, user will understand
 		if (match.isEmpty())
 			return;
 		
 		var found = match.get();
-		var replaced = found.message.replaceAll(Pattern.quote(search), Matcher.quoteReplacement(C.highlight(replace)));
+		String replaced;
+		
+		// g: enables global replacement
+		if (flags.contains("g"))
+			replaced = found.message.replace(search, C.highlight(replace));
+		else
+			replaced = StringUtils.replaceOnce(found.message, search, C.highlight(replace));
 		
 		m.reply("<" + found.nickname + "> " + replaced);
 	}
