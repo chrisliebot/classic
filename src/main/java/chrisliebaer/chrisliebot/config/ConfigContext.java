@@ -15,6 +15,7 @@ import chrisliebaer.chrisliebot.command.dns.DnsCommand;
 import chrisliebaer.chrisliebot.command.flip.FlipCommand;
 import chrisliebaer.chrisliebot.command.help.HelpCommand;
 import chrisliebaer.chrisliebot.command.manage.*;
+import chrisliebaer.chrisliebot.command.mock.MockCommand;
 import chrisliebaer.chrisliebot.command.random.CoinCommand;
 import chrisliebaer.chrisliebot.command.random.DiceCommand;
 import chrisliebaer.chrisliebot.command.sed.SedCommand;
@@ -169,6 +170,7 @@ public final class ConfigContext {
 		addCommandDefinition("flip", new FlipCommand(), "˙ɟdoʞ ʇɥǝʇs ʇlǝM ǝᴉp");
 		addCommandDefinition("unicode", new UnicodeCommand(), "Keine Ahnung von Unicode? Geb mir entweder ein Zeichen oder einen Codepoint (startet mit U+).");
 		addCommandDefinition("choice", new ChoiceCommand(), "Ich treff für dich die wirklich wichtigen Entscheidungen. Auflistung der Auswahloptionen mit Komma.");
+		addCommandDefinition("mock", new MockCommand(), "DiEsEr BeFheHl iSt sEhR gUt.");
 		
 		// do it the lazy way, every command is also bound to it's own name
 		cmdDefs.keySet().forEach(d -> addCommandBinding(d, d));
