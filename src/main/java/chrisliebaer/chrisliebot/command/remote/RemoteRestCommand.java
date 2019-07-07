@@ -56,7 +56,7 @@ public class RemoteRestCommand implements CommandExecutor {
 					return;
 				}
 				
-				try (var body = resp.peekBody(MAX_RESPONSE_LENGHT)) {
+				try (resp; var body = resp.peekBody(MAX_RESPONSE_LENGHT)) {
 					var lines = body.string().split("[\n\r\\u0000]", MAX_LINE_COUNT + 1);
 					Arrays.stream(lines).forEachOrdered(m::reply);
 				}
