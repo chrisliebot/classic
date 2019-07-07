@@ -1,3 +1,0 @@
-[submodule "config"]
-	path = config
-	url = git@gitlab.com:Chrisliebaer/chrisliebot-irc-data.git

@@ -8,7 +8,7 @@
 
 # application level
 /logs/
-/data/
+/config/
 
 # binaries
 *.jar

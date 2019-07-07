@@ -7,8 +7,10 @@ cd "$(dirname "$0")"
 set -e
 
 git pull
-git submodule update
 gradle :shadowJar
+
+# fetch current config repo
+git -C "config" pull
 
 # delete old jar and copy new jar
 rm -f *.jar
