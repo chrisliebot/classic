@@ -65,7 +65,11 @@ public final class ConfigContext {
 	private List<String> unbind;
 	
 	// private implementation of interface to be passed to commands upon creation
-	private PreConfigAccessor preConfigAccessor = cmdDef -> cmdDefs.get(cmdDef);
+	private PreConfigAccessor preConfigAccessor = cmdDef -> {
+		var cmd = cmdDefs.get(cmdDef);
+		Preconditions.checkState(cmd != null, "failed to find command definition with name : " + cmdDef);
+		return cmd;
+	};
 	
 	private ConfigContext(@NonNull ChrisliebotIrc chrisliebot,
 						  @NonNull BotConfig botCfg,
