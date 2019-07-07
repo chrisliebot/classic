@@ -89,17 +89,18 @@ public class IrcToSqlLogger {
 		log.trace("LOG: {} [{}] {}: {} ({})", when, context, sender.getNick(), message, type);
 		
 		try {
-			String sql = "INSERT INTO chatlog(timestamp, context, type, nickname, ident, host, account, message) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+			String sql = "INSERT INTO chatlog(timestamp, context, type, nickname, realname, ident, host, account, message) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
 			try (Connection connection = dataSource.getConnection();
 				 var stmt = connection.prepareStatement(sql)) {
 				stmt.setTimestamp(1, new Timestamp(when.getTime()));
 				stmt.setString(2, context);
 				stmt.setString(3, type.name());
 				stmt.setString(4, sender.getNick());
-				stmt.setString(5, sender.getUserString());
-				stmt.setString(6, sender.getHost());
-				stmt.setString(7, sender.getAccount().orElse(null));
-				stmt.setString(8, message);
+				stmt.setString(5, sender.getRealName().orElse(null));
+				stmt.setString(6, sender.getUserString());
+				stmt.setString(7, sender.getHost());
+				stmt.setString(8, sender.getAccount().orElse(null));
+				stmt.setString(9, message);
 				stmt.execute();
 			}
 		} catch (SQLException e) {
