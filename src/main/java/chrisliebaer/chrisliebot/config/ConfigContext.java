@@ -22,9 +22,9 @@ import chrisliebaer.chrisliebot.command.sed.SedCommand;
 import chrisliebaer.chrisliebot.command.special.KlaxaCommand;
 import chrisliebaer.chrisliebot.command.unicode.UnicodeCommand;
 import chrisliebaer.chrisliebot.command.until.UntilCommand;
+import chrisliebaer.chrisliebot.command.urbandictionary.UrbanDictionaryCommand;
 import chrisliebaer.chrisliebot.command.vote.VoteCommand;
 import chrisliebaer.chrisliebot.config.ChrislieConfig.BotConfig;
-import chrisliebaer.chrisliebot.config.ChrislieConfig.CommandConfig;
 import chrisliebaer.chrisliebot.config.ChrislieConfig.CommandDefinition;
 import chrisliebaer.chrisliebot.config.ChrislieConfig.ListenerDefinition;
 import chrisliebaer.chrisliebot.listener.ChatListener;
@@ -173,6 +173,7 @@ public final class ConfigContext {
 		addCommandDefinition("flip", new FlipCommand(), "˙ɟdoʞ ʇɥǝʇs ʇlǝM ǝᴉp");
 		addCommandDefinition("unicode", new UnicodeCommand(), "Keine Ahnung von Unicode? Geb mir entweder ein Zeichen oder einen Codepoint (startet mit U+).");
 		addCommandDefinition("choice", new ChoiceCommand(), "Ich treff für dich die wirklich wichtigen Entscheidungen. Auflistung der Auswahloptionen mit Komma.");
+		addCommandDefinition("urban", new UrbanDictionaryCommand(), "Schlägt einen Begriff im Urban Dictionary nach. urbandictionary.com");
 		addCommandDefinition("mock", new MockCommand(), "DiEsEr BeFheHl iSt sEhR gUt.");
 		
 		// do it the lazy way, every command is also bound to it's own name
@@ -294,14 +295,15 @@ public final class ConfigContext {
 		return (ChatListener) method.invoke(null, gson, def.config());
 	}
 	
-	public static ConfigContext fromConfig(@NonNull ChrisliebotIrc bot, @NonNull BotConfig botCfg, @NonNull CommandConfig cmdCfg)
+	public static ConfigContext fromConfig(@NonNull ChrisliebotIrc bot, @NonNull BotConfig botCfg, @NonNull ChrislieConfig.CommandRegistry registry)
 			throws ClassNotFoundException, NoSuchMethodException, IllegalAccessException, InvocationTargetException {
+		var cmdCfg = registry.commandConfig();
 		return new ConfigContext(bot,
 				botCfg,
 				cmdCfg.cmdDef(),
 				cmdCfg.cmdBinding(),
 				cmdCfg.listener(),
-				cmdCfg.unbind());
+				registry.unbind());
 	}
 	
 	public static ConfigContext emergencyContext(@NonNull ChrisliebotIrc bot, @NonNull BotConfig botCfg)

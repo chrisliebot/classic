@@ -3,6 +3,8 @@ package chrisliebaer.chrisliebot.config;
 import com.google.gson.JsonElement;
 import lombok.Data;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -20,12 +22,26 @@ public class ChrislieConfig {
 	}
 	
 	@Data
+	public static class CommandRegistry {
+		private List<String> unbind;
+		private List<String> use;
+		
+		private transient CommandConfig commandConfig = new CommandConfig();
+	}
+	
+	@Data
 	public static class CommandConfig {
 		
-		private Map<String, CommandDefinition> cmdDef;
-		private Map<String, List<String>> cmdBinding;
-		private List<ListenerDefinition> listener;
-		private List<String> unbind;
+		private Map<String, CommandDefinition> cmdDef = new HashMap<>();
+		private Map<String, List<String>> cmdBinding = new HashMap<>();
+		private List<ListenerDefinition> listener = new ArrayList<>();
+		
+		public CommandConfig merge(CommandConfig o) {
+			cmdDef.putAll(o.cmdDef);
+			cmdBinding.putAll(o.cmdBinding);
+			listener.addAll(o.listener);
+			return this;
+		}
 	}
 	
 	@Data

@@ -4,6 +4,7 @@ import chrisliebaer.chrisliebot.capabilities.EchoCapHandler;
 import chrisliebaer.chrisliebot.command.CommandDispatcher;
 import chrisliebaer.chrisliebot.config.ChrislieConfig.BotConfig;
 import chrisliebaer.chrisliebot.config.ChrislieConfig.CommandConfig;
+import chrisliebaer.chrisliebot.config.ChrislieConfig.CommandRegistry;
 import chrisliebaer.chrisliebot.config.ConfigContext;
 import chrisliebaer.chrisliebot.util.ChrislieCutter;
 import chrisliebaer.chrisliebot.util.ClientLogic;
@@ -47,7 +48,7 @@ public class ChrisliebotIrc {
 	private File botCfgFile;
 	private File cmdCfgFile;
 	private BotConfig botConfig;
-	private CommandConfig cmdConfig;
+	private CommandRegistry cmdRegistry;
 	
 	private ConfigContext configContext;
 	private CommandDispatcher dispatcher;
@@ -116,7 +117,15 @@ public class ChrisliebotIrc {
 	
 	private void loadCommandConfig() throws IOException {
 		try (FileReader cmdFr = new FileReader(cmdCfgFile)) {
-			cmdConfig = gson.fromJson(cmdFr, CommandConfig.class);
+			cmdRegistry = gson.fromJson(cmdFr, CommandRegistry.class);
+			
+			// load used command definitions
+			for (String use : cmdRegistry.use()) {
+				File useFile = new File(use + ".json");
+				try (FileReader useFr = new FileReader(useFile)) {
+					cmdRegistry.commandConfig().merge(gson.fromJson(useFr, CommandConfig.class));
+				}
+			}
 		}
 	}
 	
@@ -167,7 +176,7 @@ public class ChrisliebotIrc {
 		ConfigContext configContext;
 		
 		// errors in this stage are not fatal, simply continue with old config
-		configContext = ConfigContext.fromConfig(this, botConfig, cmdConfig);
+		configContext = ConfigContext.fromConfig(this, botConfig, cmdRegistry);
 		
 		try {
 			configContext.start();

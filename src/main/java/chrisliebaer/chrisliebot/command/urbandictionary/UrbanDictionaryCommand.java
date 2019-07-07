@@ -5,8 +5,6 @@ import chrisliebaer.chrisliebot.SharedResources;
 import chrisliebaer.chrisliebot.abstraction.Message;
 import chrisliebaer.chrisliebot.command.CommandExecutor;
 import chrisliebaer.chrisliebot.command.urbandictionary.UrbanDictionaryService.DefinitionList;
-import com.google.gson.Gson;
-import com.google.gson.JsonElement;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
@@ -55,9 +53,5 @@ public class UrbanDictionaryCommand implements CommandExecutor {
 				C.remoteConnectionError(call.request(), m, t);
 			}
 		});
-	}
-	
-	public static UrbanDictionaryCommand fromJson(Gson gson, JsonElement json) {
-		return new UrbanDictionaryCommand();
 	}
 }
