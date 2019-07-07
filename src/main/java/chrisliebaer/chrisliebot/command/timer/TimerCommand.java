@@ -285,7 +285,7 @@ public class TimerCommand implements CommandExecutor {
 		chan.sendMultiLineMessage(mention + " es ist so weit: " + C.escapeNickname(chan, description.message()));
 	}
 	
-	public static TimerCommand fromJson(Gson json, JsonElement element) {
+	public static TimerCommand fromJson(Gson gson, JsonElement element) {
 		return new TimerCommand(new File(element.getAsString()));
 	}
 	

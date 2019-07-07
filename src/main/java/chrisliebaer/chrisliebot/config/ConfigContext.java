@@ -64,6 +64,9 @@ public final class ConfigContext {
 	private List<ListenerDefinition> cfgListener;
 	private List<String> unbind;
 	
+	// private implementation of interface to be passed to commands upon creation
+	private PreConfigAccessor preConfigAccessor = cmdDef -> cmdDefs.get(cmdDef);
+	
 	private ConfigContext(@NonNull ChrisliebotIrc chrisliebot,
 						  @NonNull BotConfig botCfg,
 						  @NonNull Map<String, CommandDefinition> cfgCmdDefs,
@@ -239,14 +242,14 @@ public final class ConfigContext {
 	}
 	
 	/**
-	 * Compacts the indirection over the binding table for use within the {@link CommandDispatcher}.
+	 * Remove the indirection via the binding table for use within the {@link CommandDispatcher}.
 	 *
 	 * @return Immutable command table.
 	 */
 	public Map<String, CommandContainer> getCommandTable() {
 		HashMap<String, CommandContainer> t = new HashMap<>(bindings.size());
 		for (var e : bindings.entrySet()) {
-			// all values are set, this in enforced in the accessor methods
+			// all values are set, this is enforced in the accessor methods
 			t.put(e.getKey(), cmdDefs.get(e.getValue()));
 		}
 		return ImmutableMap.copyOf(t);
@@ -260,8 +263,27 @@ public final class ConfigContext {
 			throws ClassNotFoundException, NoSuchMethodException, InvocationTargetException, IllegalAccessException {
 		String clazzStr = def.clazz();
 		Class<?> clazz = Class.forName(clazzStr);
-		Method method = clazz.getMethod(INSTACE_METHOD_NAME, Gson.class, JsonElement.class);
-		return (CommandExecutor) method.invoke(null, gson, def.config());
+		
+		// try all instance signatures
+		Optional<Method> maybeMethod;
+		
+		maybeMethod = getMethodEx(clazz, INSTACE_METHOD_NAME, Gson.class, JsonElement.class);
+		if (maybeMethod.isPresent())
+			return (CommandExecutor) maybeMethod.get().invoke(null, gson, def.config());
+		
+		maybeMethod = getMethodEx(clazz, INSTACE_METHOD_NAME, Gson.class, JsonElement.class, PreConfigAccessor.class);
+		if (maybeMethod.isPresent())
+			return (CommandExecutor) maybeMethod.get().invoke(null, gson, def.config(), preConfigAccessor);
+		
+		throw new NoSuchMethodException("class " + clazz + " is missing " + INSTACE_METHOD_NAME + " method");
+	}
+	
+	private static <T> Optional<Method> getMethodEx(Class<T> clazz, String name, Class<?>... parameterTypes) {
+		try {
+			return Optional.of(clazz.getMethod(name, parameterTypes));
+		} catch (NoSuchMethodException ignore) {
+			return Optional.empty();
+		}
 	}
 	
 	private ChatListener instanceListener(ListenerDefinition def)
@@ -298,5 +320,13 @@ public final class ConfigContext {
 		for (CommandContainer container : cmdDefs.values()) {
 			container.init(client);
 		}
+	}
+	
+	/**
+	 * Passed to commands during creation to access config context for meta commands.
+	 */
+	public interface PreConfigAccessor {
+		
+		public CommandContainer getCommandByDefinition(String cmdDef);
 	}
 }
