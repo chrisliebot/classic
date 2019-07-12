@@ -30,6 +30,14 @@ public class IrcToSqlLogger {
 		this.dataSource = dataSource;
 	}
 	
+	private void ensureEncoding(Connection conn) {
+		try (var stmt = conn.prepareStatement("SET NAMES 'utf8mb4'")) {
+			stmt.execute();
+		} catch (SQLException e) {
+			log.error("failed to set sql connection to utf8mb4, emojis might cause errors", e);
+		}
+	}
+	
 	@Handler
 	public void logChannel(ActorChannelMessageEventBase<User> ev) {
 		MessageType type = null;
@@ -92,6 +100,9 @@ public class IrcToSqlLogger {
 			String sql = "INSERT INTO chatlog(timestamp, context, type, nickname, realname, ident, host, account, message) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
 			try (Connection connection = dataSource.getConnection();
 				 var stmt = connection.prepareStatement(sql)) {
+				
+				ensureEncoding(connection);
+				
 				stmt.setTimestamp(1, new Timestamp(when.getTime()));
 				stmt.setString(2, context);
 				stmt.setString(3, type.name());
