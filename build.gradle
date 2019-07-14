@@ -61,6 +61,9 @@ dependencies {
 
 	// protocols
 	compile 'org.kitteh.irc:client-lib:6.0.0'
+	compile('net.dv8tion:JDA:4.BETA.0_22') {
+		exclude module: 'opus-java'
+	}
 }
 
 idea {

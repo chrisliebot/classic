@@ -27,6 +27,8 @@ public final class C {
 	public static final int EXIT_CODE_RESTART = 10;
 	public static final int EXIT_CODE_UPGRADE = 20;
 	
+	public static final Pattern NEWLINE_PATTERN = Pattern.compile("\\R");
+	
 	private static final int MAX_LENGHT_PER_MULTILINE = 1000;
 	
 	public static final char[] EMPTY_CHAR_ARRAY = new char[0];

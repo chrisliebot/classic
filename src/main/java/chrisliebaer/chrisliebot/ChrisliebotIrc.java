@@ -1,5 +1,6 @@
 package chrisliebaer.chrisliebot;
 
+import chrisliebaer.chrisliebot.abstraction.MigrationHelper;
 import chrisliebaer.chrisliebot.capabilities.EchoCapHandler;
 import chrisliebaer.chrisliebot.command.CommandDispatcher;
 import chrisliebaer.chrisliebot.config.ChrislieConfig.BotConfig;
@@ -86,6 +87,9 @@ public class ChrisliebotIrc {
 		// connection will never be reloaded
 		loadBotConfig();
 		startConnection();
+		
+		// migration hotfix
+		MigrationHelper.setService(client);
 		
 		// load configuration, might fail if config error
 		try {
