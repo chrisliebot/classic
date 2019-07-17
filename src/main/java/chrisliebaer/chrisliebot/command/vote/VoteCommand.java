@@ -2,40 +2,39 @@ package chrisliebaer.chrisliebot.command.vote;
 
 import chrisliebaer.chrisliebot.C;
 import chrisliebaer.chrisliebot.SharedResources;
-import chrisliebaer.chrisliebot.abstraction.Message;
+import chrisliebaer.chrisliebot.abstraction.ChrislieChannel;
+import chrisliebaer.chrisliebot.abstraction.ChrislieMessage;
 import chrisliebaer.chrisliebot.command.ArgumentParser;
-import chrisliebaer.chrisliebot.command.CommandExecutor;
+import chrisliebaer.chrisliebot.command.ChrisieCommand;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.NonNull;
-import org.kitteh.irc.client.library.element.Channel;
 import org.kitteh.irc.client.library.util.Format;
 
 import java.util.*;
 import java.util.stream.Collectors;
 
 @SuppressWarnings("OptionalGetWithoutIsPresent")
-public class VoteCommand implements CommandExecutor {
+public class VoteCommand implements ChrisieCommand {
 	
 	private static final int VOTE_TIME = 120000;
 	
 	private final Map<String, PendingVote> pending = new HashMap<>(); // not thread safe, external sync required
 	
 	@Override
-	public synchronized void execute(Message m, String arg) {
-		if (m.channel().isEmpty()) {
+	public synchronized void execute(ChrislieMessage m, String arg) {
+		if (m.channel().isDirectMessage()) {
 			m.reply(C.error("Abstimmungen sind nur in Chaträumen möglich."));
 			return;
 		}
 		
-		String channelName = m.channel().get().getName();
-		PendingVote pendingVote = pending.get(channelName);
+		PendingVote pendingVote = pending.get(m.channel().identifier());
 		
 		if (pendingVote == null) {
 			startVote(m, arg);
 		} else {
 			if ("stop".equalsIgnoreCase(arg)) {
-				if (m.user().getNick().equals(pendingVote.nickname()) || m.isAdmin()) {
+				if (m.user().softIdentifer().equals(pendingVote.nickname()) || m.user().isAdmin()) {
 					completion(pendingVote);
 				} else {
 					m.reply(C.error("Du bist nicht der Besitzer dieser Umfrage und kannst sie daher nicht beenden."));
@@ -46,7 +45,7 @@ public class VoteCommand implements CommandExecutor {
 		}
 	}
 	
-	private synchronized void startVote(Message m, String arg) {
+	private synchronized void startVote(ChrislieMessage m, String arg) {
 		ArgumentParser parser = new ArgumentParser(arg);
 		String question = parser.consumeUntil("?");
 		if (question == null || question.isEmpty()) {
@@ -98,17 +97,17 @@ public class VoteCommand implements CommandExecutor {
 					.append(" ");
 		
 		PendingVote pendingVote = new PendingVote()
-				.nickname(m.user().getNick())
-				.channel(m.channel().get())
+				.nickname(m.user().softIdentifer())
+				.channel(m.channel())
 				.question(question)
 				.options(options);
-		pending.put(m.channel().get().getName(), pendingVote);
+		pending.put(m.channel().identifier(), pendingVote);
 		pendingVote.startVote();
 		
 		m.reply("Umfrage gestartet: " + C.highlight(question) + " Antwortmöglichkeiten: " + optsOut);
 	}
 	
-	private synchronized void parseVote(Message m, String arg, PendingVote pendingVote) {
+	private synchronized void parseVote(ChrislieMessage m, String arg, PendingVote pendingVote) {
 		try {
 			int index = Integer.parseInt(arg) - 1;
 			var options = pendingVote.options();
@@ -116,7 +115,7 @@ public class VoteCommand implements CommandExecutor {
 				m.reply(C.error("Das ist leider keine mögliche Auswahlmöglichkeit."));
 			} else {
 				// count vote towards option, overriding existing vote from same user
-				pendingVote.votes().put(m.user().getNick(), index);
+				pendingVote.votes().put(m.user().softIdentifer(), index);
 			}
 		} catch (NumberFormatException e) {
 			m.reply(C.error("Leider konnte ich deine Eingabe nicht verarbeiten. Bitte beachte, dass bereits eine Umfrage stattfindet."));
@@ -138,15 +137,16 @@ public class VoteCommand implements CommandExecutor {
 		vote.task().cancel();
 		
 		// remove vote from pending
-		pending.remove(vote.channel().getName(), vote);
+		pending.remove(vote.channel().identifier(), vote);
 		
 		// retrieve results
 		List<VoteResult> results = vote.results();
 		
-		C.sendChannelMessage(vote.channel(), "Umfrage beendet: " + vote.question() + " "
-				+ results.stream()
-				.map(input -> String.format("%s (%s)", input.option(), C.highlight(input.votes())))
-				.collect(Collectors.joining(", ")));
+		vote.channel().output()
+				.plain("Umfrage beendet: " + vote.question() + " "
+						+ results.stream()
+						.map(input -> String.format("%s (%s)", input.option(), C.highlight(input.votes()))) // TODO: replace highlight format
+						.collect(Collectors.joining(", "))).send();
 	}
 	
 	@Data
@@ -157,7 +157,7 @@ public class VoteCommand implements CommandExecutor {
 		private TimerTask task;
 		
 		private @NonNull String nickname; // owning nickname
-		private @NonNull Channel channel;
+		private @NonNull ChrislieChannel channel;
 		private @NonNull String question;
 		private @NonNull List<String> options;
 		private Map<String, Integer> votes = new HashMap<>();

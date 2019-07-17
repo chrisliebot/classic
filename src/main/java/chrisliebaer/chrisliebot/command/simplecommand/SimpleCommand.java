@@ -1,8 +1,8 @@
 package chrisliebaer.chrisliebot.command.simplecommand;
 
 
-import chrisliebaer.chrisliebot.abstraction.Message;
-import chrisliebaer.chrisliebot.command.CommandExecutor;
+import chrisliebaer.chrisliebot.abstraction.ChrislieMessage;
+import chrisliebaer.chrisliebot.command.ChrisieCommand;
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import lombok.Data;
@@ -11,7 +11,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
 
-public class SimpleCommand implements CommandExecutor {
+public class SimpleCommand implements ChrisieCommand {
 	
 	private SimpleCommandOutput output;
 	
@@ -20,14 +20,14 @@ public class SimpleCommand implements CommandExecutor {
 	}
 	
 	@Override
-	public void execute(Message m, String arg) {
+	public void execute(ChrislieMessage m, String arg) {
 		var out = output.out(arg);
 		
 		if (out != null && !out.isEmpty())
 			m.reply(out);
 	}
 	
-	public static CommandExecutor fromJson(Gson gson, JsonElement json) throws IOException {
+	public static ChrisieCommand fromJson(Gson gson, JsonElement json) throws IOException {
 		return new SimpleCommand(simpleCommandFromJson(gson, json));
 	}
 	

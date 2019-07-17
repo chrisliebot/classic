@@ -1,6 +1,6 @@
 package chrisliebaer.chrisliebot.command.remote;
 
-import chrisliebaer.chrisliebot.abstraction.Message;
+import chrisliebaer.chrisliebot.abstraction.ChrislieMessage;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NonNull;
@@ -29,15 +29,16 @@ public class RemoteMessageDto {
 	private String argument; // extracted argument of invocation, may be null if listener invocation
 	
 	
-	public static RemoteMessageDto of(@NonNull Message m) {
+	public static RemoteMessageDto of(@NonNull ChrislieMessage m) {
 		return of(m, null);
 	}
 	
-	public static RemoteMessageDto of(@NonNull Message m, String arg) {
+	public static RemoteMessageDto of(@NonNull ChrislieMessage m, String arg) {
 		var user = m.user();
 		
 		return RemoteMessageDto.builder()
-				.nickname(user.getNick())
+				.nickname(user.softIdentifer())
+				/* TODO
 				.realName(user.getRealName().orElse(null))
 				.hostname(user.getHost())
 				.account(user.getAccount().orElse(null))
@@ -45,6 +46,7 @@ public class RemoteMessageDto {
 				.modes(getUserModeSet(m.channel().orElse(null), user))
 				
 				.channel(m.channel().map(Channel::getName).orElse(null))
+				*/
 				.message(m.message())
 				.argument(arg)
 				.build();

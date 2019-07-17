@@ -1,8 +1,8 @@
 package chrisliebaer.chrisliebot;
 
-import chrisliebaer.chrisliebot.abstraction.MigrationHelper;
+import chrisliebaer.chrisliebot.abstraction.irc.IrcService;
 import chrisliebaer.chrisliebot.capabilities.EchoCapHandler;
-import chrisliebaer.chrisliebot.command.CommandDispatcher;
+import chrisliebaer.chrisliebot.command.IrcCommandDispatcher;
 import chrisliebaer.chrisliebot.config.ChrislieConfig.BotConfig;
 import chrisliebaer.chrisliebot.config.ChrislieConfig.CommandConfig;
 import chrisliebaer.chrisliebot.config.ChrislieConfig.CommandRegistry;
@@ -45,6 +45,7 @@ public class ChrisliebotIrc {
 	private Gson gson;
 	
 	private Client client;
+	private IrcService service;
 	
 	private File botCfgFile;
 	private File cmdCfgFile;
@@ -52,7 +53,7 @@ public class ChrisliebotIrc {
 	private CommandRegistry cmdRegistry;
 	
 	private ConfigContext configContext;
-	private CommandDispatcher dispatcher;
+	private IrcCommandDispatcher dispatcher;
 	
 	public static void main(String[] args) throws Exception {
 		File configDir = new File(System.getProperty(PROPERTY_CONFIG_DIR, "."));
@@ -88,9 +89,6 @@ public class ChrisliebotIrc {
 		loadBotConfig();
 		startConnection();
 		
-		// migration hotfix
-		MigrationHelper.setService(client);
-		
 		// load configuration, might fail if config error
 		try {
 			loadCommandConfig();
@@ -101,7 +99,7 @@ public class ChrisliebotIrc {
 				log.error("failed to create initial bot setup, entering emergency state", e);
 				configContext = ConfigContext.emergencyContext(this, botConfig);
 				configContext.start();
-				dispatcher = new CommandDispatcher(configContext);
+				dispatcher = new IrcCommandDispatcher(service, configContext);
 				client.getEventManager().registerEventListener(dispatcher);
 			} catch (@SuppressWarnings("OverlyBroadCatchBlock") Throwable e1) {
 				// you sir, are royally fucked
@@ -140,6 +138,7 @@ public class ChrisliebotIrc {
 				.exception(ChrisliebotIrc::exceptionLogger);
 		client = builder.build();
 		client.setMessageCutter(new ChrislieCutter());
+		service = new IrcService(client); // TODO: this is only temporary
 		
 		// this listener helps with certain edge cases that are otherwise poorly handled by kitteh irc
 		client.getEventManager().registerEventListener(new ClientLogic());
@@ -167,7 +166,7 @@ public class ChrisliebotIrc {
 	}
 	
 	private void reload(boolean firstRun) throws Exception {
-		log.info(C.LOG_IRC, "reloading configuration, this may take a few moments, the application may be unresponsive during that time");
+		log.info(C.LOG_PUBLIC, "reloading configuration, this may take a few moments, the application may be unresponsive during that time");
 		
 		// on first launch, config is already up to date
 		if (!firstRun) {
@@ -176,7 +175,7 @@ public class ChrisliebotIrc {
 		}
 		
 		// use local variable since we can't already replace the old instances
-		CommandDispatcher dispatcher;
+		IrcCommandDispatcher dispatcher;
 		ConfigContext configContext;
 		
 		// errors in this stage are not fatal, simply continue with old config
@@ -184,7 +183,7 @@ public class ChrisliebotIrc {
 		
 		try {
 			configContext.start();
-			configContext.passClient(client);
+			configContext.passService(service);
 		} catch (@SuppressWarnings("OverlyBroadCatchBlock") Throwable t) {
 			// error in start may result in inconsistent state
 			makeDirty();
@@ -192,7 +191,7 @@ public class ChrisliebotIrc {
 		}
 		
 		// dispatcher can only be created after successfull .start()
-		dispatcher = new CommandDispatcher.AprilFoolsDayDispatcher(configContext);
+		dispatcher = new IrcCommandDispatcher(service, configContext);
 		
 		// if we reached this point, we are safe to swap old dispatcher with new one
 		if (!firstRun)

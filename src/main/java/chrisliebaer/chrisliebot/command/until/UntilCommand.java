@@ -1,8 +1,8 @@
 package chrisliebaer.chrisliebot.command.until;
 
 import chrisliebaer.chrisliebot.C;
-import chrisliebaer.chrisliebot.abstraction.Message;
-import chrisliebaer.chrisliebot.command.CommandExecutor;
+import chrisliebaer.chrisliebot.abstraction.ChrislieMessage;
+import chrisliebaer.chrisliebot.command.ChrisieCommand;
 import com.joestelmach.natty.DateGroup;
 import com.joestelmach.natty.Parser;
 
@@ -13,14 +13,14 @@ import java.util.Locale;
 import java.util.stream.Collectors;
 
 
-public class UntilCommand implements CommandExecutor {
+public class UntilCommand implements ChrisieCommand {
 	
 	private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("EE dd.MM.yyyy HH:mm:ss", Locale.GERMAN);
 	
 	private Parser parser = new Parser();
 	
 	@Override
-	public synchronized void execute(Message m, String arg) {
+	public synchronized void execute(ChrislieMessage m, String arg) {
 		long now = System.currentTimeMillis();
 		
 		List<DateGroup> parse = parser.parse(arg);

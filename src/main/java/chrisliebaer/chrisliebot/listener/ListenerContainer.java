@@ -1,7 +1,7 @@
 package chrisliebaer.chrisliebot.listener;
 
 import chrisliebaer.chrisliebot.ChatTriggered;
-import chrisliebaer.chrisliebot.abstraction.Message;
+import chrisliebaer.chrisliebot.abstraction.ChrislieMessage;
 import chrisliebaer.chrisliebot.command.CommandContainer;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -19,10 +19,10 @@ public class ListenerContainer implements ChatTriggered {
 	private List<CommandContainer> trigger;
 	
 	@Override
-	public void onMessage(Message m) {
+	public void onMessage(ChrislieMessage m) {
 		if (listener.test(m)) {
 			for (CommandContainer container : trigger) {
-				if (container.requireAdmin() && !m.isAdmin())
+				if (container.requireAdmin() && !m.user().isAdmin())
 					continue;
 				
 				container.execute(m, null);

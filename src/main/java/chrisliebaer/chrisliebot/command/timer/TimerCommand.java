@@ -2,8 +2,10 @@ package chrisliebaer.chrisliebot.command.timer;
 
 import chrisliebaer.chrisliebot.C;
 import chrisliebaer.chrisliebot.SharedResources;
-import chrisliebaer.chrisliebot.abstraction.Message;
-import chrisliebaer.chrisliebot.command.CommandExecutor;
+import chrisliebaer.chrisliebot.abstraction.ChrislieMessage;
+import chrisliebaer.chrisliebot.abstraction.ChrislieService;
+import chrisliebaer.chrisliebot.abstraction.ChrislieUser;
+import chrisliebaer.chrisliebot.command.ChrisieCommand;
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.gson.Gson;
@@ -16,9 +18,6 @@ import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
-import org.kitteh.irc.client.library.Client;
-import org.kitteh.irc.client.library.element.Channel;
-import org.kitteh.irc.client.library.element.User;
 
 import java.io.File;
 import java.io.FileReader;
@@ -31,12 +30,12 @@ import java.util.stream.Collectors;
 
 @SuppressWarnings("Duplicates")
 @Slf4j
-public class TimerCommand implements CommandExecutor {
+public class TimerCommand implements ChrisieCommand {
 	
 	private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("EE dd.MM.yyyy HH:mm:ss", Locale.GERMAN);
 	private static final Pattern FILENAME_PATTERN = Pattern.compile("^[0-9]+\\.json$");
 	
-	private Client client;
+	private ChrislieService service;
 	private File dir;
 	private Gson gson = new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create();
 	
@@ -48,8 +47,8 @@ public class TimerCommand implements CommandExecutor {
 	}
 	
 	@Override
-	public synchronized void execute(Message m, String arg) {
-		if (m.channel().isEmpty()) {
+	public synchronized void execute(ChrislieMessage m, String arg) {
+		if (m.channel().isDirectMessage()) {
 			m.reply(C.error("Timer sind aktuell nur in Channeln verfügbar.")); // TODO: change that
 			return;
 		}
@@ -102,11 +101,11 @@ public class TimerCommand implements CommandExecutor {
 				}
 				
 				// check if user is allowed to delete this timer
-				if (m.isAdmin() || userOwnsTimer(m.user(), description)) {
+				if (m.user().isAdmin() || userOwnsTimer(m.user(), description)) {
 					File timerFile = new File(dir, id + ".json");
 					if (!timerFile.delete()) {
 						m.reply(C.error("Da ging etwas schief."));
-						log.error(C.LOG_IRC, "failed to delete timer file: {}", timerFile);
+						log.error(C.LOG_PUBLIC, "failed to delete timer file: {}", timerFile);
 						return;
 					}
 					timers.remove(id);
@@ -136,9 +135,9 @@ public class TimerCommand implements CommandExecutor {
 			}
 			
 			TimerDescription description = TimerDescription.builder()
-					.channel(m.channel().map(Channel::getName).orElse(null))
-					.nick(m.user().getNick())
-					.account(m.user().getAccount().orElse(null))
+					.channel(m.channel().identifier())
+					.nick(m.user().displayName())
+					.softIdentifier(m.user().softIdentifer())
 					.when(timestamp)
 					.message(mesage)
 					.build();
@@ -148,7 +147,7 @@ public class TimerCommand implements CommandExecutor {
 				id = queueTimer(description, true);
 			} catch (IOException e) {
 				m.reply(C.error("Fehler beim Speichern des Timers."));
-				log.warn(C.LOG_IRC, "failed to write timer {} to disk", description, e);
+				log.warn(C.LOG_PUBLIC, "failed to write timer {} to disk", description, e);
 				return;
 			}
 			
@@ -157,9 +156,8 @@ public class TimerCommand implements CommandExecutor {
 		}
 	}
 	
-	private static boolean userOwnsTimer(User user, TimerDescription description) {
-		return (user.getAccount().isPresent() && user.getAccount().get().equals(description.account()))
-				|| user.getNick().equals(description.nick());
+	private static boolean userOwnsTimer(ChrislieUser user, TimerDescription description) {
+		return user.softIdentifer().equals(description.softIdentifier());
 	}
 	
 	private synchronized Optional<Pair<Date, String>> shrinkingParse(String arg) {
@@ -184,8 +182,8 @@ public class TimerCommand implements CommandExecutor {
 	}
 	
 	@Override
-	public synchronized void init(Client client) throws Exception {
-		this.client = client;
+	public synchronized void init(ChrislieService client) throws Exception {
+		this.service = client;
 		
 		// load tasks and start timer but don't recreate files
 		if (!dir.exists())
@@ -262,27 +260,28 @@ public class TimerCommand implements CommandExecutor {
 			log.warn("failed to delete timer file {}", timerFile);
 		}
 		
-		var channel = client.getChannel(description.channel());
+		var channel = service.channel(description.channel());
 		if (channel.isEmpty()) {
-			log.warn(C.LOG_IRC, "could not print timer since not in channel: {}", description);
-			return;
+			log.warn(C.LOG_PUBLIC, "could not print timer since not in channel: {}", description);
+			return; // TODO: requeue since we otherwise lose timer if we are just starting
 		}
 		
 		// locate user in channel for proper mention
 		var chan = channel.get();
-		List<User> accounts = chan.getUsers().stream()
-				.filter(u -> u.getAccount().isPresent()
-						&& u.getAccount().get().equals(description.account()))
+		List<ChrislieUser> accounts = chan.users().stream()
+				.filter(u -> u.softIdentifer().equals(description.softIdentifier()))
 				.collect(Collectors.toList());
 		
 		// fall back to nickname match if account is not in channel
 		String mention = description.nick();
 		if (!accounts.isEmpty())
 			mention = accounts.stream()
-					.map(User::getNick)
+					.map(ChrislieUser::mention)
 					.collect(Collectors.joining(", "));
 		
-		chan.sendMultiLineMessage(mention + " es ist so weit: " + C.escapeNickname(chan, description.message()));
+		var out = chan.output();
+		out.plain().append(mention).appendEscape(" es ist so weit: " + description.message());
+		out.send();
 	}
 	
 	public static TimerCommand fromJson(Gson gson, JsonElement element) {
@@ -295,7 +294,7 @@ public class TimerCommand implements CommandExecutor {
 		private long when;
 		private String channel;
 		private String nick;
-		private String account;
+		private String softIdentifier;
 		private String message;
 		private transient TimerTask task;
 	

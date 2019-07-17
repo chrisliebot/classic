@@ -2,8 +2,8 @@ package chrisliebaer.chrisliebot.command.exec;
 
 import chrisliebaer.chrisliebot.C;
 import chrisliebaer.chrisliebot.SharedResources;
-import chrisliebaer.chrisliebot.abstraction.Message;
-import chrisliebaer.chrisliebot.command.CommandExecutor;
+import chrisliebaer.chrisliebot.abstraction.ChrislieMessage;
+import chrisliebaer.chrisliebot.command.ChrisieCommand;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.gson.Gson;
@@ -24,7 +24,7 @@ import java.util.TimerTask;
 import java.util.stream.Collectors;
 
 @Slf4j
-public class ShellCommand implements CommandExecutor {
+public class ShellCommand implements ChrisieCommand {
 	
 	private static final int TIMEOUT = 10000;
 	
@@ -56,19 +56,21 @@ public class ShellCommand implements CommandExecutor {
 	}
 	
 	@Override
-	public synchronized void execute(Message m, String arg) {
+	public synchronized void execute(ChrislieMessage m, String arg) {
 		// env map is shared so we have to rebuild it every time we want to invoke a remote command
 		var env = builder.environment();
 		
 		var u = m.user();
+		/* TODO
 		env.put(ENV_NICKNAME, u.getNick());
 		env.put(ENV_REALNAME, u.getRealName().orElse(""));
 		env.put(ENV_HOSTNAME, u.getHost());
 		env.put(ENV_ACCOUNT, u.getAccount().orElse(""));
-		env.put(ENV_IS_ADMIN, m.isAdmin() ? "1" : "0");
-		env.put(ENV_MODES, getUserModeString(m.channel().orElse(null), u));
+		*/
+		env.put(ENV_IS_ADMIN, m.user().isAdmin() ? "1" : "0");
+		//env.put(ENV_MODES, getUserModeString(m.channel().orElse(null), u));
 		
-		env.put(ENV_CHANNEL, m.channel().map(Channel::getName).orElse(""));
+		//env.put(ENV_CHANNEL, m.channel().map(Channel::getName).orElse(""));
 		env.put(ENV_MESSAGE, m.message());
 		
 		if (arg == null)
@@ -80,11 +82,11 @@ public class ShellCommand implements CommandExecutor {
 			handleProcess(builder.start(), m);
 		} catch (@SuppressWarnings("OverlyBroadCatchBlock") Throwable e) {
 			m.reply(C.error("Bei der Verarbeitung dieses Befehls ging etwas schief."));
-			log.warn(C.LOG_IRC, "failed to execute remote command: {} ({})", builder.command(), e.getMessage());
+			log.warn(C.LOG_PUBLIC, "failed to execute remote command: {} ({})", builder.command(), e.getMessage());
 		}
 	}
 	
-	private synchronized void handleProcess(Process p, Message m) {
+	private synchronized void handleProcess(Process p, ChrislieMessage m) {
 		// copy command invocation for logging since accessing builder in callbacks is not thread safe
 		var command = ImmutableList.copyOf(builder.command());
 		
@@ -103,7 +105,7 @@ public class ShellCommand implements CommandExecutor {
 			
 			if (pp.exitValue() != 0) {
 				m.reply(C.error("Bei der Ausführung des Befehls trat ein Fehler auf."));
-				log.warn(C.LOG_IRC, "command {} exited with non-zero error code {}", command, pp.exitValue());
+				log.warn(C.LOG_PUBLIC, "command {} exited with non-zero error code {}", command, pp.exitValue());
 				return;
 			}
 			
@@ -112,11 +114,11 @@ public class ShellCommand implements CommandExecutor {
 				var lines = IOUtils.readLines(pp.getInputStream(), StandardCharsets.UTF_8);
 				lines.forEach(m::reply);
 			} catch (IOException e) {
-				log.error(C.LOG_IRC, "unexpected io error while reading from process output of {}", command, e);
+				log.error(C.LOG_PUBLIC, "unexpected io error while reading from process output of {}", command, e);
 			}
 		}).exceptionally(t -> {
 			timer.cancel();
-			log.warn(C.LOG_IRC, "an error occured while exeucting {}: {}", command, t.getMessage());
+			log.warn(C.LOG_PUBLIC, "an error occured while exeucting {}: {}", command, t.getMessage());
 			m.reply(C.error("Der Befehl konnte nicht ausgeführt werden."
 					+ (t.getMessage() != null ? "(" + t.getMessage() + ")" : "")));
 			

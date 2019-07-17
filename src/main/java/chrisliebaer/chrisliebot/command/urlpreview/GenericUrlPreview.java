@@ -2,7 +2,7 @@ package chrisliebaer.chrisliebot.command.urlpreview;
 
 import chrisliebaer.chrisliebot.C;
 import chrisliebaer.chrisliebot.SharedResources;
-import chrisliebaer.chrisliebot.abstraction.Message;
+import chrisliebaer.chrisliebot.abstraction.ChrislieMessage;
 import lombok.NonNull;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
@@ -29,11 +29,11 @@ public class GenericUrlPreview implements Callback {
 	private Timer timer = SharedResources.INSTANCE().timer();
 	
 	private URL url;
-	private Message m;
+	private ChrislieMessage m;
 	private Set<UrlPreviewCommand.HistoryEntry> titleHistory;
 	
 	@SneakyThrows
-	public GenericUrlPreview(@NonNull URL url, @NonNull Message m, Set<UrlPreviewCommand.HistoryEntry> titleHistory) {
+	public GenericUrlPreview(@NonNull URL url, @NonNull ChrislieMessage m, Set<UrlPreviewCommand.HistoryEntry> titleHistory) {
 		this.url = url;
 		this.m = m;
 		this.titleHistory = titleHistory;
@@ -53,7 +53,7 @@ public class GenericUrlPreview implements Callback {
 			public void run() {
 				call.cancel();
 				if (!call.isExecuted())
-					log.debug(C.LOG_IRC, "canceled preview of {} since it took to long", url);
+					log.debug(C.LOG_PUBLIC, "canceled preview of {} since it took to long", url);
 			}
 		}, PREVIEW_TIMEOUT);
 		
@@ -62,7 +62,7 @@ public class GenericUrlPreview implements Callback {
 	@Override
 	public void onFailure(Call call, IOException e) {
 		if (!e.getMessage().isEmpty())
-			log.debug(C.LOG_IRC, "failed to connect to {}: {}", url, e.getMessage());
+			log.debug(C.LOG_PUBLIC, "failed to connect to {}: {}", url, e.getMessage());
 	}
 	
 	@Override
@@ -71,14 +71,14 @@ public class GenericUrlPreview implements Callback {
 		// check for mime type
 		String contentType = response.header("Content-Type");
 		if (contentType == null) {
-			log.debug(C.LOG_IRC, "no content type provided: {}", url);
+			log.debug(C.LOG_PUBLIC, "no content type provided: {}", url);
 			return;
 		}
 		
 		// we only care about html pages
 		String mime = contentType.split(";")[0].trim();
 		if (!"text/html".equalsIgnoreCase(mime)) {
-			log.debug(C.LOG_IRC, "can't parse content type {} for {}", mime, url);
+			log.debug(C.LOG_PUBLIC, "can't parse content type {} for {}", mime, url);
 		}
 		
 		// documentation doesn't mention it, but we have to close the body
@@ -111,11 +111,11 @@ public class GenericUrlPreview implements Callback {
 				summary = summary.substring(0, MAX_IRC_MESSAGE_LENGTH).trim() + "[...]";
 			
 			// check if summary was posted before within timeout window
-			UrlPreviewCommand.HistoryEntry historyLookup = new UrlPreviewCommand.HistoryEntry(summary, m.source());
+			UrlPreviewCommand.HistoryEntry historyLookup = new UrlPreviewCommand.HistoryEntry(summary, m.channel().identifier());
 			if (titleHistory.contains(historyLookup)) {
 				// output has been posted, don't repeat
-				log.debug(C.LOG_IRC, "not posting summary of {} in {} since it's identical with a recently posted summary",
-						url.toExternalForm(), m.source());
+				log.debug(C.LOG_PUBLIC, "not posting summary of {} in {} since it's identical with a recently posted summary",
+						url.toExternalForm(), m.channel().displayName());
 				return;
 			}
 			

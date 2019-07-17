@@ -27,7 +27,7 @@ public class IrcLogAppender extends AbstractAppender {
 		
 		if (ev.getMarker() != null
 				&& ev.getMarker().getName() != null
-				&& C.LOG_IRC.getName().equals(ev.getMarker().getName())) {
+				&& C.LOG_PUBLIC.getName().equals(ev.getMarker().getName())) {
 			channel.get().sendMultiLineMessage(
 					Format.BOLD + "[" + getLevelColor(ev.getLevel()) + ev.getLevel().name() + Format.RESET + Format.BOLD + "] " + Format.RESET
 							+ C.escapeNickname(channel.get(), ev.getMessage().getFormattedMessage()));

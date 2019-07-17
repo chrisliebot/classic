@@ -2,8 +2,8 @@ package chrisliebaer.chrisliebot.command.memedb;
 
 import chrisliebaer.chrisliebot.C;
 import chrisliebaer.chrisliebot.SharedResources;
-import chrisliebaer.chrisliebot.abstraction.Message;
-import chrisliebaer.chrisliebot.command.CommandExecutor;
+import chrisliebaer.chrisliebot.abstraction.ChrislieMessage;
+import chrisliebaer.chrisliebot.command.ChrisieCommand;
 import chrisliebaer.chrisliebot.util.BetterScheduledService;
 import com.google.common.util.concurrent.AbstractScheduledService;
 import com.google.gson.Gson;
@@ -23,7 +23,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @Slf4j
-public class MemeDbCommand implements CommandExecutor {
+public class MemeDbCommand implements ChrisieCommand {
 	
 	private Config cfg;
 	
@@ -49,7 +49,7 @@ public class MemeDbCommand implements CommandExecutor {
 	}
 	
 	@Override
-	public void execute(Message m, String arg) {
+	public void execute(ChrislieMessage m, String arg) {
 		if (taggedMemes == null) {
 			m.reply(C.error("Ich habe leider aktuell keine Datenbank zum durchsuchen. Versuche es später nochmal."));
 			return;
@@ -83,7 +83,7 @@ public class MemeDbCommand implements CommandExecutor {
 		printResult(m, item);
 	}
 	
-	private void printResult(Message m, DatabaseEntry item) {
+	private void printResult(ChrislieMessage m, DatabaseEntry item) {
 		m.reply("Ergebnis: " + cfg.baseUrl() + "hash/" + item.hash());
 	}
 	
@@ -91,13 +91,13 @@ public class MemeDbCommand implements CommandExecutor {
 		try {
 			Response<List<DatabaseEntry>> response = service.getDatabase().execute();
 			if (!response.isSuccessful()) {
-				log.warn(C.LOG_IRC, "request to meme database was not successfull, error code: {}", response.code());
+				log.warn(C.LOG_PUBLIC, "request to meme database was not successfull, error code: {}", response.code());
 				return;
 			}
 			
 			var responseMemes = response.body();
 			if (responseMemes == null) {
-				log.warn(C.LOG_IRC, "received null from meme database server");
+				log.warn(C.LOG_PUBLIC, "received null from meme database server");
 				return;
 			}
 			
@@ -112,7 +112,7 @@ public class MemeDbCommand implements CommandExecutor {
 			log.debug("refreshed meme database, contains {} elements and {} distinct tags", responseMemes.size(), newTaggedMemes.size());
 			
 		} catch (@SuppressWarnings("OverlyBroadCatchBlock") Throwable t) {
-			log.warn(C.LOG_IRC, "failed to fetch meme database", t);
+			log.warn(C.LOG_PUBLIC, "failed to fetch meme database", t);
 		}
 	}
 	

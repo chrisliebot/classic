@@ -1,9 +1,8 @@
 package chrisliebaer.chrisliebot;
 
-import chrisliebaer.chrisliebot.abstraction.Message;
 import lombok.NonNull;
+import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
-import okhttp3.Request;
 import org.apache.commons.lang3.StringUtils;
 import org.jsoup.Jsoup;
 import org.kitteh.irc.client.library.element.Channel;
@@ -22,6 +21,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @Slf4j
+@UtilityClass
 public final class C {
 	
 	public static final int EXIT_CODE_RESTART = 10;
@@ -41,7 +41,7 @@ public final class C {
 	public static final String PERMISSION_ERROR = C.error("Befehl benötigt Adminrechte");
 	
 	public static final char ZERO_WIDTH_NO_BREAK_SPACE = '\uFEFF';
-	public static final Marker LOG_IRC = MarkerFactory.getMarker("LOG_IRC");
+	public static final Marker LOG_PUBLIC = MarkerFactory.getMarker("LOG_PUBLIC");
 	
 	public static void sendChannelMessage(Channel channel, String s) {
 		if (s == null || s.isEmpty())
@@ -92,14 +92,6 @@ public final class C {
 			msg += "[...]";
 		}
 		return msg;
-	}
-	
-	public static void remoteConnectionError(Request req, Message m, Throwable t) {
-		var reason = t.getMessage();
-		m.reply(C.error(reason == null || reason.isEmpty() ?
-				"Konnte remote Server nicht erreichen." :
-				"Konnte remote Server nicht erreichen: " + reason));
-		log.debug("request to {} failed: {}", req.url(), reason);
 	}
 	
 	public static boolean channelSupportsFormatting(@NonNull Channel channel) {
@@ -235,6 +227,4 @@ public final class C {
 		
 		return Optional.empty();
 	}
-	
-	private C() {}
 }

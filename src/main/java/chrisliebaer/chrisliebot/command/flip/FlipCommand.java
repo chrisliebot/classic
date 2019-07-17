@@ -1,9 +1,9 @@
 package chrisliebaer.chrisliebot.command.flip;
 
-import chrisliebaer.chrisliebot.abstraction.Message;
-import chrisliebaer.chrisliebot.command.CommandExecutor;
+import chrisliebaer.chrisliebot.abstraction.ChrislieMessage;
+import chrisliebaer.chrisliebot.command.ChrisieCommand;
 
-public class FlipCommand implements CommandExecutor {
+public class FlipCommand implements ChrisieCommand {
 	
 	private static final String LOOKUP_NORMAL;
 	
@@ -22,7 +22,7 @@ public class FlipCommand implements CommandExecutor {
 	}
 	
 	@Override
-	public void execute(Message m, String arg) {
+	public void execute(ChrislieMessage m, String arg) {
 		StringBuilder sb = new StringBuilder(arg.length());
 		for (int i = 0; i < arg.length(); i++) {
 			int cp = arg.codePointAt(i);

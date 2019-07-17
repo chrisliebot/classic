@@ -1,16 +1,16 @@
 package chrisliebaer.chrisliebot.command.debug;
 
 import chrisliebaer.chrisliebot.C;
-import chrisliebaer.chrisliebot.abstraction.Message;
-import chrisliebaer.chrisliebot.command.CommandExecutor;
+import chrisliebaer.chrisliebot.abstraction.ChrislieMessage;
+import chrisliebaer.chrisliebot.command.ChrisieCommand;
 
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-public class DebugCommand implements CommandExecutor {
+public class DebugCommand implements ChrisieCommand {
 	
 	@Override
-	public void execute(Message m, String arg) {
+	public void execute(ChrislieMessage m, String arg) {
 		if (arg.isEmpty()) {
 			m.reply(C.error("Nope"));
 			return;

@@ -1,19 +1,20 @@
 package chrisliebaer.chrisliebot.command;
 
 import chrisliebaer.chrisliebot.C;
-import chrisliebaer.chrisliebot.abstraction.Message;
+import chrisliebaer.chrisliebot.abstraction.ChrislieMessage;
+import chrisliebaer.chrisliebot.abstraction.irc.IrcMessage;
+import chrisliebaer.chrisliebot.abstraction.irc.IrcService;
 import chrisliebaer.chrisliebot.config.ConfigContext;
 import chrisliebaer.chrisliebot.listener.ListenerContainer;
+import chrisliebaer.chrisliebot.util.ErrorOutputBuilder;
 import lombok.Data;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import net.engio.mbassy.listener.Handler;
-import org.kitteh.irc.client.library.element.Channel;
+import org.kitteh.irc.client.library.element.User;
 import org.kitteh.irc.client.library.event.channel.ChannelMessageEvent;
 import org.kitteh.irc.client.library.event.user.PrivateMessageEvent;
 
-import java.time.LocalDate;
-import java.time.Month;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Optional;
@@ -21,47 +22,57 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 @Slf4j
-public class CommandDispatcher {
+public class IrcCommandDispatcher {
+	
+	private IrcService service;
 	
 	protected Pattern invocationPattern;
 	protected ConfigContext ctx;
 	protected Map<String, CommandContainer> commandTable;
 	protected Collection<ListenerContainer> listeners;
 	
-	public CommandDispatcher(@NonNull ConfigContext ctx) {
-		this.ctx = ctx;
+	public IrcCommandDispatcher(IrcService service, @NonNull ConfigContext ctx) {
+		this.service = service;
+		this.ctx = ctx; // TODO: we don't need the context anymore
 		commandTable = ctx.getCommandTable();
 		listeners = ctx.getChatListener();
 		
 		invocationPattern = Pattern.compile("^" + Pattern.quote(ctx.botCfg().prefix()) + "(?<name>[^ ]+)( (?<argument>.+)?)?$");
 	}
 	
+	private boolean isOwn(User user) {
+		// ignore own messages and ignored
+		return user.getClient().isUser(user) || service.ignore(user.getNick());
+	}
+	
 	@Handler
 	public void onChannelMessage(ChannelMessageEvent ev) {
-		var m = Message.of(ev, ctx);
+		if (isOwn(ev.getActor()))
+			return;
+		
+		var m = IrcMessage.of(service, ev);
 		dispatch(m);
 	}
 	
 	@Handler
 	public void onPrivateMessage(PrivateMessageEvent ev) {
-		var m = Message.of(ev, ctx);
+		if (isOwn(ev.getActor()))
+			return;
+		
+		var m = IrcMessage.of(service, ev);
 		dispatch(m);
 	}
 	
-	private void dispatch(Message m) {
-		// ignore own messages and ignored
-		if (m.getClient().isUser(m.user()) || ctx.botCfg().ignore().contains(m.user().getNick()))
-			return;
-		
+	private void dispatch(ChrislieMessage m) {
 		if (checkCommand(m))
 			return;
 		
 		listeners.forEach(l -> l.onMessage(m));
 	}
 	
-	protected boolean checkCommand(Message m) {
+	protected boolean checkCommand(ChrislieMessage m) {
 		Optional<Invocation> invocation = parseCommand(invocationPattern.matcher(m.message()));
-		return invocation.filter(invocation1 -> executeCommand(m, invocation1)).isPresent();
+		return invocation.filter(i -> executeCommand(m, i)).isPresent();
 	}
 	
 	protected Optional<Invocation> parseCommand(Matcher matcher) {
@@ -77,22 +88,22 @@ public class CommandDispatcher {
 		return Optional.empty();
 	}
 	
-	protected boolean executeCommand(Message m, Invocation invocation) {
+	protected boolean executeCommand(ChrislieMessage m, Invocation invocation) {
 		var commandName = invocation.name();
 		var arg = invocation.args();
 		
 		// check if valid command and invoke with argument
 		var cmd = commandTable.get(commandName);
 		if (cmd == null) {
-			log.debug(C.LOG_IRC, "unkown command {} by {} in {}",
-					commandName, m.user().getNick(), m.channel().map(Channel::getName).orElse("PRIVATE"));
+			log.debug(C.LOG_PUBLIC, "unkown command {} by {} in {}",
+					commandName, m.user().displayName(), m.channel().displayName());
 			
 			// assume user didn't want to trigger command
 			return false;
 		} else {
 			// check if command requires admin
-			if (cmd.requireAdmin() && !ctx.isAdmin(m.user())) {
-				m.reply(C.PERMISSION_ERROR);
+			if (cmd.requireAdmin() && !m.user().isAdmin()) {
+				ErrorOutputBuilder.permission().write(m);
 			} else {
 				// invoke command
 				cmd.execute(m, arg);
@@ -113,38 +124,5 @@ public class CommandDispatcher {
 		
 		private String name;
 		private String args;
-	}
-	
-	public static class AprilFoolsDayDispatcher extends CommandDispatcher {
-		
-		private static final Pattern APRIL_FOOLSDAY_INVOCATION = Pattern.compile("^(?<name>[^ ]+).js( (?<argument>.+)?)?$");
-		
-		public AprilFoolsDayDispatcher(@NonNull ConfigContext ctx) {
-			super(ctx);
-		}
-		
-		@Override
-		protected boolean checkCommand(Message m) {
-			LocalDate now = LocalDate.now();
-			if (now.getMonth() != Month.APRIL || now.getDayOfMonth() != 1)
-				return super.checkCommand(m);
-			
-			Optional<Invocation> invocation = parseCommand(APRIL_FOOLSDAY_INVOCATION.matcher(m.message()));
-			
-			if (invocation.isPresent())
-				return executeCommand(m, invocation.get());
-			
-			invocation = parseCommand(invocationPattern.matcher(m.message()));
-			if (invocation.isEmpty() || !commandTable.containsKey(invocation.get().name))
-				return false;
-			
-			var inv = invocation.get();
-			m.reply(C.error("Ich wurde in JavaScript mit Node.js® neu geschrieben. Der alte Prefix wurde abgeschafft und" +
-					" alle Befehle müssen nun mit " + C.highlight(".js")) + " enden. JavaScript gehört die Zukunft! Nieder mit C und C++!");
-			m.reply("Beispiel: " + inv.name() + ".js " + inv.args());
-			
-			// return true since we don't actually want to have this trigger listeners
-			return true;
-		}
 	}
 }

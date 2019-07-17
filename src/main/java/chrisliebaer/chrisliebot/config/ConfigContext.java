@@ -3,10 +3,11 @@ package chrisliebaer.chrisliebot.config;
 import chrisliebaer.chrisliebot.C;
 import chrisliebaer.chrisliebot.ChrisliebotIrc;
 import chrisliebaer.chrisliebot.SharedResources;
-import chrisliebaer.chrisliebot.abstraction.Message;
+import chrisliebaer.chrisliebot.abstraction.ChrislieMessage;
+import chrisliebaer.chrisliebot.abstraction.ChrislieService;
+import chrisliebaer.chrisliebot.command.ChrisieCommand;
 import chrisliebaer.chrisliebot.command.CommandContainer;
-import chrisliebaer.chrisliebot.command.CommandDispatcher;
-import chrisliebaer.chrisliebot.command.CommandExecutor;
+import chrisliebaer.chrisliebot.command.IrcCommandDispatcher;
 import chrisliebaer.chrisliebot.command.basic.*;
 import chrisliebaer.chrisliebot.command.bottlespin.BottleSpinCommand;
 import chrisliebaer.chrisliebot.command.choice.ChoiceCommand;
@@ -37,7 +38,6 @@ import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import lombok.Getter;
 import lombok.NonNull;
-import org.kitteh.irc.client.library.Client;
 import org.kitteh.irc.client.library.element.User;
 import org.kitteh.irc.client.library.util.CtcpUtil;
 
@@ -152,7 +152,7 @@ public final class ConfigContext {
 				"Verlässt den angegebenen Channel.");
 		addCommandDefinition("nick", new NickCommand(),
 				"Setzt den Nickname des Bots.");
-		addCommandDefinition("echo", Message::reply,
+		addCommandDefinition("echo", ChrislieMessage::reply,
 				"Gibt den übergebenen Inhalt wieder aus.");
 		addCommandDefinition("say", new SayCommand(),
 				"Sendet eine Nachricht an ein beliebiges Ziel.");
@@ -204,7 +204,7 @@ public final class ConfigContext {
 		// there aren't any right now
 	}
 	
-	private void addCommandDefinition(@NonNull String name, @NonNull CommandExecutor executor, String help) {
+	private void addCommandDefinition(@NonNull String name, @NonNull ChrisieCommand executor, String help) {
 		Preconditions.checkArgument(!cmdDefs.containsKey(name), "duplicated command definition: " + name);
 		cmdDefs.put(name, new CommandContainer(executor, help));
 	}
@@ -247,7 +247,7 @@ public final class ConfigContext {
 	}
 	
 	/**
-	 * Remove the indirection via the binding table for use within the {@link CommandDispatcher}.
+	 * Remove the indirection via the binding table for use within the {@link IrcCommandDispatcher}.
 	 *
 	 * @return Immutable command table.
 	 */
@@ -264,7 +264,7 @@ public final class ConfigContext {
 		return ImmutableList.copyOf(listener);
 	}
 	
-	private CommandExecutor instanceExecutor(CommandDefinition def)
+	private ChrisieCommand instanceExecutor(CommandDefinition def)
 			throws ClassNotFoundException, NoSuchMethodException, InvocationTargetException, IllegalAccessException {
 		String clazzStr = def.clazz();
 		Class<?> clazz = Class.forName(clazzStr);
@@ -274,11 +274,11 @@ public final class ConfigContext {
 		
 		maybeMethod = getMethodEx(clazz, INSTACE_METHOD_NAME, Gson.class, JsonElement.class);
 		if (maybeMethod.isPresent())
-			return (CommandExecutor) maybeMethod.get().invoke(null, gson, def.config());
+			return (ChrisieCommand) maybeMethod.get().invoke(null, gson, def.config());
 		
 		maybeMethod = getMethodEx(clazz, INSTACE_METHOD_NAME, Gson.class, JsonElement.class, PreConfigAccessor.class);
 		if (maybeMethod.isPresent())
-			return (CommandExecutor) maybeMethod.get().invoke(null, gson, def.config(), preConfigAccessor);
+			return (ChrisieCommand) maybeMethod.get().invoke(null, gson, def.config(), preConfigAccessor);
 		
 		throw new NoSuchMethodException("class " + clazz + " is missing " + INSTACE_METHOD_NAME + " method");
 	}
@@ -322,9 +322,9 @@ public final class ConfigContext {
 				List.of());
 	}
 	
-	public void passClient(@NonNull Client client) throws Exception {
+	public void passService(@NonNull ChrislieService service) throws Exception {
 		for (CommandContainer container : cmdDefs.values()) {
-			container.init(client);
+			container.init(service);
 		}
 	}
 	

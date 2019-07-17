@@ -1,9 +1,9 @@
 package chrisliebaer.chrisliebot.command.quiz;
 
-import chrisliebaer.chrisliebot.abstraction.Message;
-import chrisliebaer.chrisliebot.command.CommandExecutor;
+import chrisliebaer.chrisliebot.abstraction.ChrislieMessage;
+import chrisliebaer.chrisliebot.command.ChrisieCommand;
 
-public class QuizCommand implements CommandExecutor {
+public class QuizCommand implements ChrisieCommand {
 	
 	/* Entwurf für Command Interface und Verhalten
 	 *
@@ -13,7 +13,7 @@ public class QuizCommand implements CommandExecutor {
 	 */
 	
 	@Override
-	public void execute(Message m, String arg) {
+	public void execute(ChrislieMessage m, String arg) {
 	
 	}
 }

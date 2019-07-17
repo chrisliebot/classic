@@ -43,6 +43,11 @@ public class IrcUser implements ChrislieUser {
 	}
 	
 	@Override
+	public String softIdentifer() {
+		return identifier().orElse(user.getNick());
+	}
+	
+	@Override
 	public String mention() {
 		return user.getNick();
 	}

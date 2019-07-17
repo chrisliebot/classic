@@ -49,4 +49,8 @@ public interface ChrislieChannel extends ServiceAttached {
 	 * @return A ChrislieOutput instance that can be used to post to this channel.
 	 */
 	public ChrislieOutput output(LimiterConfig limiterConfig);
+	
+	public default ChrislieOutput output() {
+		return output(LimiterConfig.create());
+	}
 }

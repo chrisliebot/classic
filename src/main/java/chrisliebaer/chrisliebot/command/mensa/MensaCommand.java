@@ -2,8 +2,8 @@ package chrisliebaer.chrisliebot.command.mensa;
 
 import chrisliebaer.chrisliebot.C;
 import chrisliebaer.chrisliebot.SharedResources;
-import chrisliebaer.chrisliebot.abstraction.Message;
-import chrisliebaer.chrisliebot.command.CommandExecutor;
+import chrisliebaer.chrisliebot.abstraction.ChrislieMessage;
+import chrisliebaer.chrisliebot.command.ChrisieCommand;
 import chrisliebaer.chrisliebot.command.mensa.api.MensaApiMeal;
 import chrisliebaer.chrisliebot.command.mensa.api.MensaApiMeta;
 import chrisliebaer.chrisliebot.command.mensa.api.MensaApiService;
@@ -35,7 +35,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @Slf4j
-public class MensaCommand implements CommandExecutor {
+public class MensaCommand implements ChrisieCommand {
 	
 	private static final DecimalFormat PRICE_FORMAT = new DecimalFormat("0.00");
 	private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("EE dd.MM.yyyy", Locale.GERMAN);
@@ -63,7 +63,7 @@ public class MensaCommand implements CommandExecutor {
 	}
 	
 	@Override
-	public synchronized void execute(Message m, String arg) {
+	public synchronized void execute(ChrislieMessage m, String arg) {
 		boolean useDisplay = true;
 		
 		// required since Arrays.asList doesn't support remove

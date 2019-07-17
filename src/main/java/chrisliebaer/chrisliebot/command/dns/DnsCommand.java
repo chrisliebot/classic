@@ -1,8 +1,8 @@
 package chrisliebaer.chrisliebot.command.dns;
 
 import chrisliebaer.chrisliebot.C;
-import chrisliebaer.chrisliebot.abstraction.Message;
-import chrisliebaer.chrisliebot.command.CommandExecutor;
+import chrisliebaer.chrisliebot.abstraction.ChrislieMessage;
+import chrisliebaer.chrisliebot.command.ChrisieCommand;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.TreeMultimap;
 import org.xbill.DNS.Lookup;
@@ -13,7 +13,7 @@ import org.xbill.DNS.Type;
 import java.util.concurrent.ForkJoinPool;
 import java.util.stream.Collectors;
 
-public class DnsCommand implements CommandExecutor {
+public class DnsCommand implements ChrisieCommand {
 	
 	private static final int TIMEOUT = 5000;
 	
@@ -22,7 +22,7 @@ public class DnsCommand implements CommandExecutor {
 	}
 	
 	@Override
-	public void execute(Message m, String arg) {
+	public void execute(ChrislieMessage m, String arg) {
 		var args = arg.split(" ");
 		if (args.length < 1) {
 			m.reply(C.error("Kein Hostname angegeben."));
@@ -46,7 +46,7 @@ public class DnsCommand implements CommandExecutor {
 		}
 	}
 	
-	private void handleLookup(Lookup lookup, Message m, String host) {
+	private void handleLookup(Lookup lookup, ChrislieMessage m, String host) {
 		ForkJoinPool.commonPool().execute(() -> {
 			Record[] records = lookup.run();
 			if (records != null) {

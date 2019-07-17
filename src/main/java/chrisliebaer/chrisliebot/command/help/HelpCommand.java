@@ -1,15 +1,15 @@
 package chrisliebaer.chrisliebot.command.help;
 
 import chrisliebaer.chrisliebot.C;
-import chrisliebaer.chrisliebot.abstraction.Message;
+import chrisliebaer.chrisliebot.abstraction.ChrislieMessage;
+import chrisliebaer.chrisliebot.command.ChrisieCommand;
 import chrisliebaer.chrisliebot.command.CommandContainer;
-import chrisliebaer.chrisliebot.command.CommandExecutor;
 import com.google.common.collect.TreeMultimap;
 
 import java.util.Map;
 import java.util.stream.Collectors;
 
-public class HelpCommand implements CommandExecutor {
+public class HelpCommand implements ChrisieCommand {
 	
 	private TreeMultimap<String, String> aliasMap = TreeMultimap.create();
 	private Map<String, String> bindings;
@@ -27,7 +27,7 @@ public class HelpCommand implements CommandExecutor {
 	}
 	
 	@Override
-	public void execute(Message m, String arg) {
+	public void execute(ChrislieMessage m, String arg) {
 		if (arg.isEmpty()) {
 			// TODO: filter admin commands if no admin, or just build second list
 			

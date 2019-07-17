@@ -1,8 +1,8 @@
 package chrisliebaer.chrisliebot.command.sed;
 
 import chrisliebaer.chrisliebot.C;
-import chrisliebaer.chrisliebot.abstraction.Message;
-import chrisliebaer.chrisliebot.command.CommandExecutor;
+import chrisliebaer.chrisliebot.abstraction.ChrislieMessage;
+import chrisliebaer.chrisliebot.command.ChrisieCommand;
 import com.google.common.base.Preconditions;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -15,7 +15,7 @@ import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
 @Slf4j
-public class SedCommand implements CommandExecutor {
+public class SedCommand implements ChrisieCommand {
 	
 	private static final int BACKLOG_SIZE = 50;
 	
@@ -25,8 +25,8 @@ public class SedCommand implements CommandExecutor {
 	private CircularFifoQueue<StoredMessage> backlog = new CircularFifoQueue<>(BACKLOG_SIZE);
 	
 	@Override
-	public synchronized void execute(Message m, String arg) {
-		Preconditions.checkState(m.channel().isPresent(), "sed command invoked from private message");
+	public synchronized void execute(ChrislieMessage m, String arg) {
+		Preconditions.checkState(!m.channel().isDirectMessage(), "sed command invoked from private message");
 		
 		// we are called for every single message, so we need to store each message in the backbuffer but ignore sed invocations
 		var matcher = SED_PATTERN.matcher(m.message());
@@ -41,8 +41,8 @@ public class SedCommand implements CommandExecutor {
 	}
 	
 	@SuppressWarnings("OptionalGetWithoutIsPresent")
-	private synchronized void doSed(Message m, Matcher matcher) {
-		String channel = m.channel().get().getName();
+	private synchronized void doSed(ChrislieMessage m, Matcher matcher) {
+		String channel = m.channel().identifier();
 		
 		// compile pattern from user input
 		Pattern searchPattern = Pattern.compile(matcher.group("search").replaceAll("\\\\/", "/"));
@@ -82,9 +82,8 @@ public class SedCommand implements CommandExecutor {
 		m.reply("<" + found.nickname + "> " + replaced);
 	}
 	
-	@SuppressWarnings("OptionalGetWithoutIsPresent")
-	private synchronized void keepMessage(Message m) {
-		backlog.add(new StoredMessage(m.channel().get().getName(), m.user().getNick(), m.message()));
+	private synchronized void keepMessage(ChrislieMessage m) {
+		backlog.add(new StoredMessage(m.channel().identifier(), m.user().displayName(), m.message()));
 	}
 	
 	@AllArgsConstructor

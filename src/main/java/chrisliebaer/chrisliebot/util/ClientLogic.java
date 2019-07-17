@@ -39,7 +39,7 @@ public class ClientLogic {
 	@Handler
 	public void onInvite(ChannelInviteEvent ev) {
 		if (ev.getTarget().equals(ev.getClient().getNick())) {
-			log.info(C.LOG_IRC, "received invite from {} to join {}", ev.getActor().getName(), ev.getChannel().getName());
+			log.info(C.LOG_PUBLIC, "received invite from {} to join {}", ev.getActor().getName(), ev.getChannel().getName());
 			ev.getChannel().join();
 		}
 	}

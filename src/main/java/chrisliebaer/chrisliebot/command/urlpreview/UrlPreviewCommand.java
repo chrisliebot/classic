@@ -2,8 +2,8 @@ package chrisliebaer.chrisliebot.command.urlpreview;
 
 import chrisliebaer.chrisliebot.C;
 import chrisliebaer.chrisliebot.SharedResources;
-import chrisliebaer.chrisliebot.abstraction.Message;
-import chrisliebaer.chrisliebot.command.CommandExecutor;
+import chrisliebaer.chrisliebot.abstraction.ChrislieMessage;
+import chrisliebaer.chrisliebot.command.ChrisieCommand;
 import com.google.common.cache.CacheBuilder;
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
@@ -26,7 +26,7 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 @Slf4j
-public class UrlPreviewCommand implements CommandExecutor {
+public class UrlPreviewCommand implements ChrisieCommand {
 	
 	private static final long URL_EXPIRE_TIME = 600000; // 10 minutes
 	private static final int URL_MAX_HISTORY = 50; // remember no more than 50 urls
@@ -51,7 +51,7 @@ public class UrlPreviewCommand implements CommandExecutor {
 	}
 	
 	@Override
-	public void execute(Message m, String arg) {
+	public void execute(ChrislieMessage m, String arg) {
 		// don't reuse since not thread safe
 		var extractor = LinkExtractor.builder()
 				.linkTypes(EnumSet.of(LinkType.WWW, LinkType.URL))
@@ -66,12 +66,12 @@ public class UrlPreviewCommand implements CommandExecutor {
 		}
 	}
 	
-	private synchronized void fetchLink(Message m, URL url) {
-		HistoryEntry historyLookup = new HistoryEntry(url.toExternalForm(), m.source());
+	private synchronized void fetchLink(ChrislieMessage m, URL url) {
+		HistoryEntry historyLookup = new HistoryEntry(url.toExternalForm(), m.channel().identifier());
 		
 		// ignore url if seen recently in same channel
 		if (urlHistory.contains(historyLookup)) {
-			log.debug(C.LOG_IRC, "ignoring recently posted url: {} in {}", url, m.source());
+			log.debug(C.LOG_PUBLIC, "ignoring recently posted url: {} in {}", url, m.channel().displayName());
 			return;
 		}
 		

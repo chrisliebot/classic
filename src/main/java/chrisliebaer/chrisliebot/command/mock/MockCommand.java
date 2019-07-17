@@ -1,17 +1,14 @@
 package chrisliebaer.chrisliebot.command.mock;
 
-import chrisliebaer.chrisliebot.abstraction.LimiterConfig;
-import chrisliebaer.chrisliebot.abstraction.Message;
-import chrisliebaer.chrisliebot.abstraction.MigrationHelper;
-import chrisliebaer.chrisliebot.command.CommandExecutor;
+import chrisliebaer.chrisliebot.abstraction.ChrislieMessage;
+import chrisliebaer.chrisliebot.command.ChrisieCommand;
 
 import java.util.concurrent.ThreadLocalRandom;
 
-public class MockCommand implements CommandExecutor {
+public class MockCommand implements ChrisieCommand {
 	
 	@Override
-	public void execute(Message mm, String arg) {
-		var m = MigrationHelper.of(mm);
+	public void execute(ChrislieMessage m, String arg) {
 		
 		if (arg.isBlank())
 			return;
@@ -26,7 +23,7 @@ public class MockCommand implements CommandExecutor {
 			state = !state;
 		}
 		
-		var out = m.channel().output(LimiterConfig.create());
+		var out = m.channel().output();
 		out.plain().appendEscape(new String(chars));
 		out.send();
 	}

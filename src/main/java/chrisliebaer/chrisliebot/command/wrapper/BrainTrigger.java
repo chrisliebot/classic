@@ -1,9 +1,9 @@
 package chrisliebaer.chrisliebot.command.wrapper;
 
 import chrisliebaer.chrisliebot.C;
-import chrisliebaer.chrisliebot.abstraction.Message;
+import chrisliebaer.chrisliebot.abstraction.ChrislieMessage;
+import chrisliebaer.chrisliebot.command.ChrisieCommand;
 import chrisliebaer.chrisliebot.command.CommandContainer;
-import chrisliebaer.chrisliebot.command.CommandExecutor;
 import chrisliebaer.chrisliebot.config.ConfigContext;
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
@@ -15,7 +15,7 @@ import java.util.concurrent.ThreadLocalRandom;
 /**
  * Remebers past executions and can be configured with a timeout or a chance to prevent execution of wrapped command.
  */
-public class BrainTrigger implements CommandExecutor {
+public class BrainTrigger implements ChrisieCommand {
 	
 	private Config config;
 	private HashMap<String, Long> lastExecutions = new HashMap<>(0);
@@ -27,10 +27,10 @@ public class BrainTrigger implements CommandExecutor {
 	}
 	
 	@Override
-	public void execute(Message m, String arg) {
+	public void execute(ChrislieMessage m, String arg) {
 		var now = System.currentTimeMillis();
 		var chance = ThreadLocalRandom.current().nextFloat();
-		long lastExecution = lastExecutions.getOrDefault(m.source(), 0L);
+		long lastExecution = lastExecutions.getOrDefault(m.channel().identifier(), 0L);
 		
 		if (!(
 				(config.mode == Config.Mode.AND && chance < config.chance && lastExecution + config.cooldown <= (now)) ||
@@ -43,7 +43,7 @@ public class BrainTrigger implements CommandExecutor {
 		}
 		
 		cmd.execute(m, arg);
-		lastExecutions.put(m.source(), now);
+		lastExecutions.put(m.channel().identifier(), now);
 	}
 	
 	@Override

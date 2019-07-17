@@ -18,6 +18,14 @@ public interface ChrislieUser extends ServiceAttached {
 	public Optional<String> identifier();
 	
 	/**
+	 * Some services don't require users to have a fixed identifier. While this may cause security issues for certain features, other functions might work fine
+	 * with a best effordt identifier. This identifier tries it's best to provied a constant identifier but can fail.
+	 *
+	 * @return A best effort attempt at providing a indentifier.
+	 */
+	public String softIdentifer();
+	
+	/**
 	 * @return The string that should be used to {@code ping} the user.
 	 */
 	public String mention();

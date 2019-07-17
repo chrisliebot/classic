@@ -1,12 +1,12 @@
 package chrisliebaer.chrisliebot.command.random;
 
 import chrisliebaer.chrisliebot.C;
-import chrisliebaer.chrisliebot.abstraction.Message;
-import chrisliebaer.chrisliebot.command.CommandExecutor;
+import chrisliebaer.chrisliebot.abstraction.ChrislieMessage;
+import chrisliebaer.chrisliebot.command.ChrisieCommand;
 
 import java.util.concurrent.ThreadLocalRandom;
 
-public class DiceCommand implements CommandExecutor {
+public class DiceCommand implements ChrisieCommand {
 	
 	private long defNumber;
 	
@@ -15,7 +15,7 @@ public class DiceCommand implements CommandExecutor {
 	}
 	
 	@Override
-	public void execute(Message m, String arg) {
+	public void execute(ChrislieMessage m, String arg) {
 		try {
 			long max = defNumber;
 			

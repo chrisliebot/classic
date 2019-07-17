@@ -1,8 +1,8 @@
 package chrisliebaer.chrisliebot.command.unicode;
 
 import chrisliebaer.chrisliebot.C;
-import chrisliebaer.chrisliebot.abstraction.Message;
-import chrisliebaer.chrisliebot.command.CommandExecutor;
+import chrisliebaer.chrisliebot.abstraction.ChrislieMessage;
+import chrisliebaer.chrisliebot.command.ChrisieCommand;
 import org.apache.commons.codec.binary.Hex;
 
 import java.nio.charset.StandardCharsets;
@@ -13,14 +13,14 @@ import java.util.StringJoiner;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-public class UnicodeCommand implements CommandExecutor {
+public class UnicodeCommand implements ChrisieCommand {
 	
 	private static final int MAX_CODEPOINT_DISPLAY = 5;
 	
 	private static final Pattern CODEPOINT_INPUT = Pattern.compile("^U\\+(?<cp>[0-9A-Fa-f]{1,8})$");
 	
 	@Override
-	public void execute(Message m, String arg) {
+	public void execute(ChrislieMessage m, String arg) {
 		arg = arg.trim();
 		
 		List<Integer> cps;
@@ -54,7 +54,7 @@ public class UnicodeCommand implements CommandExecutor {
 		cps.stream().limit(MAX_CODEPOINT_DISPLAY).forEachOrdered(i -> printCodePoint(i, m));
 	}
 	
-	private void printCodePoint(int cp, Message m) {
+	private void printCodePoint(int cp, ChrislieMessage m) {
 		Optional<String> name = Optional.ofNullable(Character.getName(cp));
 		var cpStr = Integer.toHexString(cp).toUpperCase();
 		var str = Character.toString(cp);

@@ -1,9 +1,9 @@
 package chrisliebaer.chrisliebot;
 
-import chrisliebaer.chrisliebot.abstraction.Message;
+import chrisliebaer.chrisliebot.abstraction.ChrislieMessage;
 
 @FunctionalInterface
 public interface ChatTriggered {
 	
-	public void onMessage(Message m);
+	public void onMessage(ChrislieMessage m);
 }

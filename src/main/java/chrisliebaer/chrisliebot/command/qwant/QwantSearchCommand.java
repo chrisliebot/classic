@@ -2,9 +2,10 @@ package chrisliebaer.chrisliebot.command.qwant;
 
 import chrisliebaer.chrisliebot.C;
 import chrisliebaer.chrisliebot.SharedResources;
-import chrisliebaer.chrisliebot.abstraction.Message;
-import chrisliebaer.chrisliebot.command.CommandExecutor;
+import chrisliebaer.chrisliebot.abstraction.ChrislieMessage;
+import chrisliebaer.chrisliebot.command.ChrisieCommand;
 import chrisliebaer.chrisliebot.command.qwant.QwantService.QwantResponse;
+import chrisliebaer.chrisliebot.util.ErrorOutputBuilder;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.gson.Gson;
@@ -13,7 +14,6 @@ import lombok.Data;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.text.StringSubstitutor;
-import org.kitteh.irc.client.library.element.Channel;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
@@ -24,7 +24,7 @@ import java.util.Collections;
 import java.util.List;
 
 @Slf4j
-public class QwantSearchCommand implements CommandExecutor {
+public class QwantSearchCommand implements ChrisieCommand {
 	
 	private static final int MAX_RESULT_STORAGE = 10;
 	private static final int RATE_LIMIT_CODE = 429;
@@ -48,9 +48,9 @@ public class QwantSearchCommand implements CommandExecutor {
 	}
 	
 	@Override
-	public void execute(Message m, String arg) {
+	public void execute(ChrislieMessage m, String arg) {
 		var query = arg.trim();
-		var context = m.channel().map(Channel::getName).orElse(m.user().getNick());
+		var context = m.channel().identifier();
 		
 		if (query.isEmpty()) {
 			m.reply(C.error("Du hast keine Suchanfrage eingegeben."));
@@ -112,12 +112,12 @@ public class QwantSearchCommand implements CommandExecutor {
 			
 			@Override
 			public void onFailure(Call<QwantResponse> call, Throwable t) {
-				C.remoteConnectionError(call.request(), m, t);
+				ErrorOutputBuilder.remoteRequest(call.request(), t).write(m);
 			}
 		});
 	}
 	
-	private void printResultItem(Message m, QwantResponse.QwantItem item) {
+	private void printResultItem(ChrislieMessage m, QwantResponse.QwantItem item) {
 		StringSubstitutor strSub = new StringSubstitutor(key -> {
 			switch (key) {
 				case "title":

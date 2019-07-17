@@ -2,10 +2,10 @@ package chrisliebaer.chrisliebot.abstraction.irc;
 
 import chrisliebaer.chrisliebot.abstraction.ChrislieChannel;
 import chrisliebaer.chrisliebot.abstraction.ChrislieMessage;
-import chrisliebaer.chrisliebot.abstraction.PrivateMessage;
 import lombok.Getter;
 import lombok.NonNull;
 import org.kitteh.irc.client.library.event.channel.ChannelMessageEvent;
+import org.kitteh.irc.client.library.event.user.PrivateMessageEvent;
 
 public class IrcMessage implements ChrislieMessage {
 	
@@ -24,11 +24,11 @@ public class IrcMessage implements ChrislieMessage {
 		this.message = message;
 	}
 	
-	public static IrcMessage of(IrcService service, PrivateMessage ev) {
+	public static IrcMessage of(IrcService service, PrivateMessageEvent ev) {
 		return new IrcMessage(service,
-				new IrcUser(service, ev.user()),
-				new IrcPrivateChannel(service, ev.user()),
-				ev.message());
+				new IrcUser(service, ev.getActor()),
+				new IrcPrivateChannel(service, ev.getActor()),
+				ev.getMessage());
 	}
 	
 	public static IrcMessage of(IrcService service, ChannelMessageEvent ev) {

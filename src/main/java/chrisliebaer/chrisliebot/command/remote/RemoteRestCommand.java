@@ -2,8 +2,9 @@ package chrisliebaer.chrisliebot.command.remote;
 
 import chrisliebaer.chrisliebot.C;
 import chrisliebaer.chrisliebot.SharedResources;
-import chrisliebaer.chrisliebot.abstraction.Message;
-import chrisliebaer.chrisliebot.command.CommandExecutor;
+import chrisliebaer.chrisliebot.abstraction.ChrislieMessage;
+import chrisliebaer.chrisliebot.command.ChrisieCommand;
+import chrisliebaer.chrisliebot.util.ErrorOutputBuilder;
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import lombok.Data;
@@ -19,7 +20,7 @@ import java.util.Arrays;
  * Forwards a command invocation to a remote host.
  */
 @Slf4j
-public class RemoteRestCommand implements CommandExecutor {
+public class RemoteRestCommand implements ChrisieCommand {
 	
 	private static final int MAX_RESPONSE_LENGHT = 4000;
 	private static final int MAX_LINE_COUNT = 10;
@@ -33,7 +34,7 @@ public class RemoteRestCommand implements CommandExecutor {
 	}
 	
 	@Override
-	public synchronized void execute(Message m, String arg) {
+	public synchronized void execute(ChrislieMessage m, String arg) {
 		
 		// convert call to json
 		var json = gson.toJson(RemoteMessageDto.of(m, arg));
@@ -45,7 +46,7 @@ public class RemoteRestCommand implements CommandExecutor {
 		client.newCall(req).enqueue(new Callback() {
 			@Override
 			public void onFailure(Call call, IOException e) {
-				C.remoteConnectionError(call.request(), m, e);
+				ErrorOutputBuilder.remoteRequest(call.request(), e).write(m);
 			}
 			
 			@Override
