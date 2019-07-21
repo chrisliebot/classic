@@ -38,14 +38,13 @@ public class RemoteMessageDto {
 		
 		return RemoteMessageDto.builder()
 				.nickname(user.softIdentifer())
+				.isAdmin(m.user().isAdmin())
+				.channel(m.channel().identifier())
 				/* TODO
 				.realName(user.getRealName().orElse(null))
 				.hostname(user.getHost())
 				.account(user.getAccount().orElse(null))
-				.isAdmin(m.isAdmin())
 				.modes(getUserModeSet(m.channel().orElse(null), user))
-				
-				.channel(m.channel().map(Channel::getName).orElse(null))
 				*/
 				.message(m.message())
 				.argument(arg)
