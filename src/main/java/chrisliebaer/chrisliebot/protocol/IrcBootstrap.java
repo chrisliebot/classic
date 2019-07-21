@@ -1,6 +1,5 @@
 package chrisliebaer.chrisliebot.protocol;
 
-import chrisliebaer.chrisliebot.abstraction.ChrislieService;
 import chrisliebaer.chrisliebot.abstraction.irc.IrcService;
 import chrisliebaer.chrisliebot.protocol.irc.EchoCapHandler;
 import chrisliebaer.chrisliebot.protocol.irc.IrcConfig.BotConfig;
@@ -27,7 +26,7 @@ public class IrcBootstrap implements ServiceBootstrap {
 	}
 	
 	@Override
-	public ChrislieService service() {
+	public IrcService service() {
 		var builder = Client.builder();
 		builder.listeners().exception(IrcBootstrap::exceptionLogger);
 		

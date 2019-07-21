@@ -16,7 +16,6 @@ public class IrcConfig {
 		private boolean chatlog;
 		private String prefix;
 		private String logTarget;
-		private String databasePool;
 		private ConnectionConfig connection;
 		private Set<String> ignore = new HashSet<>(0);
 		private Set<String> admins = new HashSet<>(0);

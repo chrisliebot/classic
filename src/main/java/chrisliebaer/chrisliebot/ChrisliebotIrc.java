@@ -1,7 +1,9 @@
 package chrisliebaer.chrisliebot;
 
 import chrisliebaer.chrisliebot.abstraction.ChrislieService;
+import chrisliebaer.chrisliebot.abstraction.irc.IrcService;
 import chrisliebaer.chrisliebot.command.CommandDispatcher;
+import chrisliebaer.chrisliebot.config.ChrislieConfig;
 import chrisliebaer.chrisliebot.config.CommandConfig;
 import chrisliebaer.chrisliebot.config.ConfigContext;
 import chrisliebaer.chrisliebot.protocol.IrcBootstrap;
@@ -14,8 +16,11 @@ import lombok.extern.slf4j.Slf4j;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Collectors;
 
 @Slf4j
 public class ChrisliebotIrc implements BotManagment {
@@ -31,14 +36,18 @@ public class ChrisliebotIrc implements BotManagment {
 	
 	private final AtomicBoolean managmentLock = new AtomicBoolean(false);
 	
-	private Gson gson;
+	private Gson gson = new Gson();
 	
-	private ChrislieService service;
+	private ChrislieService service; // TODO: temporary solution
+	private String prefix; // TODO: temporary solution
 	
-	private File botCfgFile;
-	private File cmdCfgFile;
-	private IrcConfig.BotConfig botCfg;
-	private CommandConfig cmdCfg;
+	private List<ChrislieService> services = new ArrayList<>();
+	
+	private File mainFile;
+	private File commandFile;
+	
+	private ChrislieConfig mainCfg;
+	private CommandConfig commandCfg;
 	
 	private ConfigContext configContext;
 	private CommandDispatcher dispatcher;
@@ -47,16 +56,16 @@ public class ChrisliebotIrc implements BotManagment {
 		File configDir = new File(System.getProperty(PROPERTY_CONFIG_DIR, "."));
 		
 		ChrisliebotIrc bot = new ChrisliebotIrc(
-				new File(configDir, "bot.json"),
+				new File(configDir, "main.json"),
 				new File(configDir, "commands.json"));
 		bot.start();
 	}
 	
-	public ChrisliebotIrc(@NonNull File botCfgFile, @NonNull File cmdCfgFile) {
-		this.botCfgFile = botCfgFile;
-		this.cmdCfgFile = cmdCfgFile;
+	public ChrisliebotIrc(@NonNull File mainFile, @NonNull File cmdFile) {
+		this.mainFile = mainFile;
+		this.commandFile = cmdFile;
 		
-		log.info("using config files: {}, {}", botCfgFile, cmdCfgFile);
+		log.info("using config files: {}, {}", mainFile, cmdFile);
 	}
 	
 	private static void exceptionLogger(Throwable t) {
@@ -70,12 +79,12 @@ public class ChrisliebotIrc implements BotManagment {
 	}
 	
 	public void start() throws IOException {
-		SharedResources.INSTANCE().startAsync().awaitRunning();
-		gson = SharedResources.INSTANCE().gson();
+		loadServices();
+		SharedResources.INSTANCE().init(mainCfg.databasePool()).startAsync().awaitRunning();
 		
-		// connection will never be reloaded
-		loadBotConfig();
-		startConnection();
+		// start all services
+		mainCfg.irc().stream().map(this::startIrcService).collect(Collectors.toCollection(() -> services));
+		service = services.get(0);
 		
 		// load configuration, might fail if config error
 		try {
@@ -87,7 +96,7 @@ public class ChrisliebotIrc implements BotManagment {
 				log.error("failed to create initial bot setup, entering emergency state", e);
 				configContext = ConfigContext.emergencyContext(this);
 				configContext.start();
-				dispatcher = new CommandDispatcher(botCfg.prefix(), configContext.commandTable(), configContext.chatListener());
+				dispatcher = new CommandDispatcher(prefix, configContext.commandTable(), configContext.chatListener());
 				service.sink(dispatcher::dispatch);
 			} catch (@SuppressWarnings("OverlyBroadCatchBlock") Throwable e1) {
 				// you sir, are royally fucked
@@ -99,29 +108,29 @@ public class ChrisliebotIrc implements BotManagment {
 		log.info("bot is up and running for your enjoyment");
 	}
 	
-	private void loadBotConfig() throws IOException {
-		try (FileReader botFr = new FileReader(botCfgFile)) {
-			botCfg = gson.fromJson(botFr, IrcConfig.BotConfig.class);
+	private void loadServices() throws IOException {
+		try (FileReader botFr = new FileReader(mainFile)) {
+			mainCfg = gson.fromJson(botFr, ChrislieConfig.class);
 		}
 	}
 	
 	private void loadCommandConfig() throws IOException {
-		try (FileReader cmdFr = new FileReader(cmdCfgFile)) {
-			cmdCfg = gson.fromJson(cmdFr, CommandConfig.class);
+		try (FileReader cmdFr = new FileReader(commandFile)) {
+			commandCfg = gson.fromJson(cmdFr, CommandConfig.class);
 			
 			// load used command definitions
-			for (String use : cmdCfg.use()) {
+			for (String use : commandCfg.use()) {
 				File useFile = new File(use + ".json");
 				try (FileReader useFr = new FileReader(useFile)) {
-					cmdCfg.commandConfig().merge(gson.fromJson(useFr, CommandConfig.CommandRegistry.class));
+					commandCfg.commandConfig().merge(gson.fromJson(useFr, CommandConfig.CommandRegistry.class));
 				}
 			}
 		}
 	}
 	
-	private void startConnection() {
-		IrcBootstrap bootstrap = new IrcBootstrap(botCfg);
-		service = bootstrap.service();
+	private IrcService startIrcService(IrcConfig.BotConfig cfg) {
+		prefix = cfg.prefix();
+		return new IrcBootstrap(cfg).service();
 	}
 	
 	private void reload(boolean firstRun) throws Exception {
@@ -129,7 +138,6 @@ public class ChrisliebotIrc implements BotManagment {
 		
 		// on first launch, config is already up to date
 		if (!firstRun) {
-			loadBotConfig();
 			loadCommandConfig();
 		}
 		
@@ -138,7 +146,7 @@ public class ChrisliebotIrc implements BotManagment {
 		ConfigContext configContext;
 		
 		// errors in this stage are not fatal, simply continue with old config
-		configContext = ConfigContext.fromConfig(this, cmdCfg);
+		configContext = ConfigContext.fromConfig(this, commandCfg);
 		
 		try {
 			configContext.start();
@@ -150,7 +158,7 @@ public class ChrisliebotIrc implements BotManagment {
 		}
 		
 		// dispatcher can only be created after successfull .start()
-		dispatcher = new CommandDispatcher(botCfg.prefix(), configContext.commandTable(), configContext.chatListener());
+		dispatcher = new CommandDispatcher(prefix, configContext.commandTable(), configContext.chatListener());
 		
 		// if we reached this point, we are safe to swap old dispatcher with new one
 		if (!firstRun)
