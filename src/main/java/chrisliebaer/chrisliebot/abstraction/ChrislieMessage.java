@@ -16,4 +16,9 @@ public interface ChrislieMessage extends ServiceAttached {
 	public default void reply(String s) {
 		channel().output().plain(s).send();
 	}
+	
+	
+	public default ChrislieOutput reply() {
+		return channel().output();
+	}
 }

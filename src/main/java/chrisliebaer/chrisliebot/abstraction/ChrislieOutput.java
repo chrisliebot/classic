@@ -4,6 +4,7 @@ import lombok.NonNull;
 import org.jetbrains.annotations.NotNull;
 
 import java.awt.*;
+import java.util.function.Consumer;
 
 public interface ChrislieOutput {
 	
@@ -21,6 +22,11 @@ public interface ChrislieOutput {
 	
 	public default ChrislieOutput description(String s) {
 		plainSimpleSet(s, description());
+		return this;
+	}
+	
+	public default ChrislieOutput description(Consumer<PlainOutput> out) {
+		out.accept(description());
 		return this;
 	}
 	
@@ -47,23 +53,16 @@ public interface ChrislieOutput {
 		return this;
 	}
 	
-	public PlainOutput convert();
+	public default ChrislieOutput plain(Consumer<PlainOutput> out) {
+		out.accept(plain());
+		return this;
+	}
+	
+	public PlainOutput.PlainOuputSubstitution convert();
 	
 	public PlainOutput replace();
 	
-	
-	
 	public void send();
- 
-	
-	/*
-	entweder
-	
-	* konvertierungsstring mit substitution
-	* konvertierungs plain output mit [berschriebenen methoden f[r substitution
-	* seperater plain output ohne subtitution, f[r loop oder so
-	 */
-	
 	
 	private static void plainSimpleSet(String s, PlainOutput plainOutput) {
 		plainOutput.clear().appendEscape(s);

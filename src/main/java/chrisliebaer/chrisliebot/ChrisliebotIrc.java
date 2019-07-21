@@ -1,26 +1,15 @@
 package chrisliebaer.chrisliebot;
 
-import chrisliebaer.chrisliebot.abstraction.irc.IrcService;
-import chrisliebaer.chrisliebot.capabilities.EchoCapHandler;
-import chrisliebaer.chrisliebot.command.IrcCommandDispatcher;
-import chrisliebaer.chrisliebot.config.ChrislieConfig.BotConfig;
-import chrisliebaer.chrisliebot.config.ChrislieConfig.CommandConfig;
-import chrisliebaer.chrisliebot.config.ChrislieConfig.CommandRegistry;
+import chrisliebaer.chrisliebot.abstraction.ChrislieService;
+import chrisliebaer.chrisliebot.command.CommandDispatcher;
+import chrisliebaer.chrisliebot.config.CommandConfig;
 import chrisliebaer.chrisliebot.config.ConfigContext;
-import chrisliebaer.chrisliebot.util.ChrislieCutter;
-import chrisliebaer.chrisliebot.util.ClientLogic;
-import chrisliebaer.chrisliebot.util.IrcLogAppender;
-import chrisliebaer.chrisliebot.util.IrcToSqlLogger;
+import chrisliebaer.chrisliebot.protocol.IrcBootstrap;
+import chrisliebaer.chrisliebot.protocol.irc.IrcConfig;
 import com.google.gson.Gson;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.logging.log4j.Level;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.core.LoggerContext;
-import org.apache.logging.log4j.core.config.LoggerConfig;
-import org.kitteh.irc.client.library.Client;
-import org.mariadb.jdbc.MariaDbPoolDataSource;
 
 import java.io.File;
 import java.io.FileReader;
@@ -29,7 +18,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 @Slf4j
-public class ChrisliebotIrc {
+public class ChrisliebotIrc implements BotManagment {
 	
 	// proper shutdown of logging framework
 	static {
@@ -44,16 +33,15 @@ public class ChrisliebotIrc {
 	
 	private Gson gson;
 	
-	private Client client;
-	private IrcService service;
+	private ChrislieService service;
 	
 	private File botCfgFile;
 	private File cmdCfgFile;
-	private BotConfig botConfig;
-	private CommandRegistry cmdRegistry;
+	private IrcConfig.BotConfig botCfg;
+	private CommandConfig cmdCfg;
 	
 	private ConfigContext configContext;
-	private IrcCommandDispatcher dispatcher;
+	private CommandDispatcher dispatcher;
 	
 	public static void main(String[] args) throws Exception {
 		File configDir = new File(System.getProperty(PROPERTY_CONFIG_DIR, "."));
@@ -97,10 +85,10 @@ public class ChrisliebotIrc {
 			// here is hoping we are at least able to set up the basic stuff
 			try {
 				log.error("failed to create initial bot setup, entering emergency state", e);
-				configContext = ConfigContext.emergencyContext(this, botConfig);
+				configContext = ConfigContext.emergencyContext(this);
 				configContext.start();
-				dispatcher = new IrcCommandDispatcher(service, configContext);
-				client.getEventManager().registerEventListener(dispatcher);
+				dispatcher = new CommandDispatcher(botCfg.prefix(), configContext.commandTable(), configContext.chatListener());
+				service.sink(dispatcher::dispatch);
 			} catch (@SuppressWarnings("OverlyBroadCatchBlock") Throwable e1) {
 				// you sir, are royally fucked
 				log.error("failed to load emergency environment, you are on your own, good luck", e1);
@@ -113,56 +101,27 @@ public class ChrisliebotIrc {
 	
 	private void loadBotConfig() throws IOException {
 		try (FileReader botFr = new FileReader(botCfgFile)) {
-			botConfig = gson.fromJson(botFr, BotConfig.class);
+			botCfg = gson.fromJson(botFr, IrcConfig.BotConfig.class);
 		}
 	}
 	
 	private void loadCommandConfig() throws IOException {
 		try (FileReader cmdFr = new FileReader(cmdCfgFile)) {
-			cmdRegistry = gson.fromJson(cmdFr, CommandRegistry.class);
+			cmdCfg = gson.fromJson(cmdFr, CommandConfig.class);
 			
 			// load used command definitions
-			for (String use : cmdRegistry.use()) {
+			for (String use : cmdCfg.use()) {
 				File useFile = new File(use + ".json");
 				try (FileReader useFr = new FileReader(useFile)) {
-					cmdRegistry.commandConfig().merge(gson.fromJson(useFr, CommandConfig.class));
+					cmdCfg.commandConfig().merge(gson.fromJson(useFr, CommandConfig.CommandRegistry.class));
 				}
 			}
 		}
 	}
 	
 	private void startConnection() {
-		IrcClientBootstrap bootstrap = new IrcClientBootstrap(botConfig.connection());
-		Client.Builder builder = bootstrap.getBuilder();
-		builder.listeners()
-				.exception(ChrisliebotIrc::exceptionLogger);
-		client = builder.build();
-		client.setMessageCutter(new ChrislieCutter());
-		service = new IrcService(client); // TODO: this is only temporary
-		
-		// this listener helps with certain edge cases that are otherwise poorly handled by kitteh irc
-		client.getEventManager().registerEventListener(new ClientLogic());
-		
-		// add irc logger that will redirect certain log events to irc
-		if (botConfig.logTarget() != null) {
-			LoggerConfig rootCfg = ((LoggerContext) LogManager.getContext(false)).getConfiguration().getRootLogger();
-			var appender = new IrcLogAppender(client, botConfig.logTarget());
-			appender.start();
-			rootCfg.addAppender(appender, Level.ALL, null);
-		}
-		
-		// set up chat logger
-		if (botConfig.databasePool() != null) {
-			MariaDbPoolDataSource dataSource = new MariaDbPoolDataSource(botConfig.databasePool());
-			IrcToSqlLogger chatLogger = new IrcToSqlLogger(dataSource);
-			client.getEventManager().registerEventListener(chatLogger);
-			
-			// register for echo
-			client.getEventManager().registerEventListener(new EchoCapHandler());
-		}
-		
-		// client is ready to connect, commands can be added while client attempts to connect
-		client.connect();
+		IrcBootstrap bootstrap = new IrcBootstrap(botCfg);
+		service = bootstrap.service();
 	}
 	
 	private void reload(boolean firstRun) throws Exception {
@@ -175,11 +134,11 @@ public class ChrisliebotIrc {
 		}
 		
 		// use local variable since we can't already replace the old instances
-		IrcCommandDispatcher dispatcher;
+		CommandDispatcher dispatcher;
 		ConfigContext configContext;
 		
 		// errors in this stage are not fatal, simply continue with old config
-		configContext = ConfigContext.fromConfig(this, botConfig, cmdRegistry);
+		configContext = ConfigContext.fromConfig(this, cmdCfg);
 		
 		try {
 			configContext.start();
@@ -191,7 +150,7 @@ public class ChrisliebotIrc {
 		}
 		
 		// dispatcher can only be created after successfull .start()
-		dispatcher = new IrcCommandDispatcher(service, configContext);
+		dispatcher = new CommandDispatcher(botCfg.prefix(), configContext.commandTable(), configContext.chatListener());
 		
 		// if we reached this point, we are safe to swap old dispatcher with new one
 		if (!firstRun)
@@ -201,7 +160,7 @@ public class ChrisliebotIrc {
 		this.configContext = configContext;
 		this.dispatcher = dispatcher;
 		
-		client.getEventManager().registerEventListener(dispatcher);
+		service.sink(dispatcher::dispatch);
 		
 		// we did it
 	}
@@ -210,7 +169,7 @@ public class ChrisliebotIrc {
 		// if this method is entered, a new dispatcher is ready to be connected, we can safely remove the old one
 		
 		// unhook command executor
-		client.getEventManager().unregisterEventListener(dispatcher);
+		service.sink(null);
 		
 		try {
 			// may throw a ton of exception if shutdown fails
@@ -231,7 +190,7 @@ public class ChrisliebotIrc {
 		try {
 			log.info("shutdown has been triggered, shutting down and returning with error code {}", code);
 			unload();
-			client.shutdown();
+			service.exit();
 			System.exit(code);
 		} catch (Exception e) {
 			log.error("failed to shut down, forcing exit", e);
@@ -239,6 +198,7 @@ public class ChrisliebotIrc {
 		}
 	}
 	
+	@Override
 	public CompletableFuture<Void> doReload() {
 		var future = new CompletableFuture<Void>();
 		if (managmentLock.compareAndSet(false, true)) {
@@ -259,13 +219,15 @@ public class ChrisliebotIrc {
 		return future;
 	}
 	
+	@Override
 	public void doShutdown(int code) {
 		if (managmentLock.compareAndSet(false, true)) {
 			new Thread(() -> stop(code)).start(); // never returns, so no reason to ever reset lock
 		}
 	}
 	
+	@Override
 	public void doReconect() {
-		client.reconnect();
+		service.reconnect();
 	}
 }

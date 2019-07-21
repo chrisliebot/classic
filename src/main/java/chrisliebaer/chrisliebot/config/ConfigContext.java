@@ -1,17 +1,15 @@
 package chrisliebaer.chrisliebot.config;
 
-import chrisliebaer.chrisliebot.C;
-import chrisliebaer.chrisliebot.ChrisliebotIrc;
+import chrisliebaer.chrisliebot.BotManagment;
 import chrisliebaer.chrisliebot.SharedResources;
 import chrisliebaer.chrisliebot.abstraction.ChrislieMessage;
 import chrisliebaer.chrisliebot.abstraction.ChrislieService;
 import chrisliebaer.chrisliebot.command.ChrisieCommand;
 import chrisliebaer.chrisliebot.command.CommandContainer;
-import chrisliebaer.chrisliebot.command.IrcCommandDispatcher;
+import chrisliebaer.chrisliebot.command.CommandDispatcher;
 import chrisliebaer.chrisliebot.command.basic.*;
 import chrisliebaer.chrisliebot.command.bottlespin.BottleSpinCommand;
 import chrisliebaer.chrisliebot.command.choice.ChoiceCommand;
-import chrisliebaer.chrisliebot.command.debug.DebugCommand;
 import chrisliebaer.chrisliebot.command.dns.DnsCommand;
 import chrisliebaer.chrisliebot.command.flip.FlipCommand;
 import chrisliebaer.chrisliebot.command.help.HelpCommand;
@@ -25,20 +23,16 @@ import chrisliebaer.chrisliebot.command.unicode.UnicodeCommand;
 import chrisliebaer.chrisliebot.command.until.UntilCommand;
 import chrisliebaer.chrisliebot.command.urbandictionary.UrbanDictionaryCommand;
 import chrisliebaer.chrisliebot.command.vote.VoteCommand;
-import chrisliebaer.chrisliebot.config.ChrislieConfig.BotConfig;
-import chrisliebaer.chrisliebot.config.ChrislieConfig.CommandDefinition;
-import chrisliebaer.chrisliebot.config.ChrislieConfig.ListenerDefinition;
+import chrisliebaer.chrisliebot.config.CommandConfig.CommandDefinition;
+import chrisliebaer.chrisliebot.config.CommandConfig.ListenerDefinition;
 import chrisliebaer.chrisliebot.listener.ChatListener;
 import chrisliebaer.chrisliebot.listener.ListenerContainer;
-import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
-import lombok.Getter;
 import lombok.NonNull;
-import org.kitteh.irc.client.library.element.User;
 import org.kitteh.irc.client.library.util.CtcpUtil;
 
 import java.lang.reflect.InvocationTargetException;
@@ -53,8 +47,7 @@ public final class ConfigContext {
 	
 	private Gson gson = SharedResources.INSTANCE().gson();
 	
-	private ChrisliebotIrc chrisliebot;
-	@Getter private BotConfig botCfg;
+	private BotManagment bot;
 	private Map<String, CommandContainer> cmdDefs = new HashMap<>();
 	private Map<String, String> bindings = new HashMap<>();
 	private List<ListenerContainer> listener = new ArrayList<>();
@@ -62,7 +55,7 @@ public final class ConfigContext {
 	private Map<String, CommandDefinition> cfgCmdDefs;
 	private Map<String, List<String>> cfgCmdBindings;
 	private List<ListenerDefinition> cfgListener;
-	private List<String> unbind;
+	private Set<String> unbind;
 	
 	// private implementation of interface to be passed to commands upon creation
 	private PreConfigAccessor preConfigAccessor = cmdDef -> {
@@ -71,19 +64,13 @@ public final class ConfigContext {
 		return cmd;
 	};
 	
-	private ConfigContext(@NonNull ChrisliebotIrc chrisliebot,
-						  @NonNull BotConfig botCfg,
+	private ConfigContext(@NonNull BotManagment bot,
 						  @NonNull Map<String, CommandDefinition> cfgCmdDefs,
 						  @NonNull Map<String, List<String>> cfgCmdBindings,
 						  @NonNull List<ListenerDefinition> cfgListener,
-						  @NonNull List<String> unbind)
+						  @NonNull Set<String> unbind)
 			throws ClassNotFoundException, NoSuchMethodException, InvocationTargetException, IllegalAccessException {
-		Preconditions.checkNotNull(botCfg.admins(), "no admin array set");
-		Preconditions.checkNotNull(botCfg.prefix(), "no prefix set");
-		Preconditions.checkArgument(!botCfg.prefix().isEmpty(), "prefix is set but empty");
-		
-		this.chrisliebot = chrisliebot;
-		this.botCfg = botCfg;
+		this.bot = bot;
 		this.cfgCmdDefs = cfgCmdDefs;
 		this.cfgCmdBindings = cfgCmdBindings;
 		this.cfgListener = cfgListener;
@@ -95,13 +82,6 @@ public final class ConfigContext {
 		loadCommandDefinitions();
 		loadCommandBindings();
 		loadListener();
-	}
-	
-	public boolean isAdmin(User u) {
-		if (u == null)
-			return false;
-		
-		return u.getAccount().map((Function<String, Boolean>) acc -> botCfg.admins().contains(acc)).orElse(false);
 	}
 	
 	public void start() throws Exception {
@@ -125,23 +105,20 @@ public final class ConfigContext {
 	}
 	
 	private void createDefaultCommands() {
-		addCommandDefinition("debug", new DebugCommand(), "Hilft beim Debuggen, duh.");
-		addCommandDefinition("shutdown", new ShutdownCommand(chrisliebot),
+		addCommandDefinition("shutdown", new ShutdownCommand(bot),
 				"Beendet den Botprozess vollständig.");
-		addCommandDefinition("restart", new RestartCommand(chrisliebot),
+		addCommandDefinition("restart", new RestartCommand(bot),
 				"Beendet den Botprozess und startet ihn anschließend neu.");
-		addCommandDefinition("upgrade", new UpgradeCommand(chrisliebot),
+		addCommandDefinition("upgrade", new UpgradeCommand(bot),
 				"Läd den neusten Quellcode und Konfiguration von git und führt ein Upgrade durch.");
-		addCommandDefinition("reload", new ReloadCommand(chrisliebot),
+		addCommandDefinition("reload", new ReloadCommand(bot),
 				"Versucht Teile der Konfiguration neu zu Laden.");
-		addCommandDefinition("reconnect", new ReconnectCommand(chrisliebot),
+		addCommandDefinition("reconnect", new ReconnectCommand(bot),
 				"Trennt die Verbindung mit dem aktuellen IRC Server und baut sie erneut auf.");
-		addCommandDefinition("dirty", new DirtyCheck(chrisliebot),
+		addCommandDefinition("dirty", new DirtyCheck(bot),
 				"Prüft ob ein Konfigurationsfehler aufgetreten ist, der einen ungültigen Zustand erzeugt haben könnte.");
 		addCommandDefinition("help", new HelpCommand(bindings, cmdDefs),
 				"Zeigt Informationen über den übergebenen Befehl an.");
-		addCommandDefinition("verbose", (m, arg) -> m.reply("Verbose Logging wird in " + C.highlight(botCfg.logTarget()) + " bereitgestellt."),
-				"Das sag ich dir erst wenn du den Befehl aufrufst.");
 		addCommandDefinition("channellist", new ChannelListCommand(),
 				"Zeigt dir an in welchen Channeln du mich gerade findest.");
 		addCommandDefinition("uptime", new UptimeCommand(),
@@ -247,11 +224,11 @@ public final class ConfigContext {
 	}
 	
 	/**
-	 * Remove the indirection via the binding table for use within the {@link IrcCommandDispatcher}.
+	 * Remove the indirection via the binding table for use within the {@link CommandDispatcher}.
 	 *
 	 * @return Immutable command table.
 	 */
-	public Map<String, CommandContainer> getCommandTable() {
+	public Map<String, CommandContainer> commandTable() {
 		HashMap<String, CommandContainer> t = new HashMap<>(bindings.size());
 		for (var e : bindings.entrySet()) {
 			// all values are set, this is enforced in the accessor methods
@@ -260,7 +237,7 @@ public final class ConfigContext {
 		return ImmutableMap.copyOf(t);
 	}
 	
-	public Collection<ListenerContainer> getChatListener() {
+	public Collection<ListenerContainer> chatListener() {
 		return ImmutableList.copyOf(listener);
 	}
 	
@@ -299,27 +276,25 @@ public final class ConfigContext {
 		return (ChatListener) method.invoke(null, gson, def.config());
 	}
 	
-	public static ConfigContext fromConfig(@NonNull ChrisliebotIrc bot, @NonNull BotConfig botCfg, @NonNull ChrislieConfig.CommandRegistry registry)
+	public static ConfigContext fromConfig(@NonNull BotManagment bot, @NonNull CommandConfig cmdCfg)
 			throws ClassNotFoundException, NoSuchMethodException, IllegalAccessException, InvocationTargetException {
-		var cmdCfg = registry.commandConfig();
+		var registry = cmdCfg.commandConfig();
 		return new ConfigContext(bot,
-				botCfg,
-				cmdCfg.cmdDef(),
-				cmdCfg.cmdBinding(),
-				cmdCfg.listener(),
+				registry.cmdDef(),
+				registry.cmdBinding(),
+				registry.listener(),
 				registry.unbind());
 	}
 	
-	public static ConfigContext emergencyContext(@NonNull ChrisliebotIrc bot, @NonNull BotConfig botCfg)
+	public static ConfigContext emergencyContext(@NonNull BotManagment bot)
 			throws ClassNotFoundException, NoSuchMethodException, IllegalAccessException, InvocationTargetException {
 		
 		// emergency context doesn't have any external command definitions
 		return new ConfigContext(bot,
-				botCfg,
 				Map.of(),
 				Map.of(),
 				List.of(),
-				List.of());
+				Set.of());
 	}
 	
 	public void passService(@NonNull ChrislieService service) throws Exception {

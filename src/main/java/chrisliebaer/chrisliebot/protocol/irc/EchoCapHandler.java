@@ -1,4 +1,4 @@
-package chrisliebaer.chrisliebot.capabilities;
+package chrisliebaer.chrisliebot.protocol.irc;
 
 import lombok.extern.slf4j.Slf4j;
 import net.engio.mbassy.listener.Handler;
@@ -23,7 +23,7 @@ public class EchoCapHandler {
 			Optional<CapabilityState> opt = ev.getSupportedCapabilities()
 					.stream().filter(s -> s.getName().equalsIgnoreCase(CapabilityManager.Defaults.ECHO_MESSAGE)).findFirst();
 			
-			if (!opt.isPresent()) {
+			if (opt.isEmpty()) {
 				log.warn("echo-message is not supported by server, will not be able to log own messages");
 				return;
 			}

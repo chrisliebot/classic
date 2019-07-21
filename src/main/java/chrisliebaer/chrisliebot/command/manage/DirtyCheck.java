@@ -1,6 +1,6 @@
 package chrisliebaer.chrisliebot.command.manage;
 
-import chrisliebaer.chrisliebot.ChrisliebotIrc;
+import chrisliebaer.chrisliebot.BotManagment;
 import chrisliebaer.chrisliebot.abstraction.ChrislieMessage;
 import chrisliebaer.chrisliebot.command.ChrisieCommand;
 import lombok.AllArgsConstructor;
@@ -8,7 +8,7 @@ import lombok.AllArgsConstructor;
 @AllArgsConstructor
 public class DirtyCheck implements ChrisieCommand {
 	
-	private ChrisliebotIrc bot;
+	private BotManagment bot;
 	
 	@Override
 	public void execute(ChrislieMessage m, String arg) {

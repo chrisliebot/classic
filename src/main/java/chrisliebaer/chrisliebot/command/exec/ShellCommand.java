@@ -4,6 +4,7 @@ import chrisliebaer.chrisliebot.C;
 import chrisliebaer.chrisliebot.SharedResources;
 import chrisliebaer.chrisliebot.abstraction.ChrislieMessage;
 import chrisliebaer.chrisliebot.command.ChrisieCommand;
+import chrisliebaer.chrisliebot.util.ErrorOutputBuilder;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.gson.Gson;
@@ -81,7 +82,7 @@ public class ShellCommand implements ChrisieCommand {
 		try {
 			handleProcess(builder.start(), m);
 		} catch (@SuppressWarnings("OverlyBroadCatchBlock") Throwable e) {
-			m.reply(C.error("Bei der Verarbeitung dieses Befehls ging etwas schief."));
+			ErrorOutputBuilder.generic("Bei der Verarbeitung dieses Befehls ging etwas schief.").write(m);
 			log.warn(C.LOG_PUBLIC, "failed to execute remote command: {} ({})", builder.command(), e.getMessage());
 		}
 	}
@@ -104,7 +105,7 @@ public class ShellCommand implements ChrisieCommand {
 			timer.cancel();
 			
 			if (pp.exitValue() != 0) {
-				m.reply(C.error("Bei der Ausführung des Befehls trat ein Fehler auf."));
+				ErrorOutputBuilder.generic("Bei der Ausführung des Befehls trat ein Fehler auf.").write(m);
 				log.warn(C.LOG_PUBLIC, "command {} exited with non-zero error code {}", command, pp.exitValue());
 				return;
 			}
@@ -119,8 +120,8 @@ public class ShellCommand implements ChrisieCommand {
 		}).exceptionally(t -> {
 			timer.cancel();
 			log.warn(C.LOG_PUBLIC, "an error occured while exeucting {}: {}", command, t.getMessage());
-			m.reply(C.error("Der Befehl konnte nicht ausgeführt werden."
-					+ (t.getMessage() != null ? "(" + t.getMessage() + ")" : "")));
+			ErrorOutputBuilder.generic("Der Befehl konnte nicht ausgeführt werden."
+					+ (t.getMessage() != null ? "(" + t.getMessage() + ")" : "")).write(m);
 			
 			return null;
 		});

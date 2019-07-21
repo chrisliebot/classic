@@ -11,11 +11,11 @@ import java.util.List;
 
 public class ChrislieCutter implements Cutter {
 	
-	private static final int LIMIT_CORRECTION = -10;
+	private static final int LIMIT_CORRECTION = -15;
 	
 	@Override
 	public @NonNull List<String> split(@NonNull String message, @NonNegative int limit) {
-		// limit is scewed when connected to znc, a hard coded offset should fix that
+		// limit is broken when connected to znc, a hard coded offset should fix that
 		limit += LIMIT_CORRECTION;
 		
 		ArrayList<String> out = new ArrayList<>(1); // assume one liner

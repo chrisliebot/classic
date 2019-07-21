@@ -1,8 +1,9 @@
 package chrisliebaer.chrisliebot.abstraction;
 
-public enum  ChrislieFormat {
+public enum ChrislieFormat {
 	HIGHLIGHT,
 	BOLD,
 	ITALIC,
-	UNDERLINED
+	UNDERLINE,
+	CODE
 }

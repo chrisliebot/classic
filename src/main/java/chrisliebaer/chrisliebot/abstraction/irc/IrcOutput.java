@@ -27,7 +27,7 @@ public class IrcOutput implements ChrislieOutput {
 	private Function<String, String> escaper;
 	private PlainOutputImpl plain, description;
 	
-	// strategy for converting received calls into irc message (default is to use title and plain output)
+	// strategy for converting received calls into irc message (default is to use title and description/plain)
 	private Supplier<String> converter = new Supplier<>() {
 		@Override
 		public String get() {
@@ -58,8 +58,8 @@ public class IrcOutput implements ChrislieOutput {
 	public IrcOutput(@NonNull Function<String, String> escaper, @NonNull Consumer<String> sink) {
 		this.escaper = escaper;
 		this.sink = sink;
-		plain = new PlainOutputImpl(escaper);
-		description = new PlainOutputImpl(escaper);
+		plain = new PlainOutputImpl(escaper, IrcFormatter::format);
+		description = new PlainOutputImpl(escaper, IrcFormatter::format);
 	}
 	
 	@Override
@@ -130,13 +130,20 @@ public class IrcOutput implements ChrislieOutput {
 	@Override
 	public PlainOuputSubstitution convert() {
 		// swap strategy to using this output with substitutions from gathered method calls
-		PlainOuputSubstitutionImpl substitution = new PlainOuputSubstitutionImpl(escaper, new StrLookup() {
+		PlainOuputSubstitutionImpl substitution = new PlainOuputSubstitutionImpl(escaper, IrcFormatter::format, new StrLookup() {
 			@Override
 			public String lookup(String key) {
-				if (key.startsWith("f-")) {
-					return fields.getOrDefault(key.substring(2), "MISSING_KEY(" + key + ")");
-				} else {
-					return map.getOrDefault(key, "MISSING_KEY(" + key + ")");
+				switch (key) {
+					case "plain":
+						return plain.string();
+					case "description":
+						return description.string();
+					default:
+						if (key.startsWith("f-")) {
+							return fields.getOrDefault(key.substring(2), "MISSING_KEY(" + key + ")");
+						} else {
+							return map.getOrDefault(key, "MISSING_KEY(" + key + ")");
+						}
 				}
 			}
 		});
@@ -146,7 +153,7 @@ public class IrcOutput implements ChrislieOutput {
 	
 	@Override
 	public PlainOutput replace() {
-		PlainOutputImpl output = new PlainOutputImpl(escaper);
+		PlainOutputImpl output = new PlainOutputImpl(escaper, IrcFormatter::format);
 		converter = output::string;
 		return output;
 	}

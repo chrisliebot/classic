@@ -3,6 +3,7 @@ package chrisliebaer.chrisliebot.command.choice;
 import chrisliebaer.chrisliebot.C;
 import chrisliebaer.chrisliebot.abstraction.ChrislieMessage;
 import chrisliebaer.chrisliebot.command.ChrisieCommand;
+import chrisliebaer.chrisliebot.util.ErrorOutputBuilder;
 
 import java.util.Arrays;
 import java.util.concurrent.ThreadLocalRandom;
@@ -16,14 +17,17 @@ public class ChoiceCommand implements ChrisieCommand {
 			"In jedem Fall",
 			"Definitiv",
 			"Zu 100%",
-			"Wie wärs mit"
+			"Wie wärs mit",
+			"Wenn du mich fragst",
+			"Mit Sicherheit",
+			"Natürlich"
 	};
 	
 	@Override
 	public void execute(ChrislieMessage m, String arg) {
 		var choices = Arrays.stream(arg.split(",")).map(String::trim).filter(s -> !s.isEmpty()).collect(Collectors.toList());
 		if (choices.isEmpty()) {
-			m.reply(C.error("Keine Auswahloptionen gefunden."));
+			ErrorOutputBuilder.generic("Keine Auswahloptionen gefunden.").write(m);
 			return;
 		}
 		

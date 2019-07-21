@@ -1,8 +1,9 @@
 package chrisliebaer.chrisliebot.command.dns;
 
-import chrisliebaer.chrisliebot.C;
+import chrisliebaer.chrisliebot.abstraction.ChrislieFormat;
 import chrisliebaer.chrisliebot.abstraction.ChrislieMessage;
 import chrisliebaer.chrisliebot.command.ChrisieCommand;
+import chrisliebaer.chrisliebot.util.ErrorOutputBuilder;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.TreeMultimap;
 import org.xbill.DNS.Lookup;
@@ -25,7 +26,7 @@ public class DnsCommand implements ChrisieCommand {
 	public void execute(ChrislieMessage m, String arg) {
 		var args = arg.split(" ");
 		if (args.length < 1) {
-			m.reply(C.error("Kein Hostname angegeben."));
+			ErrorOutputBuilder.generic("Kein Hostname angegeben.").write(m);
 			return;
 		}
 		
@@ -33,16 +34,23 @@ public class DnsCommand implements ChrisieCommand {
 		if (args.length >= 2)
 			type = Type.value(args[1], true);
 		if (type == -1) {
-			m.reply(C.error("Der DNS Typ " + C.highlight(args[1]) + " ist ungültig."));
+			ErrorOutputBuilder.generic(out -> out
+					.appendEscape("Der DNS Typ: ")
+					.appendEscape(args[1], ChrislieFormat.HIGHLIGHT)
+					.appendEscape(" ist ungültig."))
+					.write(m);
 			return;
 		}
 		
 		try {
 			handleLookup(new Lookup(args[0], type), m, args[0]);
 		} catch (TextParseException e) {
-			m.reply(C.error("Ich erkenne da keinen Hostname. Das tut mir leid."));
+			ErrorOutputBuilder.generic("Ich erkenne da keinen Hostname. Das tut mir leid.").write(m);
 		} catch (IllegalArgumentException e) {
-			m.reply(C.error("Der DNS Typ " + C.highlight(args[1]) + " ist hier nicht erlaubt."));
+			ErrorOutputBuilder.generic(out -> out
+					.appendEscape("Der DNS Typ ")
+					.appendEscape(args[1], ChrislieFormat.HIGHLIGHT)
+					.appendEscape(" ist hier nicht erlaubt.")).write(m);
 		}
 	}
 	
@@ -58,9 +66,9 @@ public class DnsCommand implements ChrisieCommand {
 						.map(e -> Type.string(e.getKey()) + ": "
 								+ e.getValue().stream()
 								.map(Record::rdataToString).collect(Collectors.joining(" "))).collect(Collectors.joining(", "));
-				m.reply("DNS Anfrage für " + C.highlight(host) + ": " + out);
+				m.reply().description().appendEscape("DNS Anfrage für ").appendEscape(host, ChrislieFormat.HIGHLIGHT).appendEscape(": ").appendEscape(out);
 			} else {
-				m.reply(C.error("Keine Antwort vom Server."));
+				ErrorOutputBuilder.generic("Keine Antwort vom Server.").write(m);
 			}
 		});
 	}

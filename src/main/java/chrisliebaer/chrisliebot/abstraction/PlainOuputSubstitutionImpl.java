@@ -4,14 +4,17 @@ import lombok.NonNull;
 import org.apache.commons.lang.text.StrLookup;
 import org.apache.commons.lang.text.StrSubstitutor;
 
+import java.util.function.BiFunction;
 import java.util.function.Function;
 
 public class PlainOuputSubstitutionImpl extends PlainOutputImpl implements PlainOutput.PlainOuputSubstitution {
 	
 	private StrSubstitutor substitutor;
 	
-	public PlainOuputSubstitutionImpl(@NonNull Function<String, String> escaper, StrLookup lookup) {
-		super(escaper);
+	public PlainOuputSubstitutionImpl(@NonNull Function<String, String> escaper,
+									  @NonNull BiFunction<Object, String, String> formatResolver,
+									  StrLookup lookup) {
+		super(escaper, formatResolver);
 		substitutor = new StrSubstitutor(lookup);
 	}
 	

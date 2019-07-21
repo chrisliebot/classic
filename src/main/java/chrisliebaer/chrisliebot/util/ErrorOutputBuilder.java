@@ -4,9 +4,12 @@ package chrisliebaer.chrisliebot.util;
 import chrisliebaer.chrisliebot.abstraction.ChrislieFormat;
 import chrisliebaer.chrisliebot.abstraction.ChrislieMessage;
 import chrisliebaer.chrisliebot.abstraction.ChrislieOutput;
+import chrisliebaer.chrisliebot.abstraction.PlainOutput;
 import okhttp3.Request;
+import org.kitteh.irc.client.library.util.Format;
 
 import java.awt.*;
+import java.util.function.Consumer;
 
 public final class ErrorOutputBuilder {
 	
@@ -41,6 +44,21 @@ public final class ErrorOutputBuilder {
 					else
 						description.appendEscape("Konnte Server nicht erreichen: ").appendEscape(reason, ChrislieFormat.HIGHLIGHT);
 				});
+	}
+	
+	public static ErrorOutputBuilder generic(String description) {
+		return new ErrorOutputBuilder().fn(out -> defaultConvert(out.title("Fehler").description(description).convert()));
+	}
+	
+	public static ErrorOutputBuilder generic(Consumer<PlainOutput> outFn) {
+		return new ErrorOutputBuilder().fn(out -> {
+			outFn.accept(out.description());
+			defaultConvert(out.title("Fehler").convert());
+		});
+	}
+	
+	private static void defaultConvert(PlainOutput.PlainOuputSubstitution convert) {
+		convert.appendEscapeSub("[${title}] ", Format.RED, Format.BOLD).appendEscapeSub("${description}");
 	}
 	
 	public ChrislieOutput write(ChrislieOutput out) {

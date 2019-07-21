@@ -5,6 +5,7 @@ import com.google.gson.Gson;
 import lombok.Getter;
 import okhttp3.OkHttpClient;
 
+import javax.sql.DataSource;
 import java.util.Timer;
 
 public final class SharedResources extends AbstractIdleService {
@@ -16,6 +17,7 @@ public final class SharedResources extends AbstractIdleService {
 	@Getter private Gson gson;
 	@Getter private OkHttpClient httpClient;
 	@Getter private Timer timer;
+	@Getter private DataSource dataSource;
 	
 	private SharedResources() {}
 	

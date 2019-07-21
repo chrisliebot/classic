@@ -2,6 +2,7 @@ package chrisliebaer.chrisliebot.abstraction;
 
 import lombok.NonNull;
 
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.regex.Pattern;
 
@@ -15,9 +16,12 @@ public class PlainOutputImpl implements PlainOutput {
 	private StringBuilder builder = new StringBuilder();
 	
 	private Function<String, String> escaper;
+	private BiFunction<Object, String, String> formatResolver;
 	
-	public PlainOutputImpl(@NonNull Function<String, String> escaper) {
+	public PlainOutputImpl(@NonNull Function<String, String> escaper,
+						   @NonNull BiFunction<Object, String, String> formatResolver) {
 		this.escaper = escaper;
+		this.formatResolver = formatResolver;
 	}
 	
 	@Override
@@ -56,11 +60,11 @@ public class PlainOutputImpl implements PlainOutput {
 	public String string() {
 		StringBuilder sb = new StringBuilder(builder.length());
 		
-		// if set, the next character will always be appended
-		boolean escaped = false;
+		// keeps track of current state
+		boolean escaped = false, escapeRegion = false;
 		
-		// marks start of escape region
-		int start = -1;
+		// remember content of escape region
+		StringBuilder tmp = new StringBuilder();
 		
 		for (int i = 0; i < builder.length(); i++) {
 			char c = builder.charAt(i);
@@ -68,17 +72,24 @@ public class PlainOutputImpl implements PlainOutput {
 			if (c == ESCAPE_CHARACTER && !escaped) { // start escape sequence
 				escaped = true;
 			} else if (c == ESCAPE_MARKER && !escaped) { // start or end escape region
-				
-				if (start >= 0) { // if start is set, we are calling the escape function
-					sb.append(escaper.apply(builder.substring(start + 1, i)));
-					start = -1;
-				} else { // otherwise we mark the start
-					start = i; // mark start
+				if (escapeRegion) {
+					// leaving escape region
+					escapeRegion = false;
+					
+					// append escaped content and reset temporary string builder
+					sb.append(escaper.apply(tmp.toString()));
+					tmp.setLength(0);
+				} else {
+					// entering escape region
+					escapeRegion = true;
 				}
+			} else {
+				escaped = false; // always reset escape flag
 				
-			} else if (start < 0) { // only copy characters outside of escape region
-				escaped = false;
-				sb.append(c);
+				if (escapeRegion)
+					tmp.append(c);
+				else
+					sb.append(c);
 			}
 		}
 		return sb.toString();
@@ -91,25 +102,15 @@ public class PlainOutputImpl implements PlainOutput {
 			if (match == ESCAPE_MARKER)
 				matcher.appendReplacement(builder, "\\0");
 			else if (match == ESCAPE_CHARACTER)
-				matcher.appendReplacement(builder, "\\\\");
+				matcher.appendReplacement(builder, "\\\\\\\\");
 		}
 		matcher.appendTail(builder);
 	}
 	
-	private static String applyFormats(String s, Object... formats) {
-		// TODO: implement this
+	private String applyFormats(String s, Object... formats) {
+		for (Object format : formats) {
+			s = formatResolver.apply(format, s);
+		}
 		return s;
-		
-		// voher muss noch ein formatierer in den konstruktor...
-		
-		/*
-		check if irc format and apply only in irc context
-		check if discord format and only apply in discord
-		both discuraged
-		
-		check if formatter enum and resolve and apply
-		etc.
-		 */
-		
 	}
 }

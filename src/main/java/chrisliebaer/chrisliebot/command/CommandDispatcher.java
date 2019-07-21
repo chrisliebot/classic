@@ -2,18 +2,10 @@ package chrisliebaer.chrisliebot.command;
 
 import chrisliebaer.chrisliebot.C;
 import chrisliebaer.chrisliebot.abstraction.ChrislieMessage;
-import chrisliebaer.chrisliebot.abstraction.irc.IrcMessage;
-import chrisliebaer.chrisliebot.abstraction.irc.IrcService;
-import chrisliebaer.chrisliebot.config.ConfigContext;
 import chrisliebaer.chrisliebot.listener.ListenerContainer;
 import chrisliebaer.chrisliebot.util.ErrorOutputBuilder;
 import lombok.Data;
-import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
-import net.engio.mbassy.listener.Handler;
-import org.kitteh.irc.client.library.element.User;
-import org.kitteh.irc.client.library.event.channel.ChannelMessageEvent;
-import org.kitteh.irc.client.library.event.user.PrivateMessageEvent;
 
 import java.util.Collection;
 import java.util.Map;
@@ -22,48 +14,23 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 @Slf4j
-public class IrcCommandDispatcher {
+public class CommandDispatcher {
 	
-	private IrcService service;
+	private Pattern invocationPattern;
+	private Map<String, CommandContainer> commandTable;
+	private Collection<ListenerContainer> listeners;
 	
-	protected Pattern invocationPattern;
-	protected ConfigContext ctx;
-	protected Map<String, CommandContainer> commandTable;
-	protected Collection<ListenerContainer> listeners;
-	
-	public IrcCommandDispatcher(IrcService service, @NonNull ConfigContext ctx) {
-		this.service = service;
-		this.ctx = ctx; // TODO: we don't need the context anymore
-		commandTable = ctx.getCommandTable();
-		listeners = ctx.getChatListener();
+	public CommandDispatcher(
+			String prefix,
+			Map<String, CommandContainer> commandTable,
+			Collection<ListenerContainer> listeners) {
+		this.commandTable = commandTable;
+		this.listeners = listeners;
 		
-		invocationPattern = Pattern.compile("^" + Pattern.quote(ctx.botCfg().prefix()) + "(?<name>[^ ]+)( (?<argument>.+)?)?$");
+		invocationPattern = Pattern.compile("^" + Pattern.quote(prefix) + "(?<name>[^ ]+)( (?<argument>.+)?)?$");
 	}
 	
-	private boolean isOwn(User user) {
-		// ignore own messages and ignored
-		return user.getClient().isUser(user) || service.ignore(user.getNick());
-	}
-	
-	@Handler
-	public void onChannelMessage(ChannelMessageEvent ev) {
-		if (isOwn(ev.getActor()))
-			return;
-		
-		var m = IrcMessage.of(service, ev);
-		dispatch(m);
-	}
-	
-	@Handler
-	public void onPrivateMessage(PrivateMessageEvent ev) {
-		if (isOwn(ev.getActor()))
-			return;
-		
-		var m = IrcMessage.of(service, ev);
-		dispatch(m);
-	}
-	
-	private void dispatch(ChrislieMessage m) {
+	public void dispatch(ChrislieMessage m) {
 		if (checkCommand(m))
 			return;
 		
@@ -117,7 +84,6 @@ public class IrcCommandDispatcher {
 	private static class Invocation {
 		
 		public Invocation(String name, String args) {
-			// invariants of invocation instance are actually enforce here
 			this.name = name.toLowerCase(); // always lowercase
 			this.args = args == null ? "" : args.trim(); // never just spaces
 		}

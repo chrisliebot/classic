@@ -1,7 +1,7 @@
 package chrisliebaer.chrisliebot.command.manage;
 
+import chrisliebaer.chrisliebot.BotManagment;
 import chrisliebaer.chrisliebot.C;
-import chrisliebaer.chrisliebot.ChrisliebotIrc;
 import chrisliebaer.chrisliebot.abstraction.ChrislieMessage;
 import chrisliebaer.chrisliebot.command.ChrisieCommand;
 import lombok.AllArgsConstructor;
@@ -11,7 +11,7 @@ import lombok.extern.slf4j.Slf4j;
 @AllArgsConstructor
 public class RestartCommand implements ChrisieCommand {
 
-	private ChrisliebotIrc chrisliebot;
+	private BotManagment chrisliebot;
 	
 	@Override
 	public void execute(ChrislieMessage m, String arg) {
