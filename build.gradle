@@ -60,7 +60,7 @@ dependencies {
 	compile 'me.xdrop:fuzzywuzzy:1.2.0'
 
 	// protocols
-	compile 'org.kitteh.irc:client-lib:6.0.0'
+	compile 'org.kitteh.irc:client-lib:7.2.2'
 	compile('net.dv8tion:JDA:4.BETA.0_22') {
 		exclude module: 'opus-java'
 	}

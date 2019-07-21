@@ -78,7 +78,7 @@ public class IrcToSqlLogger {
 	
 	@Handler
 	public void logNick(UserNickChangeEvent ev) {
-		logMessage(new Date(), ev.getOldUser().getNick(), ev.getOldUser(), ev.getOriginalMessages().get(0).getMessage(), MessageType.NICK);
+		logMessage(new Date(), ev.getOldUser().getNick(), ev.getOldUser(), ev.getSource().getMessage(), MessageType.NICK);
 	}
 	
 	@Handler

@@ -1,7 +1,9 @@
 package chrisliebaer.chrisliebot.util;
 
+import chrisliebaer.chrisliebot.C;
 import org.checkerframework.checker.index.qual.NonNegative;
 import org.checkerframework.checker.nullness.qual.NonNull;
+import org.kitteh.irc.client.library.util.CtcpUtil;
 import org.kitteh.irc.client.library.util.Cutter;
 
 import java.util.ArrayDeque;
@@ -18,10 +20,10 @@ public class ChrislieCutter implements Cutter {
 		// limit is broken when connected to znc, a hard coded offset should fix that
 		limit += LIMIT_CORRECTION;
 		
+		String prefix = CtcpUtil.isCtcp(message) ? "" : String.valueOf(C.ZERO_WIDTH_NO_BREAK_SPACE);
+		
 		ArrayList<String> out = new ArrayList<>(1); // assume one liner
-		
 		ArrayDeque<String> remain = new ArrayDeque<>(Arrays.asList(message.split(" ")));
-		
 		StringBuilder sb = new StringBuilder();
 		
 		while (!remain.isEmpty()) {
@@ -42,8 +44,8 @@ public class ChrislieCutter implements Cutter {
 				}
 				
 				// commit current string buffer to output
-				out.add(sb.toString());
-				sb = new StringBuilder();
+				out.add(prefix + sb.toString());
+				sb.setLength(0);
 			} else {
 				// append current string to string builder
 				if (sb.length() != 0)
@@ -55,7 +57,7 @@ public class ChrislieCutter implements Cutter {
 		
 		// append pending string builer, if not empty
 		if (sb.length() != 0)
-			out.add(sb.toString());
+			out.add(prefix + sb.toString());
 		
 		return out;
 	}
