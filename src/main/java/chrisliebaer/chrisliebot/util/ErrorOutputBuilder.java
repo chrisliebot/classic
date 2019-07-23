@@ -57,7 +57,7 @@ public final class ErrorOutputBuilder {
 		});
 	}
 	
-	private static void defaultConvert(PlainOutput.PlainOuputSubstitution convert) {
+	private static void defaultConvert(PlainOutput.PlainOutputSubstituion convert) {
 		convert.appendEscapeSub("[${title}] ", Format.RED, Format.BOLD).appendEscapeSub("${description}");
 	}
 	

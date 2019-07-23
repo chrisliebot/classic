@@ -5,18 +5,17 @@ import chrisliebaer.chrisliebot.abstraction.ChrislieService;
 import chrisliebaer.chrisliebot.abstraction.ServiceAttached;
 import lombok.Getter;
 import lombok.NonNull;
+import lombok.Setter;
 import net.engio.mbassy.listener.Handler;
 import org.kitteh.irc.client.library.Client;
 import org.kitteh.irc.client.library.element.User;
 import org.kitteh.irc.client.library.event.channel.ChannelMessageEvent;
 import org.kitteh.irc.client.library.event.user.PrivateMessageEvent;
 
-import javax.annotation.Nullable;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Consumer;
 
-@SuppressWarnings("MethodMayBeSynchronized")
 public class IrcService implements ChrislieService {
 	
 	@Getter private Client client;
@@ -24,7 +23,7 @@ public class IrcService implements ChrislieService {
 	private Set<String> admins;
 	private Set<String> ignores;
 	
-	private Consumer<ChrislieMessage> sink;
+	@Setter private Consumer<ChrislieMessage> sink;
 	
 	public IrcService(@NonNull Client client, Set<String> admins, Set<String> ignores) {
 		this.client = client;
@@ -39,10 +38,10 @@ public class IrcService implements ChrislieService {
 		if (blockedUser(ev.getActor()))
 			return;
 		
-		synchronized (this) {
-			if (sink != null)
-				sink.accept(IrcMessage.of(this, ev));
-		}
+		var sink = this.sink;
+		if (sink != null)
+			sink.accept(IrcMessage.of(this, ev));
+		
 	}
 	
 	@Handler
@@ -50,17 +49,9 @@ public class IrcService implements ChrislieService {
 		if (blockedUser(ev.getActor()))
 			return;
 		
-		synchronized (this) {
-			if (sink != null)
-				sink.accept(IrcMessage.of(this, ev));
-		}
-	}
-	
-	@Override
-	public void sink(@Nullable Consumer<ChrislieMessage> sink) {
-		synchronized (this) {
-			this.sink = sink;
-		}
+		var sink = this.sink;
+		if (sink != null)
+			sink.accept(IrcMessage.of(this, ev));
 	}
 	
 	@Override

@@ -4,12 +4,12 @@ import chrisliebaer.chrisliebot.C;
 import chrisliebaer.chrisliebot.abstraction.ChrislieChannel;
 import chrisliebaer.chrisliebot.abstraction.ChrislieUser;
 import chrisliebaer.chrisliebot.abstraction.LimiterConfig;
+import com.google.common.base.Function;
 import com.google.common.base.Objects;
 import lombok.Getter;
 import org.kitteh.irc.client.library.element.Channel;
 import org.kitteh.irc.client.library.element.User;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.regex.Pattern;
@@ -57,12 +57,9 @@ public class IrcChannel implements ChrislieChannel {
 	
 	@Override
 	public List<ChrislieUser> users() {
-		ArrayList<ChrislieUser> users = new ArrayList<>(channel.getUsers().size());
-		
-		for (User user : channel.getUsers())
-			users.add(new IrcUser(service, user));
-		
-		return users;
+		return channel.getUsers().stream()
+				.map((Function<User, IrcUser>) user -> new IrcUser(service, user))
+				.collect(Collectors.toList());
 	}
 	
 	@Override

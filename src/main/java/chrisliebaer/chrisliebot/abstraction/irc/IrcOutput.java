@@ -1,9 +1,9 @@
 package chrisliebaer.chrisliebot.abstraction.irc;
 
 import chrisliebaer.chrisliebot.abstraction.ChrislieOutput;
-import chrisliebaer.chrisliebot.abstraction.PlainOuputSubstitutionImpl;
+import chrisliebaer.chrisliebot.abstraction.PlainOutputSubstituionImpl;
 import chrisliebaer.chrisliebot.abstraction.PlainOutput;
-import chrisliebaer.chrisliebot.abstraction.PlainOutput.PlainOuputSubstitution;
+import chrisliebaer.chrisliebot.abstraction.PlainOutput.PlainOutputSubstituion;
 import chrisliebaer.chrisliebot.abstraction.PlainOutputImpl;
 import lombok.NonNull;
 import org.apache.commons.lang.text.StrLookup;
@@ -118,19 +118,26 @@ public class IrcOutput implements ChrislieOutput {
 	}
 	
 	@Override
+	public IrcOutput footer(String text, String iconUrl) {
+		map.put("footerText", text);
+		map.put("footerIconUrl", iconUrl);
+		return this;
+	}
+	
+	@Override
 	public @NotNull PlainOutput plain() {
 		return plain;
 	}
 	
 	@Override
-	public @NonNull PlainOutput description() {
+	public PlainOutput description() {
 		return description;
 	}
 	
 	@Override
-	public PlainOuputSubstitution convert() {
+	public PlainOutputSubstituion convert() {
 		// swap strategy to using this output with substitutions from gathered method calls
-		PlainOuputSubstitutionImpl substitution = new PlainOuputSubstitutionImpl(escaper, IrcFormatter::format, new StrLookup() {
+		PlainOutputSubstituionImpl substitution = new PlainOutputSubstituionImpl(escaper, IrcFormatter::format, new StrLookup() {
 			@Override
 			public String lookup(String key) {
 				switch (key) {

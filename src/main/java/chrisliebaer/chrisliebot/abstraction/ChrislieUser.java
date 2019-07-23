@@ -23,7 +23,9 @@ public interface ChrislieUser extends ServiceAttached {
 	 *
 	 * @return A best effort attempt at providing a indentifier.
 	 */
-	public String softIdentifer();
+	public default String softIdentifer() {
+		return identifier().orElseThrow();
+	}
 	
 	/**
 	 * @return The string that should be used to {@code ping} the user.

@@ -1,7 +1,6 @@
 package chrisliebaer.chrisliebot.abstraction;
 
 import lombok.NonNull;
-import org.jetbrains.annotations.NotNull;
 
 import java.awt.*;
 import java.util.function.Consumer;
@@ -46,7 +45,13 @@ public interface ChrislieOutput {
 		return field(field, value, true);
 	}
 	
-	public @NotNull PlainOutput plain();
+	public ChrislieOutput footer(String text, String iconUrl);
+	
+	public default ChrislieOutput footer(String text) {
+		return footer(text, null);
+	}
+	
+	public PlainOutput plain();
 	
 	public default ChrislieOutput plain(String s) {
 		plainSimpleSet(s, plain());
@@ -58,7 +63,7 @@ public interface ChrislieOutput {
 		return this;
 	}
 	
-	public PlainOutput.PlainOuputSubstitution convert();
+	public PlainOutput.PlainOutputSubstituion convert();
 	
 	public PlainOutput replace();
 	

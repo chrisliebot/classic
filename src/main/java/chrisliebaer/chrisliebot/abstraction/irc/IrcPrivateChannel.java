@@ -6,7 +6,6 @@ import chrisliebaer.chrisliebot.abstraction.LimiterConfig;
 import lombok.Getter;
 import org.kitteh.irc.client.library.element.User;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -54,9 +53,7 @@ public class IrcPrivateChannel implements ChrislieChannel {
 	
 	@Override
 	public List<IrcUser> users() {
-		ArrayList<IrcUser> list = new ArrayList<>(1);
-		list.add(new IrcUser(service, user));
-		return list;
+		return List.of(new IrcUser(service, user));
 	}
 	
 	@Override

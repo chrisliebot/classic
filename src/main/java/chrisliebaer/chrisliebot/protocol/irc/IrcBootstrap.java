@@ -1,7 +1,7 @@
-package chrisliebaer.chrisliebot.protocol;
+package chrisliebaer.chrisliebot.protocol.irc;
 
 import chrisliebaer.chrisliebot.abstraction.irc.IrcService;
-import chrisliebaer.chrisliebot.protocol.irc.EchoCapHandler;
+import chrisliebaer.chrisliebot.protocol.ServiceBootstrap;
 import chrisliebaer.chrisliebot.protocol.irc.IrcConfig.BotConfig;
 import chrisliebaer.chrisliebot.util.ChrislieCutter;
 import chrisliebaer.chrisliebot.util.ClientLogic;

@@ -6,7 +6,7 @@ import java.util.function.Consumer;
 
 public interface ChrislieService {
 	
-	public void sink(@Nullable Consumer<ChrislieMessage> sink);
+	public ChrislieService sink(@Nullable Consumer<ChrislieMessage> sink);
 	
 	public Optional<? extends ChrislieChannel> channel(String identifier);
 	

@@ -10,26 +10,55 @@ public interface PlainOutput {
 	
 	public PlainOutput clear();
 	
-	public interface PlainOuputSubstitution extends PlainOutput {
+	public interface PlainOutputSubstituion extends PlainOutput {
 		
-		public PlainOuputSubstitution appendSub(String s, Object... format);
+		public PlainOutputSubstituion appendSub(String s, Object... format);
 		
-		public PlainOuputSubstitution appendEscapeSub(String s, Object... format);
-		
-		@Override
-		public PlainOuputSubstitution append(String s, Object... format);
+		public PlainOutputSubstituion appendEscapeSub(String s, Object... format);
 		
 		@Override
-		public PlainOuputSubstitution appendEscape(String s, Object... format);
+		public PlainOutputSubstituion append(String s, Object... format);
 		
 		@Override
-		public PlainOuputSubstitution newLine();
+		public PlainOutputSubstituion appendEscape(String s, Object... format);
 		
 		@Override
-		public PlainOuputSubstitution clear();
+		public PlainOutputSubstituion newLine();
+		
+		@Override
+		public PlainOutputSubstituion clear();
 		
 		public static String escape(String in) {
 			throw new RuntimeException("not yet implemented");
 		}
+	}
+	
+	public static PlainOutputSubstituion dummy() {
+		return PlainOutputDummy.DUMMY;
+	}
+	
+	public static final class PlainOutputDummy implements PlainOutputSubstituion {
+		
+		private static final PlainOutputDummy DUMMY = new PlainOutputDummy();
+		
+		private PlainOutputDummy() { }
+		
+		@Override
+		public PlainOutputSubstituion appendSub(String s, Object... format) { return this; }
+		
+		@Override
+		public PlainOutputSubstituion appendEscapeSub(String s, Object... format) { return this; }
+		
+		@Override
+		public PlainOutputSubstituion append(String s, Object... format) { return this; }
+		
+		@Override
+		public PlainOutputSubstituion appendEscape(String s, Object... format) { return this; }
+		
+		@Override
+		public PlainOutputSubstituion newLine() { return this; }
+		
+		@Override
+		public PlainOutputSubstituion clear() { return this; }
 	}
 }

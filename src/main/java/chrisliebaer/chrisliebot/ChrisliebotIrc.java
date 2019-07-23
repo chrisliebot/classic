@@ -1,16 +1,20 @@
 package chrisliebaer.chrisliebot;
 
 import chrisliebaer.chrisliebot.abstraction.ChrislieService;
+import chrisliebaer.chrisliebot.abstraction.discord.DiscordService;
 import chrisliebaer.chrisliebot.abstraction.irc.IrcService;
 import chrisliebaer.chrisliebot.command.CommandDispatcher;
 import chrisliebaer.chrisliebot.config.ChrislieConfig;
 import chrisliebaer.chrisliebot.config.CommandConfig;
 import chrisliebaer.chrisliebot.config.ConfigContext;
-import chrisliebaer.chrisliebot.protocol.IrcBootstrap;
+import chrisliebaer.chrisliebot.protocol.discord.DiscordBootstrap;
+import chrisliebaer.chrisliebot.protocol.discord.DiscordConfig;
+import chrisliebaer.chrisliebot.protocol.irc.IrcBootstrap;
 import chrisliebaer.chrisliebot.protocol.irc.IrcConfig;
 import com.google.gson.Gson;
 import lombok.Getter;
 import lombok.NonNull;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.File;
@@ -84,6 +88,7 @@ public class ChrisliebotIrc implements BotManagment {
 		
 		// start all services
 		mainCfg.irc().stream().map(this::startIrcService).collect(Collectors.toCollection(() -> services));
+		mainCfg.discord().stream().map(this::startDiscordService).collect(Collectors.toCollection(() -> services));
 		service = services.get(0);
 		
 		// load configuration, might fail if config error
@@ -131,6 +136,12 @@ public class ChrisliebotIrc implements BotManagment {
 	private IrcService startIrcService(IrcConfig.BotConfig cfg) {
 		prefix = cfg.prefix();
 		return new IrcBootstrap(cfg).service();
+	}
+	
+	@SneakyThrows
+	private DiscordService startDiscordService(DiscordConfig cfg) {
+		prefix = cfg.prefix();
+		return new DiscordBootstrap(cfg).service();
 	}
 	
 	private void reload(boolean firstRun) throws Exception {
