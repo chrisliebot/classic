@@ -142,8 +142,8 @@ public class QwantSearchCommand implements ChrisieCommand {
 			}
 		});
 		var reply = m.reply();
-		reply.title(item.title(), item.url());
-		reply.description(item.desc());
+		reply.title(C.stripHtml(item.title()), item.url());
+		reply.description(C.stripHtml(item.desc()));
 		reply.image(item.media());
 		reply.footer("powered by qwant.com", "https://www.qwant.com/favicon.png");
 		
