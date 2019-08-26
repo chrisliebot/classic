@@ -26,8 +26,15 @@ import java.util.List;
 @Slf4j
 public class QwantSearchCommand implements ChrisieCommand {
 	
+	private static final ErrorOutputBuilder ERROR_NO_QUERY = ErrorOutputBuilder.generic("Du hast keine Suchanfrage eingegeben.");
+	private static final ErrorOutputBuilder ERROR_NO_ACTIVE_SEARCH = ErrorOutputBuilder.generic("Es gibt keine aktive Suchanfrage.");
+	private static final ErrorOutputBuilder ERROR_EOF = ErrorOutputBuilder.generic("Das waren alle Ergebnisse. Mehr hab ich nicht.");
+	private static final ErrorOutputBuilder ERROR_NO_MATCH = ErrorOutputBuilder.generic("Deine Suche ergab leider keine Treffer.");
+	
 	private static final int MAX_RESULT_STORAGE = 10;
 	private static final int RATE_LIMIT_CODE = 429;
+	
+	private final ErrorOutputBuilder errorRateLimited;
 	
 	private Config cfg;
 	private QwantService service;
@@ -45,6 +52,8 @@ public class QwantSearchCommand implements ChrisieCommand {
 				.addConverterFactory(GsonConverterFactory.create())
 				.build();
 		service = retrofit.create(QwantService.class);
+		
+		errorRateLimited = ErrorOutputBuilder.generic(out -> out.appendEscape("Ich wurde ausgesperrt. Bitte hilf mir: ").append(cfg.captchaUrl()));
 	}
 	
 	@Override
@@ -53,7 +62,7 @@ public class QwantSearchCommand implements ChrisieCommand {
 		var context = m.channel().identifier();
 		
 		if (query.isEmpty()) {
-			m.reply(C.error("Du hast keine Suchanfrage eingegeben."));
+			ERROR_NO_QUERY.write(m);
 			return;
 		}
 		
@@ -61,12 +70,12 @@ public class QwantSearchCommand implements ChrisieCommand {
 			synchronized (resultStorage) {
 				List<QwantResponse.QwantItem> pastResult = resultStorage.getIfPresent(context);
 				if (pastResult == null) {
-					m.reply(C.error("Es gibt keine aktive Suchanfrage."));
+					ERROR_NO_ACTIVE_SEARCH.write(m);
 					return;
 				}
 				
 				if (pastResult.isEmpty()) {
-					m.reply(C.error("Das waren alle Ergebnisse. Mehr hab ich nicht."));
+					ERROR_EOF.write(m);
 					resultStorage.invalidate(context);
 					return;
 				}
@@ -79,14 +88,14 @@ public class QwantSearchCommand implements ChrisieCommand {
 		Call<QwantResponse> call = service.search(query, cfg.safeSearch(), cfg.count(), cfg.type());
 		call.enqueue(new Callback<>() {
 			@Override
-			public void onResponse(Call<QwantResponse> call, Response<QwantResponse> resp) {
+			public void onResponse(Call<QwantResponse> c, Response<QwantResponse> resp) {
 				QwantResponse body = resp.body();
 				if (!resp.isSuccessful() || (body != null && !"success".equals(body.status()))) { // bad error code or "error" in status field of json
 					if (resp.code() == RATE_LIMIT_CODE) {
-						m.reply("Ich wurde ausgesperrt. Bitte helf mir: " + cfg.captchaUrl());
+						errorRateLimited.write(m);
 					} else {
-						m.reply("Remote Server meldet Fehlercode: " + resp.code() + " " + resp.message());
-						log.warn("remote host {} response code: {} ({})", call.request().url(), resp.code(), resp.message());
+						ErrorOutputBuilder.remoteErrorCode(c.request(), resp).write(m);
+						log.warn("remote host {} response code: {} ({})", c.request().url(), resp.code(), resp.message());
 					}
 					return;
 				}
@@ -94,7 +103,7 @@ public class QwantSearchCommand implements ChrisieCommand {
 				List<QwantResponse.QwantItem> items = body.items();
 				
 				if (body.items().isEmpty()) {
-					m.reply("Deine Suche ergab leider keine Treffer.");
+					ERROR_NO_MATCH.write(m);
 					return;
 				}
 				
@@ -111,8 +120,8 @@ public class QwantSearchCommand implements ChrisieCommand {
 			}
 			
 			@Override
-			public void onFailure(Call<QwantResponse> call, Throwable t) {
-				ErrorOutputBuilder.remoteRequest(call.request(), t).write(m);
+			public void onFailure(Call<QwantResponse> c, Throwable t) {
+				ErrorOutputBuilder.remoteRequest(c.request(), t).write(m);
 			}
 		});
 	}
@@ -132,7 +141,15 @@ public class QwantSearchCommand implements ChrisieCommand {
 					return key.toUpperCase();
 			}
 		});
-		m.reply(strSub.replace(cfg.output()));
+		var reply = m.reply();
+		reply.title(item.title(), item.url());
+		reply.description(item.desc());
+		reply.image(item.media());
+		reply.footer("powered by qwant.com", "https://www.qwant.com/favicon.png");
+		
+		reply.replace(strSub.replace(cfg.output()));
+		
+		reply.send();
 	}
 	
 	public static QwantSearchCommand fromJson(Gson gson, JsonElement json) {

@@ -23,8 +23,6 @@ public class MockCommand implements ChrisieCommand {
 			state = !state;
 		}
 		
-		var out = m.channel().output();
-		out.plain().appendEscape(new String(chars));
-		out.send();
+		m.reply(new String(chars));
 	}
 }

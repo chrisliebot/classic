@@ -82,7 +82,7 @@ public class MensaCommand implements ChrisieCommand {
 		long timestamp = System.currentTimeMillis();
 		String mensaName = cfg.fallback();
 		
-		// check if argument require anythung but default case and update query parameters
+		// check if argument require anything but default case and update query parameters
 		if (!args.isEmpty() && !args.get(0).isBlank()) {
 			if ("list".equalsIgnoreCase(args.get(0))) { // check if first argument matches "list"
 				m.reply("Ich kann dir die folgenden Mensen anbieten: "

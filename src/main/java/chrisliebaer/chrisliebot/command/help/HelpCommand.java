@@ -1,13 +1,14 @@
 package chrisliebaer.chrisliebot.command.help;
 
-import chrisliebaer.chrisliebot.C;
+import chrisliebaer.chrisliebot.abstraction.ChrislieFormat;
 import chrisliebaer.chrisliebot.abstraction.ChrislieMessage;
 import chrisliebaer.chrisliebot.command.ChrisieCommand;
 import chrisliebaer.chrisliebot.command.CommandContainer;
+import chrisliebaer.chrisliebot.util.ErrorOutputBuilder;
 import com.google.common.collect.TreeMultimap;
 
+import java.util.Collection;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 public class HelpCommand implements ChrisieCommand {
 	
@@ -29,20 +30,39 @@ public class HelpCommand implements ChrisieCommand {
 	@Override
 	public void execute(ChrislieMessage m, String arg) {
 		if (arg.isEmpty()) {
-			// TODO: filter admin commands if no admin, or just build second list
+			var reply = m.reply();
+			var description = reply.description();
+			reply.title("Befehlsliste");
 			
-			String list = aliasMap.asMap().values().stream()
-					.map(s -> String.join("|", s))
-					.map(C::highlight)
-					.collect(Collectors.joining(", "));
+			boolean follow = false;
+			for (Collection<String> s : aliasMap.asMap().values()) {
+				String aliasGroup = String.join("|", s);
+				description.appendEscape(aliasGroup, ChrislieFormat.HIGHLIGHT);
+				
+				if (follow)
+					description.appendEscape(", ");
+				follow = true;
+			}
 			
-			m.reply("Befehlsliste: " + list);
+			reply.send();
 		} else {
 			String cmdName = bindings.get(arg);
+			
 			if (cmdName == null)
-				m.reply(C.error("Dieser Befehl ist mir nicht bekannt."));
-			else
-				m.reply("Hilfetext zu " + C.highlight(arg) + ": " + cmdDefs.get(cmdName).help());
+				ErrorOutputBuilder.generic("Dieser Befehl ist mir nicht bekannt.").write(m);
+			else {
+				var reply = m.reply();
+				var help = cmdDefs.get(cmdName).help();
+				
+				reply.title("Hilfetext zu " + arg);
+				reply.description(help);
+				
+				reply.replace()
+						.appendEscape("Hilfetext zu ").appendEscape(cmdName, ChrislieFormat.HIGHLIGHT)
+						.appendEscape(": ").appendEscape(help);
+				
+				reply.send();
+			}
 		}
 	}
 }

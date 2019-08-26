@@ -22,7 +22,7 @@ public class IrcLogAppender extends AbstractAppender {
 	@Override
 	public void append(LogEvent ev) {
 		var channel = client.getChannel(channelName);
-		if (!channel.isPresent())
+		if (channel.isEmpty())
 			return;
 		
 		if (ev.getMarker() != null

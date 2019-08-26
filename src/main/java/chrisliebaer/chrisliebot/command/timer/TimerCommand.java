@@ -28,7 +28,6 @@ import java.util.*;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-@SuppressWarnings("Duplicates")
 @Slf4j
 public class TimerCommand implements ChrisieCommand {
 	
@@ -151,7 +150,7 @@ public class TimerCommand implements ChrisieCommand {
 				return;
 			}
 			
-			m.reply("Timer gestellt für: " + C.highlight(DATE_FORMAT.format(result.get().getLeft())) + " die Id lautet " + id +
+			m.reply("Timer gestellt für: " + C.highlight(DATE_FORMAT.format(result.get().getLeft())) + ", die Id lautet " + id +
 					" das ist in " + C.highlight(C.durationToString(diff)));
 		}
 	}
@@ -192,7 +191,7 @@ public class TimerCommand implements ChrisieCommand {
 		Preconditions.checkState(dir.isDirectory() && dir.canWrite(), "can't write to: " + dir);
 		
 		// recreate timers from config
-		for (File file : dir.listFiles((dir, name) -> FILENAME_PATTERN.asPredicate().test(name))) { // TODO find out if this warning is right
+		for (File file : dir.listFiles((d, name) -> FILENAME_PATTERN.asPredicate().test(name))) { // TODO find out if this warning is right
 			try (FileReader fr = new FileReader(file)) {
 				TimerDescription description = gson.fromJson(fr, TimerDescription.class);
 				long id = Long.parseLong(file.getName().split("\\.")[0]);

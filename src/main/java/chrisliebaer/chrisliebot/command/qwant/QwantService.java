@@ -38,7 +38,6 @@ public interface QwantService {
 			@Query("count") int count
 	);
 	
-	@SuppressWarnings("deprecation")
 	public default Call<QwantResponse> search(String query, int safesearch, int count, String type) {
 		return search(type, type, query, safesearch, count);
 	}

@@ -32,6 +32,7 @@ public final class SharedResources extends AbstractIdleService {
 		return this;
 	}
 	
+	@SuppressWarnings("resource")
 	@Override
 	protected synchronized void startUp() throws Exception {
 		Preconditions.checkState(init, "SharedResources have not been initialized");

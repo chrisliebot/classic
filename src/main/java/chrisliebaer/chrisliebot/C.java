@@ -43,6 +43,10 @@ public final class C {
 	public static final char ZERO_WIDTH_NO_BREAK_SPACE = '\uFEFF';
 	public static final Marker LOG_PUBLIC = MarkerFactory.getMarker("LOG_PUBLIC");
 	
+	public static String escapeStrSubstitution(String s) {
+		return s.replaceAll("\\$\\{", "\\$\\${");
+	}
+	
 	public static void sendChannelMessage(Channel channel, String s) {
 		if (s == null || s.isEmpty())
 			return;
@@ -57,22 +61,26 @@ public final class C {
 		channel.sendMultiLineMessage(C.sanitizeForSend(C.escapeNickname(channel, s)));
 	}
 	
+	@Deprecated
 	public static String highlight(Object s) {
 		if (s == null)
 			return null;
 		return PREFIX_HIGHLIGHT + s + Format.RESET;
 	}
 	
+	@Deprecated
 	public static String error(Object s) {
 		if (s == null)
 			return null;
 		return PREFIX_ERROR + "[Fehler]" + Format.RESET + " " + s + Format.RESET;
 	}
 	
+	@Deprecated
 	public static String format(String s, Format... formats) {
 		return Arrays.stream(formats).map(Objects::toString).collect(Collectors.joining()) + s + Format.RESET;
 	}
 	
+	@Deprecated
 	public static String invalidChannel(@NonNull String name) {
 		return C.error("Der Channel '" + C.highlight(name) + "' ist ungültig.");
 	}
@@ -102,6 +110,7 @@ public final class C {
 		return Jsoup.parse(html).text();
 	}
 	
+	@Deprecated
 	public static boolean isChannelOp(@NonNull Channel channel, @NonNull User user) {
 		return channel.getUserModes(user).map(modes -> {
 			for (ChannelUserMode mode : modes) {
@@ -126,6 +135,7 @@ public final class C {
 		return inject(nickname, 1, ZERO_WIDTH_NO_BREAK_SPACE);
 	}
 	
+	@SuppressWarnings("MagicNumber")
 	public static String durationToString(long s) {
 		s = Math.abs(s);
 		

@@ -20,6 +20,7 @@ import lombok.extern.slf4j.Slf4j;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -57,6 +58,8 @@ public class ChrisliebotIrc implements BotManagment {
 	private CommandDispatcher dispatcher;
 	
 	public static void main(String[] args) throws Exception {
+		log.debug("default charset is: {}", Charset.defaultCharset());
+		
 		File configDir = new File(System.getProperty(PROPERTY_CONFIG_DIR, "."));
 		
 		ChrisliebotIrc bot = new ChrisliebotIrc(

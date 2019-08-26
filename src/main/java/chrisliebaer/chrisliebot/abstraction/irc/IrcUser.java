@@ -4,7 +4,6 @@ import chrisliebaer.chrisliebot.abstraction.ChrislieUser;
 import lombok.Getter;
 import org.kitteh.irc.client.library.element.User;
 
-import java.util.Objects;
 import java.util.Optional;
 
 public class IrcUser implements ChrislieUser {
@@ -29,7 +28,7 @@ public class IrcUser implements ChrislieUser {
 	
 	@Override
 	public int hashCode() {
-		return Objects.hash(user);
+		return user.hashCode();
 	}
 	
 	@Override

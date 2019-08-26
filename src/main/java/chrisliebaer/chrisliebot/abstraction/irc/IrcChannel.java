@@ -37,7 +37,7 @@ public class IrcChannel implements ChrislieChannel {
 	
 	@Override
 	public int hashCode() {
-		return Objects.hashCode(channel);
+		return channel.hashCode();
 	}
 	
 	@Override

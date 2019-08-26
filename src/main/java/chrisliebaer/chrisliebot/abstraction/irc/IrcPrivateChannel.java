@@ -7,7 +7,6 @@ import lombok.Getter;
 import org.kitteh.irc.client.library.element.User;
 
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
 
@@ -33,7 +32,7 @@ public class IrcPrivateChannel implements ChrislieChannel {
 	
 	@Override
 	public int hashCode() {
-		return Objects.hash(user);
+		return user.hashCode();
 	}
 	
 	@Override

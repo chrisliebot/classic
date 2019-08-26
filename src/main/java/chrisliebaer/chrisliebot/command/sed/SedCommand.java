@@ -1,8 +1,8 @@
 package chrisliebaer.chrisliebot.command.sed;
 
-import chrisliebaer.chrisliebot.C;
 import chrisliebaer.chrisliebot.abstraction.ChrislieMessage;
 import chrisliebaer.chrisliebot.command.ChrisieCommand;
+import chrisliebaer.chrisliebot.util.ErrorOutputBuilder;
 import com.google.common.base.Preconditions;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -33,14 +33,13 @@ public class SedCommand implements ChrisieCommand {
 		if (matcher.matches())
 			try {
 				doSed(m, matcher);
-			} catch (PatternSyntaxException | IndexOutOfBoundsException e) {
-				m.reply(C.error(e.getMessage()));
+			} catch (@SuppressWarnings("ProhibitedExceptionCaught") PatternSyntaxException | IndexOutOfBoundsException e) {
+				ErrorOutputBuilder.throwable(e).write(m);
 			}
 		else
 			keepMessage(m);
 	}
 	
-	@SuppressWarnings("OptionalGetWithoutIsPresent")
 	private synchronized void doSed(ChrislieMessage m, Matcher matcher) {
 		String channel = m.channel().identifier();
 		

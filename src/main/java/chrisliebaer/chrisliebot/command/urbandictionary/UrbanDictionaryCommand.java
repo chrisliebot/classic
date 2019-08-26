@@ -1,7 +1,7 @@
 package chrisliebaer.chrisliebot.command.urbandictionary;
 
-import chrisliebaer.chrisliebot.C;
 import chrisliebaer.chrisliebot.SharedResources;
+import chrisliebaer.chrisliebot.abstraction.ChrislieFormat;
 import chrisliebaer.chrisliebot.abstraction.ChrislieMessage;
 import chrisliebaer.chrisliebot.command.ChrisieCommand;
 import chrisliebaer.chrisliebot.command.urbandictionary.UrbanDictionaryService.DefinitionList;
@@ -13,6 +13,9 @@ import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
 
 public class UrbanDictionaryCommand implements ChrisieCommand {
+	
+	private static final ErrorOutputBuilder ERROR_NO_QUERY = ErrorOutputBuilder.generic("Du hast keinen Suchbegriff eingegeben.");
+	private static final ErrorOutputBuilder ERROR_NO_MATCH = ErrorOutputBuilder.generic("Deine Suche ergab leider keine Treffer.");
 	
 	private UrbanDictionaryService service;
 	
@@ -29,7 +32,7 @@ public class UrbanDictionaryCommand implements ChrisieCommand {
 	public void execute(ChrislieMessage m, String arg) {
 		String term = arg.trim();
 		if (term.isEmpty()) {
-			m.reply(C.error("Du hast keinen Suchbegriff eingegeben."));
+			ERROR_NO_QUERY.write(m);
 			return;
 		}
 		
@@ -40,13 +43,21 @@ public class UrbanDictionaryCommand implements ChrisieCommand {
 				assert response.body() != null; // jesus shut up
 				var defs = response.body().list();
 				if (defs.isEmpty()) {
-					m.reply("Deine Suche ergab leider keiner Treffer.");
+					ERROR_NO_MATCH.write(m);
 					return;
 				}
 				
 				var def = defs.get(0);
-				m.reply("Beste Definition für " + C.highlight(def.word()) + ": "
-						+ UrbanDictionaryService.removeBrackets(def.definition()));
+				var reply = m.reply();
+				reply.title("Definition für " + def.word(), def.permalink());
+				reply.description(def.definition());
+				reply.author("Autor: " + def.author());
+				reply.footer("powered by urbandictionary.com");
+				
+				reply.convert()
+						.appendEscape("Beste Definition für ").appendEscapeSub("${title}", ChrislieFormat.HIGHLIGHT)
+						.appendEscapeSub("${description}");
+				reply.send();
 			}
 			
 			@Override

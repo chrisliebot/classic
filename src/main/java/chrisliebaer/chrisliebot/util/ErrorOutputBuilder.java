@@ -11,6 +11,7 @@ import org.kitteh.irc.client.library.util.Format;
 import java.awt.*;
 import java.util.function.Consumer;
 
+
 public final class ErrorOutputBuilder {
 	
 	private static final Color ERROR_COLOR = Color.RED;
@@ -46,6 +47,29 @@ public final class ErrorOutputBuilder {
 				});
 	}
 	
+	public static ErrorOutputBuilder remoteErrorCode(Request req, @SuppressWarnings("UnnecessaryFullyQualifiedName") retrofit2.Response<?> resp) {
+		
+		return new ErrorOutputBuilder()
+				.fn(out -> {
+					out.title("Server meldet fehler");
+					out.description()
+							.appendEscape(String.valueOf(resp.code()), ChrislieFormat.HIGHLIGHT)
+							.append(" ")
+							.appendEscape(resp.message(), ChrislieFormat.HIGHLIGHT);
+				});
+	}
+	
+	public static ErrorOutputBuilder remoteErrorCode(Request req, @SuppressWarnings("UnnecessaryFullyQualifiedName") okhttp3.Response resp) {
+		return new ErrorOutputBuilder()
+				.fn(out -> {
+					out.title("Server meldet fehler");
+					out.description()
+							.appendEscape(String.valueOf(resp.code()), ChrislieFormat.HIGHLIGHT)
+							.append(" ")
+							.appendEscape(resp.message(), ChrislieFormat.HIGHLIGHT);
+				});
+	}
+	
 	public static ErrorOutputBuilder generic(String description) {
 		return new ErrorOutputBuilder().fn(out -> defaultConvert(out.title("Fehler").description(description).convert()));
 	}
@@ -54,6 +78,15 @@ public final class ErrorOutputBuilder {
 		return new ErrorOutputBuilder().fn(out -> {
 			outFn.accept(out.description());
 			defaultConvert(out.title("Fehler").convert());
+		});
+	}
+	
+	public static ErrorOutputBuilder throwable(Throwable throwable) {
+		return new ErrorOutputBuilder().fn(out -> {
+			out.title(throwable.getClass().getSimpleName());
+			String msg = throwable.getMessage();
+			if (msg != null && !msg.isBlank())
+				out.description(msg);
 		});
 	}
 	

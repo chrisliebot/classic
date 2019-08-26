@@ -1,10 +1,11 @@
 package chrisliebaer.chrisliebot.abstraction.irc;
 
+import chrisliebaer.chrisliebot.C;
 import chrisliebaer.chrisliebot.abstraction.ChrislieOutput;
-import chrisliebaer.chrisliebot.abstraction.PlainOutputSubstituionImpl;
 import chrisliebaer.chrisliebot.abstraction.PlainOutput;
 import chrisliebaer.chrisliebot.abstraction.PlainOutput.PlainOutputSubstituion;
 import chrisliebaer.chrisliebot.abstraction.PlainOutputImpl;
+import chrisliebaer.chrisliebot.abstraction.PlainOutputSubstituionImpl;
 import lombok.NonNull;
 import org.apache.commons.lang.text.StrLookup;
 import org.jetbrains.annotations.NotNull;
@@ -140,18 +141,18 @@ public class IrcOutput implements ChrislieOutput {
 		PlainOutputSubstituionImpl substitution = new PlainOutputSubstituionImpl(escaper, IrcFormatter::format, new StrLookup() {
 			@Override
 			public String lookup(String key) {
+				String out = "MISSING_KEY(" + key + ")";
 				switch (key) {
 					case "plain":
-						return plain.string();
+						out = plain.string();
+						break;
 					case "description":
-						return description.string();
+						out = description.string();
+						break;
 					default:
-						if (key.startsWith("f-")) {
-							return fields.getOrDefault(key.substring(2), "MISSING_KEY(" + key + ")");
-						} else {
-							return map.getOrDefault(key, "MISSING_KEY(" + key + ")");
-						}
+						out = key.startsWith("f-") ? fields.getOrDefault(key.substring(2), out) : map.getOrDefault(key, out);
 				}
+				return C.escapeStrSubstitution(out);
 			}
 		});
 		converter = substitution::string;

@@ -32,19 +32,13 @@ public class DiscordService implements ChrislieService {
 	public Optional<DiscordChannel> channel(String identifier) {
 		TextChannel channel = jda.getTextChannelById(identifier);
 		
-		if (channel == null)
-			return Optional.empty();
-		else
-			return Optional.of(new DiscordChannel(this, channel));
+		return channel == null ? Optional.empty() : Optional.of(new DiscordChannel(this, channel));
 	}
 	
 	@Override
 	public Optional<DiscordUser> user(String identifier) {
 		User user = jda.getUserById(identifier);
-		if (user == null)
-			return Optional.empty();
-		else
-			return Optional.of(new DiscordUser(this, user));
+		return user == null ? Optional.empty() : Optional.of(new DiscordUser(this, user));
 	}
 	
 	@SubscribeEvent

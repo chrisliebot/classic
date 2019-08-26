@@ -1,6 +1,6 @@
 package chrisliebaer.chrisliebot.command.choice;
 
-import chrisliebaer.chrisliebot.C;
+import chrisliebaer.chrisliebot.abstraction.ChrislieFormat;
 import chrisliebaer.chrisliebot.abstraction.ChrislieMessage;
 import chrisliebaer.chrisliebot.command.ChrisieCommand;
 import chrisliebaer.chrisliebot.util.ErrorOutputBuilder;
@@ -34,6 +34,11 @@ public class ChoiceCommand implements ChrisieCommand {
 		var tlr = ThreadLocalRandom.current();
 		var choice = choices.get(tlr.nextInt(choices.size()));
 		var flavour = FLAVOUR[tlr.nextInt(FLAVOUR.length)];
-		m.reply(flavour + " " + C.highlight(choice));
+		m.reply()
+				.title("Meine Entscheidung")
+				.description(out ->
+						out.appendEscape(flavour).appendEscape(" ").appendEscape(choice, ChrislieFormat.HIGHLIGHT))
+				.convert("${description}")
+				.send();
 	}
 }

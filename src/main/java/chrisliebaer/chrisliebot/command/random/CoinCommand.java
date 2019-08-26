@@ -1,6 +1,6 @@
 package chrisliebaer.chrisliebot.command.random;
 
-import chrisliebaer.chrisliebot.C;
+import chrisliebaer.chrisliebot.abstraction.ChrislieFormat;
 import chrisliebaer.chrisliebot.abstraction.ChrislieMessage;
 import chrisliebaer.chrisliebot.command.ChrisieCommand;
 
@@ -10,9 +10,11 @@ public class CoinCommand implements ChrisieCommand {
 	
 	@Override
 	public void execute(ChrislieMessage m, String arg) {
-		m.reply("Die Münze zeigt " +
-				(ThreadLocalRandom.current().nextBoolean() ?
-						C.highlight("Kopf") :
-						C.highlight("Zahl")));
+		m.reply()
+				.title("Die Münze ist gefallen")
+				.description(out -> {
+					out.appendEscape(ThreadLocalRandom.current().nextBoolean() ? "Kopf" : "Zahl", ChrislieFormat.HIGHLIGHT);
+				})
+				.send();
 	}
 }

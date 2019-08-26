@@ -14,7 +14,6 @@ import org.kitteh.irc.client.library.util.Format;
 import java.util.*;
 import java.util.stream.Collectors;
 
-@SuppressWarnings("OptionalGetWithoutIsPresent")
 public class VoteCommand implements ChrisieCommand {
 	
 	private static final int VOTE_TIME = 120000;

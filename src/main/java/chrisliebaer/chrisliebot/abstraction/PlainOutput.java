@@ -27,12 +27,9 @@ public interface PlainOutput {
 		
 		@Override
 		public PlainOutputSubstituion clear();
-		
-		public static String escape(String in) {
-			throw new RuntimeException("not yet implemented");
-		}
 	}
 	
+	@SuppressWarnings("ClassReferencesSubclass")
 	public static PlainOutputSubstituion dummy() {
 		return PlainOutputDummy.DUMMY;
 	}

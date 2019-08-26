@@ -5,6 +5,7 @@ import lombok.experimental.UtilityClass;
 import net.dv8tion.jda.api.MessageBuilder.Formatting;
 import org.kitteh.irc.client.library.util.Format;
 
+@SuppressWarnings("OverloadedMethodsWithSameNumberOfParameters")
 @UtilityClass
 public class IrcFormatter {
 	

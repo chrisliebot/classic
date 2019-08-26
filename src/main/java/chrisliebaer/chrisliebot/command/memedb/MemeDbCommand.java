@@ -5,6 +5,7 @@ import chrisliebaer.chrisliebot.SharedResources;
 import chrisliebaer.chrisliebot.abstraction.ChrislieMessage;
 import chrisliebaer.chrisliebot.command.ChrisieCommand;
 import chrisliebaer.chrisliebot.util.BetterScheduledService;
+import chrisliebaer.chrisliebot.util.ErrorOutputBuilder;
 import com.google.common.util.concurrent.AbstractScheduledService;
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
@@ -24,6 +25,11 @@ import java.util.stream.Collectors;
 
 @Slf4j
 public class MemeDbCommand implements ChrisieCommand {
+	
+	private static final ErrorOutputBuilder ERROR_NO_DATABASE =
+			ErrorOutputBuilder.generic("Ich habe leider aktuell keine Datenbank zum Durchsuchen. Versuche es später nochmal.");
+	private static final ErrorOutputBuilder ERROR_NO_MATCH =
+			ErrorOutputBuilder.generic("Ich habe leider keinen passenden Eintrag gefunden oder die Ergebnisse waren nicht gut genug.");
 	
 	private Config cfg;
 	
@@ -51,7 +57,7 @@ public class MemeDbCommand implements ChrisieCommand {
 	@Override
 	public void execute(ChrislieMessage m, String arg) {
 		if (taggedMemes == null) {
-			m.reply(C.error("Ich habe leider aktuell keine Datenbank zum durchsuchen. Versuche es später nochmal."));
+			ERROR_NO_DATABASE.write(m);
 			return;
 		}
 		
@@ -71,7 +77,7 @@ public class MemeDbCommand implements ChrisieCommand {
 		var one = FuzzySearch.extractOne(query, taggedMemes.entrySet(), Map.Entry::getKey);
 		
 		if (one.getScore() <= cfg.acceptScore()) {
-			m.reply(C.error("Ich habe leider keinen passenden Eintrag gefunden oder die Ergebnisse waren nicht gut genug."));
+			ERROR_NO_MATCH.write(m);
 			return;
 		}
 		
@@ -84,7 +90,15 @@ public class MemeDbCommand implements ChrisieCommand {
 	}
 	
 	private void printResult(ChrislieMessage m, DatabaseEntry item) {
-		m.reply("Ergebnis: " + cfg.baseUrl() + "hash/" + item.hash());
+		var url = cfg.baseUrl() + "hash/" + item.hash();
+		
+		var reply = m.reply();
+		reply.title("Ergebnis", url);
+		reply.image(url);
+		
+		reply.convert("${title}: ${url}");
+		
+		reply.send();
 	}
 	
 	private void update() {

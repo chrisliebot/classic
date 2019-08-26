@@ -1,5 +1,6 @@
 package chrisliebaer.chrisliebot.command.simplecommand;
 
+import chrisliebaer.chrisliebot.C;
 import com.google.common.base.Preconditions;
 import lombok.NonNull;
 import org.apache.commons.text.StringSubstitutor;
@@ -63,7 +64,7 @@ public final class SimpleCommandMappedOutput implements SimpleCommandOutput {
 	public static SimpleCommandOutput escape(@NonNull SimpleCommandOutput out) {
 		return in -> {
 			// escape input
-			String escaped = in.replaceAll("\\$\\{", "\\$\\${");
+			String escaped = C.escapeStrSubstitution(in);
 			
 			return out.out(escaped);
 		};

@@ -62,11 +62,26 @@ public class DnsCommand implements ChrisieCommand {
 				for (Record record : records)
 					mm.put(record.getType(), record);
 				
-				var out = mm.asMap().entrySet().stream()
-						.map(e -> Type.string(e.getKey()) + ": "
-								+ e.getValue().stream()
-								.map(Record::rdataToString).collect(Collectors.joining(" "))).collect(Collectors.joining(", "));
-				m.reply().description().appendEscape("DNS Anfrage für ").appendEscape(host, ChrislieFormat.HIGHLIGHT).appendEscape(": ").appendEscape(out);
+				var reply = m.reply();
+				reply.title("DNS Ergebnis");
+				
+				// convert results into message fields
+				for (var entry : mm.asMap().entrySet()) {
+					String typeStr = Type.string(entry.getKey());
+					
+					// convert records to strings and seperate by newline
+					String result = entry.getValue().stream().map(Record::rdataToString).collect(Collectors.joining("\n"));
+					
+					reply.field(typeStr, result);
+				}
+				
+				// do same for string output
+				reply.replace().appendEscape("DNS Anfrage für ").appendEscape(host, ChrislieFormat.HIGHLIGHT).appendEscape(": ")
+						.appendEscape(mm.asMap().entrySet().stream()
+								.map(e -> Type.string(e.getKey()) + ": "
+										+ e.getValue().stream()
+										.map(Record::rdataToString).collect(Collectors.joining(" "))).collect(Collectors.joining(", ")));
+				reply.send();
 			} else {
 				ErrorOutputBuilder.generic("Keine Antwort vom Server.").write(m);
 			}
