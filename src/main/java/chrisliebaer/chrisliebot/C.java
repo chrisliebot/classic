@@ -6,19 +6,15 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.jsoup.Jsoup;
 import org.kitteh.irc.client.library.element.Channel;
-import org.kitteh.irc.client.library.element.User;
-import org.kitteh.irc.client.library.element.mode.ChannelUserMode;
 import org.kitteh.irc.client.library.util.CtcpUtil;
 import org.kitteh.irc.client.library.util.Format;
-import org.slf4j.Marker;
-import org.slf4j.MarkerFactory;
 
 import java.time.DayOfWeek;
 import java.util.Arrays;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Slf4j
 @UtilityClass
@@ -35,18 +31,17 @@ public final class C {
 	
 	public static final String MIME_TYPE_JSON = "application/json; charset=utf-8";
 	
-	private static final String PREFIX_ERROR = "" + Format.BOLD + Format.RED;
-	private static final String PREFIX_HIGHLIGHT = "" + Format.TEAL;
-	
-	public static final String PERMISSION_ERROR = C.error("Befehl benötigt Adminrechte");
-	
 	public static final char ZERO_WIDTH_NO_BREAK_SPACE = '\uFEFF';
-	public static final Marker LOG_PUBLIC = MarkerFactory.getMarker("LOG_PUBLIC");
 	
 	public static final String UA_CHROME = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/77.0.3865.120 Safari/537.36";
 	
 	public static String escapeStrSubstitution(String s) {
 		return s.replaceAll("\\$\\{", "\\$\\${");
+	}
+	
+	@SuppressWarnings("unchecked")
+	public static <T> T unsafeCast(Object value) {
+		return (T) value;
 	}
 	
 	public static void sendChannelMessage(Channel channel, String s) {
@@ -63,36 +58,21 @@ public final class C {
 		channel.sendMultiLineMessage(C.sanitizeForSend(C.escapeNickname(channel, s)));
 	}
 	
-	@Deprecated
-	public static String highlight(Object s) {
-		if (s == null)
-			return null;
-		return PREFIX_HIGHLIGHT + s + Format.RESET;
-	}
-	
-	@Deprecated
-	public static String error(Object s) {
-		if (s == null)
-			return null;
-		return PREFIX_ERROR + "[Fehler]" + Format.RESET + " " + s + Format.RESET;
-	}
-	
-	@Deprecated
-	public static String format(String s, Format... formats) {
-		return Arrays.stream(formats).map(Objects::toString).collect(Collectors.joining()) + s + Format.RESET;
-	}
-	
-	@Deprecated
-	public static String invalidChannel(@NonNull String name) {
-		return C.error("Der Channel '" + C.highlight(name) + "' ist ungültig.");
-	}
-	
 	public static String squashFormatting(String s) {
 		if (s == null)
 			return null;
 		
 		// TODO: takes the input string and attempts to reduce the amount of format codes by merging overlapping or unused definitions
 		return s;
+	}
+	
+	public static boolean isLongParseable(String s) {
+		try {
+			Long.parseLong(s);
+			return true;
+		} catch (NumberFormatException e) {
+			return false;
+		}
 	}
 	
 	public static String sanitizeForSend(String msg) {
@@ -110,17 +90,6 @@ public final class C {
 	
 	public static String stripHtml(String html) {
 		return Jsoup.parse(html).text();
-	}
-	
-	@Deprecated
-	public static boolean isChannelOp(@NonNull Channel channel, @NonNull User user) {
-		return channel.getUserModes(user).map(modes -> {
-			for (ChannelUserMode mode : modes) {
-				if (mode.getNickPrefix() == '@')
-					return true;
-			}
-			return false;
-		}).orElse(false);
 	}
 	
 	public static String escapeNickname(Channel channel, String s) {
@@ -238,5 +207,13 @@ public final class C {
 		}
 		
 		return Optional.empty();
+	}
+	
+	@Deprecated // do we need that?
+	@SafeVarargs // T is never touched, only for signature match
+	public <T> Stream<? extends T> merge(Stream<? extends T>... streams) {
+		if (streams == null || streams.length == 0)
+			return Stream.empty();
+		return Arrays.stream(streams).reduce(Stream::concat).get();
 	}
 }

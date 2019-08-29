@@ -6,6 +6,7 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.regex.Pattern;
 
+// TODO: replace marker feature with list of function calls?, could make functions protected and substitution could use protected methods directly, also backslash escape bug
 public class PlainOutputImpl implements PlainOutput {
 	
 	private static final Pattern ESCAPE_PATTERN = Pattern.compile("[\u0000\\\\]");

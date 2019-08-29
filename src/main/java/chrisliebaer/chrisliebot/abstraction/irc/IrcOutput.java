@@ -84,13 +84,13 @@ public class IrcOutput implements ChrislieOutput {
 	
 	@Override
 	public IrcOutput color(Color color) {
-		// there really is nothing we could to with a color
+		// there really is nothing we could do with a color
 		return this;
 	}
 	
 	@Override
 	public IrcOutput color(int color) {
-		// there really is nothing we could to with a color
+		// there really is nothing we could do with a color
 		return this;
 	}
 	

@@ -1,70 +1,108 @@
 package chrisliebaer.chrisliebot.command.help;
 
 import chrisliebaer.chrisliebot.abstraction.ChrislieFormat;
-import chrisliebaer.chrisliebot.abstraction.ChrislieMessage;
-import chrisliebaer.chrisliebot.command.ChrisieCommand;
-import chrisliebaer.chrisliebot.command.CommandContainer;
+import chrisliebaer.chrisliebot.abstraction.PlainOutput;
+import chrisliebaer.chrisliebot.command.ChrislieListener;
+import chrisliebaer.chrisliebot.command.ListenerReference;
+import chrisliebaer.chrisliebot.config.AliasSet;
+import chrisliebaer.chrisliebot.config.ChrislieContext;
+import chrisliebaer.chrisliebot.config.flex.FlexConf;
 import chrisliebaer.chrisliebot.util.ErrorOutputBuilder;
-import com.google.common.collect.TreeMultimap;
 
-import java.util.Collection;
-import java.util.Map;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
-public class HelpCommand implements ChrisieCommand {
-	
-	private TreeMultimap<String, String> aliasMap = TreeMultimap.create();
-	private Map<String, String> bindings;
-	private Map<String, CommandContainer> cmdDefs;
-	
-	public HelpCommand(Map<String, String> bindings, Map<String, CommandContainer> cmdDefs) {
-		this.bindings = bindings;
-		this.cmdDefs = cmdDefs;
-	}
+public class HelpCommand implements ChrislieListener.Command {
 	
 	@Override
-	public void start() throws Exception {
-		// create inverse mapping
-		bindings.forEach((visible, cmdDef) -> aliasMap.put(cmdDef, visible));
+	public void execute(Invocation invc) throws ListenerException {
+		
+		String arg = invc.arg();
+		
+		if (arg.isBlank())
+			enumerate(invc);
+		else
+			detail(invc, arg);
 	}
 	
-	@Override
-	public void execute(ChrislieMessage m, String arg) {
-		if (arg.isEmpty()) {
-			var reply = m.reply();
-			var description = reply.description();
-			reply.title("Befehlsliste");
+	private void enumerate(Invocation invc) throws ListenerException {
+		var ctx = invc.ctx();
+		
+		List<Consumer<PlainOutput.JoinPlainOutput>> actions = new ArrayList<>();
+		for (var ref : ctx.listeners().values()) {
 			
-			boolean follow = false;
-			for (Collection<String> s : aliasMap.asMap().values()) {
-				if (follow)
-					description.appendEscape(", ");
-				
-				String aliasGroup = String.join("|", s);
-				description.appendEscape(aliasGroup, ChrislieFormat.HIGHLIGHT);
-				
-				
-				follow = true;
-			}
+			// skip disabled listeners
+			if (ref.flexConf().isSet(FlexConf.DISPATCHER_DISABLE))
+				continue;
+			
+			// retrieve list of exposed aliases
+			var exposed = ref.aliasSet().get().values().stream()
+					.filter(AliasSet.Alias::exposed)
+					.map(AliasSet.Alias::name)
+					.collect(Collectors.toUnmodifiableList());
+			
+			// some listeners might not have any exposed commands, so we skip them
+			if (exposed.isEmpty())
+				continue;
+			
+			actions.add(desc -> desc.seperator().appendEscape(String.join("|", exposed), ChrislieFormat.HIGHLIGHT));
+		}
+		
+		// now that we know how many (if any) commands we have, we can prepare the output
+		var reply = invc.reply();
+		reply.title("Befehlsliste in aktuellem Kontext");
+		
+		if (actions.isEmpty()) { // empty help could happen if there are not commands, or no exposed aliases (help could be called from different context)
+			reply.description("Es sind keine Befehle vorhanden.");
+		} else {
+			var joiner = reply.description().joiner(", ");
+			actions.forEach(a -> a.accept(joiner));
+			reply.footer(actions.size() + " Befehle gefunden.");
+		}
+		
+		reply.send();
+	}
+	
+	private void detail(Invocation invc, String alias) throws ListenerException {
+		var ctx = invc.ctx();
+		var maybeRef = ctx.alias(alias);
+		
+		// becomes true if dispatcher is disabled or value is absent
+		if (maybeRef.map(ref -> ref.flexConf().isSet(FlexConf.DISPATCHER_DISABLE)).orElse(true)) {
+			ErrorOutputBuilder.generic(String.format("Ich kennen keinen Befehl mit dem Namen `%s` im aktuellen Kontext.", alias)).write(invc).send();
+			return;
+		}
+		
+		var reply = invc.reply(); // this error has nothing to do with the called listener, so we don't want to catch it's exception
+		try {
+			var ref = maybeRef.get();
+			var command = (Command) ref.envelope().listener();
+			var help = Optional.ofNullable(ref.help());
+			if (help.isEmpty())
+				help = command.help(ctx, ref);
+			
+			var exposedAliases = ref.aliasSet().get().values().stream()
+					.filter(AliasSet.Alias::exposed)
+					.map(AliasSet.Alias::name)
+					.collect(Collectors.joining(", "));
+			
+			reply.title("Hilfe zu `" + alias + "`");
+			reply.description(help.orElse(Optional.ofNullable(ref.help()).orElse("Zu diesem Befehl ist keine Hilfe verfügbar.")));
+			reply.field("Aliases", exposedAliases);
+			reply.footer("Einige versteckte Aliase werden eventuell nicht angezeigt.");
 			
 			reply.send();
-		} else {
-			String cmdName = bindings.get(arg);
-			
-			if (cmdName == null)
-				ErrorOutputBuilder.generic("Dieser Befehl ist mir nicht bekannt.").write(m);
-			else {
-				var reply = m.reply();
-				var help = cmdDefs.get(cmdName).help();
-				
-				reply.title("Hilfetext zu " + arg);
-				reply.description(help);
-				
-				reply.replace()
-						.appendEscape("Hilfetext zu ").appendEscape(cmdName, ChrislieFormat.HIGHLIGHT)
-						.appendEscape(": ").appendEscape(help);
-				
-				reply.send();
-			}
+		} catch (ListenerException e) {
+			ErrorOutputBuilder.throwable(e).write(invc).send();
 		}
+	}
+	
+	@Override
+	public Optional<String> help(ChrislieContext ctx, ListenerReference ref) {
+		return Optional.of("Erlaubt Zugriff auf eingebaute Hilfetexte von Befehlen. Listet ohne Parameter alle Befehle des aktuellen Context auf. Wird ein " +
+				"Befehlsname übergeben, so wird dessen Hilfetext angezeigt.");
 	}
 }

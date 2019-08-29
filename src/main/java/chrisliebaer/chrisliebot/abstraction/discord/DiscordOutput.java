@@ -15,7 +15,7 @@ public class DiscordOutput implements ChrislieOutput {
 	
 	private MessageChannel channel;
 	private EmbedBuilder embedBuilder = new EmbedBuilder();
-	private PlainOutputImpl plain = new PlainOutputImpl(Function.identity(), (a,b) -> b);
+	private PlainOutputImpl plain = new PlainOutputImpl(Function.identity(), (a,b) -> b); // TODO: replace identity?
 	private PlainOutputImpl descrption = new PlainOutputImpl(Function.identity(), (a,b) -> b);
 	
 	private String authorName, authorUrl, authorIcon;

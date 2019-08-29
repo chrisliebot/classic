@@ -1,22 +1,23 @@
 package chrisliebaer.chrisliebot.command.basic;
 
-import chrisliebaer.chrisliebot.abstraction.ChrislieMessage;
-import chrisliebaer.chrisliebot.command.ChrisieCommand;
-import com.google.gson.Gson;
+import chrisliebaer.chrisliebot.abstraction.SerializedOutput;
+import chrisliebaer.chrisliebot.command.ChrislieListener;
+import chrisliebaer.chrisliebot.util.GsonValidator;
 import com.google.gson.JsonElement;
-import lombok.AllArgsConstructor;
 
-@AllArgsConstructor
-public class StaticOutputCommand implements ChrisieCommand {
+import java.util.Objects;
+
+public class StaticOutputCommand implements ChrislieListener.Command {
 	
-	private String text;
+	private SerializedOutput out;
 	
 	@Override
-	public void execute(ChrislieMessage m, String arg) {
-		m.reply(text);
+	public void fromConfig(GsonValidator gson, JsonElement json) throws ListenerException {
+		out = Objects.requireNonNull(gson.fromJson(json, SerializedOutput.class));
 	}
 	
-	public static StaticOutputCommand fromJson(Gson gson, JsonElement json) {
-		return new StaticOutputCommand(json.getAsString());
+	@Override
+	public void execute(Invocation invc) throws ListenerException {
+		out.apply(invc.reply()).send();
 	}
 }

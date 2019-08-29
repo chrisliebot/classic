@@ -1,9 +1,8 @@
 package chrisliebaer.chrisliebot.command.unicode;
 
 import chrisliebaer.chrisliebot.abstraction.ChrislieFormat;
-import chrisliebaer.chrisliebot.abstraction.ChrislieMessage;
 import chrisliebaer.chrisliebot.abstraction.PlainOutput;
-import chrisliebaer.chrisliebot.command.ChrisieCommand;
+import chrisliebaer.chrisliebot.command.ChrislieListener;
 import chrisliebaer.chrisliebot.util.ErrorOutputBuilder;
 import org.apache.commons.codec.binary.Hex;
 
@@ -15,18 +14,17 @@ import java.util.StringJoiner;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-public class UnicodeCommand implements ChrisieCommand {
+public class UnicodeCommand implements ChrislieListener.Command {
 	
 	private static final ErrorOutputBuilder ERROR_NUMBER_PARSE = ErrorOutputBuilder.generic("Das sah zwar gut aus, aber ich habs trotzdem nicht gerafft.");
 	private static final ErrorOutputBuilder ERROR_INDAVLID_CP = ErrorOutputBuilder.generic("Ungültiger Codepoint, versuch es mal mit einem anderen.");
 	
-	private static final int MAX_CODEPOINT_DISPLAY = 5;
-	
 	private static final Pattern CODEPOINT_INPUT = Pattern.compile("^U\\+(?<cp>[0-9A-Fa-f]{1,8})$");
 	
 	@Override
-	public void execute(ChrislieMessage m, String arg) {
-		arg = arg.trim();
+	public void execute(Invocation invc) throws ListenerException {
+		var arg = invc.arg().trim();
+		var m = invc.msg();
 		
 		List<Integer> cps;
 		var matcher = CODEPOINT_INPUT.matcher(arg);
@@ -35,7 +33,7 @@ public class UnicodeCommand implements ChrisieCommand {
 				cps = new ArrayList<>(1);
 				cps.add((int) Long.parseLong(matcher.group("cp"), 16));
 			} catch (NumberFormatException e) {
-				ERROR_NUMBER_PARSE.write(m);
+				ERROR_NUMBER_PARSE.write(invc).send();
 				return;
 			}
 		} else { // parse input as is
@@ -49,17 +47,18 @@ public class UnicodeCommand implements ChrisieCommand {
 				joiner.add(s);
 			}
 		} catch (IllegalArgumentException e) {
-			ERROR_INDAVLID_CP.write(m);
+			ERROR_INDAVLID_CP.write(invc).send();
 			return;
 		}
 		String input = joiner.toString();
 		
-		var reply = m.reply();
-		reply.title("Codepointanalyse (limitiert auf " + MAX_CODEPOINT_DISPLAY + ")");
+		var reply = invc.reply();
+		var maxCodepoints = invc.ref().flexConf().getIntegerOrFail("unicode.limit");
+				reply.title("Codepointanalyse (limitiert auf " + maxCodepoints + ")");
 		reply.field("Eingabe", input);
 		reply.field("Anzahl Codepoints", String.valueOf(cps.size()));
 		
-		cps.stream().limit(MAX_CODEPOINT_DISPLAY).forEachOrdered(i -> printCodePoint(i, reply.description()));
+		cps.stream().limit(maxCodepoints).forEachOrdered(i -> printCodePoint(i, reply.description()));
 		
 		var convert = reply.convert();
 		convert
@@ -67,7 +66,7 @@ public class UnicodeCommand implements ChrisieCommand {
 				.appendEscape(input, ChrislieFormat.HIGHLIGHT)
 				.appendEscape("] Anzahl Codepoints: ")
 				.appendEscape(String.valueOf(cps.size()), ChrislieFormat.HIGHLIGHT)
-				.appendEscape(" (Ausgabe limitiert auf maximal " + MAX_CODEPOINT_DISPLAY + " Codepoints)")
+				.appendEscape(" (Ausgabe limitiert auf maximal " + maxCodepoints + " Codepoints)")
 				.newLine()
 				.appendSub("${description}");
 		

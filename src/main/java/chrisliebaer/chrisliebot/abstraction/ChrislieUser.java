@@ -15,17 +15,7 @@ public interface ChrislieUser extends ServiceAttached {
 	/**
 	 * @return An internal identifier of a user. Should be used when storing user associated data.
 	 */
-	public Optional<String> identifier();
-	
-	/**
-	 * Some services don't require users to have a fixed identifier. While this may cause security issues for certain features, other functions might work fine
-	 * with a best effordt identifier. This identifier tries it's best to provied a constant identifier but can fail.
-	 *
-	 * @return A best effort attempt at providing a indentifier.
-	 */
-	public default String softIdentifer() {
-		return identifier().orElseThrow();
-	}
+	public String identifier();
 	
 	/**
 	 * @return The string that should be used to {@code ping} the user.
@@ -33,12 +23,8 @@ public interface ChrislieUser extends ServiceAttached {
 	public String mention();
 	
 	/**
-	 * @return {@code true} if the user is an admin on this bot instance.
+	 * @return An instance of a ChrislieChannel that can be used to directly contact the user. Can fail it the user has blocked us or we are otherwise unable to contact
+	 * user.
 	 */
-	public boolean isAdmin();
-	
-	/**
-	 * @return An instance of a ChrislieChannel that can be used to directly contact the user.
-	 */
-	public ChrislieChannel directMessage();
+	public Optional<? extends ChrislieChannel> directMessage();
 }

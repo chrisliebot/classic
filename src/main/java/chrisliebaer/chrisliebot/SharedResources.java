@@ -1,43 +1,46 @@
 package chrisliebaer.chrisliebot;
 
-import com.google.common.base.Preconditions;
+import chrisliebaer.chrisliebot.util.GsonValidator;
+import chrisliebaer.chrisliebot.util.VersionUtil;
 import com.google.common.util.concurrent.AbstractIdleService;
-import com.google.gson.Gson;
 import lombok.Getter;
+import lombok.NonNull;
 import okhttp3.OkHttpClient;
-import org.mariadb.jdbc.MariaDbDataSource;
+import org.mariadb.jdbc.MariaDbPoolDataSource;
 
 import javax.sql.DataSource;
+import java.sql.SQLException;
 import java.util.Timer;
 
-public final class SharedResources extends AbstractIdleService {
+public class SharedResources extends AbstractIdleService {
 	
-	private static final String DEFAULT_USER_AGENT = "Chrisliebot/1.0 (+https://gitlab.com/Chrisliebaer/chrisliebot-irc)";
+	private static final String DEFAULT_USER_AGENT = "Chrisliebot/" + VersionUtil.versionString() + " (+https://git.kd-tree.com/Chrisliebot/core)";
 	
-	@Getter private static final SharedResources INSTANCE = new SharedResources();
-	
-	private boolean init = false;
-	
-	@Getter private Gson gson;
 	@Getter private OkHttpClient httpClient;
 	@Getter private Timer timer;
-	@Getter private DataSource dataSource;
+	@Getter private GsonValidator gson;
 	
-	private SharedResources() {}
+	private MariaDbPoolDataSource dataSource;
 	
-	public synchronized SharedResources init(String dataSource) {
-		Preconditions.checkState(!init, "SharedResources can only be initialized once");
-		init = true;
-		this.dataSource = new MariaDbDataSource(dataSource);
-		return this;
+	public SharedResources(@NonNull String dataSource, @NonNull GsonValidator gson) {
+		this.dataSource = new MariaDbPoolDataSource(dataSource);
+		this.gson = gson;
+	}
+	
+	public DataSource dataSource() {
+		return dataSource;
 	}
 	
 	@SuppressWarnings("resource")
 	@Override
-	protected synchronized void startUp() throws Exception {
-		Preconditions.checkState(init, "SharedResources have not been initialized");
+	protected void startUp() throws Exception {
+		// ping database to ensure basic functionality
+		try (var conn = dataSource.getConnection(); var stmt = conn.createStatement()) {
+			stmt.execute("SELECT 1");
+		} catch (SQLException e) {
+			throw new Exception("probe request to database failed", e);
+		}
 		
-		gson = new Gson();
 		httpClient = new OkHttpClient.Builder()
 				.addNetworkInterceptor(c -> c.proceed(c.request().newBuilder().header("User-Agent", DEFAULT_USER_AGENT).build()))
 				.build();
@@ -45,9 +48,12 @@ public final class SharedResources extends AbstractIdleService {
 	}
 	
 	@Override
-	protected synchronized void shutDown() throws Exception {
+	protected void shutDown() throws Exception {
+		// remember: reverse order
 		timer.cancel();
-		httpClient.dispatcher().executorService().shutdown();
+		httpClient.dispatcher().executorService().shutdown(); // TODO: are the executors blocking? should we configure the pool by ourself?
 		httpClient.connectionPool().evictAll();
+		
+		dataSource.close();
 	}
 }

@@ -54,13 +54,17 @@ public class DiscordChannel implements ChrislieChannel {
 	}
 	
 	@Override
-	public Optional<DiscordUser> user(String identifier) {
+	public Optional<DiscordUser> resolve(String callName) {
 		throw new RuntimeException("not yet implemented");
 	}
 	
 	@Override
-	public Optional<DiscordUser> resolve(String callName) {
-		throw new RuntimeException("not yet implemented");
+	public Optional<DiscordGuild> guild() {
+		if (channel instanceof GuildChannel) {
+			GuildChannel guildChannel = (GuildChannel) channel;
+			return Optional.of(new DiscordGuild(service, guildChannel.getGuild()));
+		}
+		return Optional.empty();
 	}
 	
 	@Override

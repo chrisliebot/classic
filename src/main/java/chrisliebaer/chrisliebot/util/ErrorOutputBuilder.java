@@ -2,12 +2,13 @@ package chrisliebaer.chrisliebot.util;
 
 
 import chrisliebaer.chrisliebot.abstraction.ChrislieFormat;
-import chrisliebaer.chrisliebot.abstraction.ChrislieMessage;
 import chrisliebaer.chrisliebot.abstraction.ChrislieOutput;
 import chrisliebaer.chrisliebot.abstraction.PlainOutput;
+import chrisliebaer.chrisliebot.command.ChrislieListener;
 import okhttp3.Request;
 import org.kitteh.irc.client.library.util.Format;
 
+import javax.annotation.CheckReturnValue;
 import java.awt.*;
 import java.util.function.Consumer;
 
@@ -70,10 +71,12 @@ public final class ErrorOutputBuilder {
 				});
 	}
 	
+	@CheckReturnValue
 	public static ErrorOutputBuilder generic(String description) {
 		return new ErrorOutputBuilder().fn(out -> defaultConvert(out.title("Fehler").description(description).convert()));
 	}
 	
+	@CheckReturnValue
 	public static ErrorOutputBuilder generic(Consumer<PlainOutput> outFn) {
 		return new ErrorOutputBuilder().fn(out -> {
 			outFn.accept(out.description());
@@ -81,6 +84,7 @@ public final class ErrorOutputBuilder {
 		});
 	}
 	
+	@CheckReturnValue
 	public static ErrorOutputBuilder throwable(Throwable throwable) {
 		return new ErrorOutputBuilder().fn(out -> {
 			out.title(throwable.getClass().getSimpleName());
@@ -94,14 +98,16 @@ public final class ErrorOutputBuilder {
 		convert.appendEscapeSub("[${title}] ", Format.RED, Format.BOLD).appendEscapeSub("${description}");
 	}
 	
+	@CheckReturnValue
 	public ChrislieOutput write(ChrislieOutput out) {
 		out.color(ERROR_COLOR);
 		fn.out(out);
 		return out;
 	}
 	
-	public void write(ChrislieMessage m) {
-		write(m.channel().output()).send();
+	@CheckReturnValue
+	public ChrislieOutput write(ChrislieListener.ListenerMessage msg) throws ChrislieListener.ListenerException {
+		return write(msg.reply());
 	}
 	
 	@FunctionalInterface

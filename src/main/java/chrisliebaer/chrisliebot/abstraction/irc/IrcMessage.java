@@ -32,9 +32,11 @@ public class IrcMessage implements ChrislieMessage {
 	}
 	
 	public static IrcMessage of(IrcService service, ChannelMessageEvent ev) {
+		var channel = ev.getChannel();
+		var guild = service.channelToGuild(channel);
 		return new IrcMessage(service,
 				new IrcUser(service, ev.getActor()),
-				new IrcChannel(service, ev.getChannel()),
+				new IrcChannel(service, channel, guild.orElse(null)),
 				ev.getMessage());
 	}
 }

@@ -5,6 +5,9 @@ import lombok.NonNull;
 import java.awt.*;
 import java.util.function.Consumer;
 
+/**
+ * This interface is a core component of the output service abstraction. The methods of this interface act as a superset for the features of all services.
+ */
 public interface ChrislieOutput {
 	
 	public ChrislieOutput title(String title, String url);

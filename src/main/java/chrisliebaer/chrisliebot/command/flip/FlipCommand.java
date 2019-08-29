@@ -1,9 +1,12 @@
 package chrisliebaer.chrisliebot.command.flip;
 
-import chrisliebaer.chrisliebot.abstraction.ChrislieMessage;
-import chrisliebaer.chrisliebot.command.ChrisieCommand;
+import chrisliebaer.chrisliebot.command.ChrislieListener;
+import chrisliebaer.chrisliebot.command.ListenerReference;
+import chrisliebaer.chrisliebot.config.ChrislieContext;
 
-public class FlipCommand implements ChrisieCommand {
+import java.util.Optional;
+
+public class FlipCommand implements ChrislieListener.Command {
 	
 	private static final String LOOKUP_NORMAL;
 	
@@ -22,7 +25,8 @@ public class FlipCommand implements ChrisieCommand {
 	}
 	
 	@Override
-	public void execute(ChrislieMessage m, String arg) {
+	public void execute(Invocation invc) throws ListenerException {
+		var arg = invc.arg();
 		StringBuilder sb = new StringBuilder(arg.length());
 		for (int i = 0; i < arg.length(); i++) {
 			int cp = arg.codePointAt(i);
@@ -32,6 +36,11 @@ public class FlipCommand implements ChrisieCommand {
 			else
 				sb.append(LOOKUP_FLIP.charAt(idx));
 		}
-		m.reply("(╯°□°）╯ " + sb.reverse().toString());
+		invc.reply("(╯°□°）╯ " + sb.reverse().toString());
+	}
+	
+	@Override
+	public Optional<String> help(ChrislieContext ctx, ListenerReference ref) {
+		return Optional.of("˙ɟdoʞ ʇɥǝʇs ʇlǝM ǝᴉp");
 	}
 }

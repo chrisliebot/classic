@@ -1,9 +1,9 @@
 package chrisliebaer.chrisliebot.command.urlpreview;
 
-import chrisliebaer.chrisliebot.C;
-import chrisliebaer.chrisliebot.SharedResources;
-import chrisliebaer.chrisliebot.abstraction.ChrislieMessage;
-import chrisliebaer.chrisliebot.abstraction.LimiterConfig;
+
+import chrisliebaer.chrisliebot.abstraction.ChrislieFormat;
+import chrisliebaer.chrisliebot.abstraction.ChrislieOutput;
+import chrisliebaer.chrisliebot.command.ChrislieListener;
 import lombok.NonNull;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
@@ -11,7 +11,6 @@ import okhttp3.*;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.select.Elements;
-import org.kitteh.irc.client.library.util.Format;
 
 import java.io.IOException;
 import java.net.URL;
@@ -26,18 +25,22 @@ public class GenericUrlPreview implements Callback {
 	private static final int MAX_CONTENT_LENGTH = 5 * 1024 * 1024;
 	private static final long PREVIEW_TIMEOUT = 10000; // cancel connection after 10 seconds even if we are still receiving data
 	
-	private OkHttpClient client = SharedResources.INSTANCE().httpClient();
-	private Timer timer = SharedResources.INSTANCE().timer();
+	private OkHttpClient client;
+	private Timer timer;
 	
 	private URL url;
-	private ChrislieMessage m;
+	private ChrislieListener.ListenerMessage m;
 	private Set<UrlPreviewCommand.HistoryEntry> titleHistory;
 	
 	@SneakyThrows
-	public GenericUrlPreview(@NonNull URL url, @NonNull ChrislieMessage m, Set<UrlPreviewCommand.HistoryEntry> titleHistory) {
+	public GenericUrlPreview(@NonNull URL url, ChrislieListener.ListenerMessage m, Set<UrlPreviewCommand.HistoryEntry> titleHistory) {
 		this.url = url;
 		this.m = m;
 		this.titleHistory = titleHistory;
+		
+		var shared = m.bot().sharedResources();
+		client = shared.httpClient();
+		timer = shared.timer();
 	}
 	
 	public void start() {
@@ -54,7 +57,7 @@ public class GenericUrlPreview implements Callback {
 			public void run() {
 				call.cancel();
 				if (!call.isExecuted())
-					log.debug(C.LOG_PUBLIC, "canceled preview of {} since it took to long", url);
+					log.debug("canceled preview of {} since it took to long", url);
 			}
 		}, PREVIEW_TIMEOUT);
 		
@@ -63,7 +66,7 @@ public class GenericUrlPreview implements Callback {
 	@Override
 	public void onFailure(Call call, IOException e) {
 		if (!e.getMessage().isEmpty())
-			log.debug(C.LOG_PUBLIC, "failed to connect to {}: {}", url, e.getMessage());
+			log.debug("failed to connect to {}: {}", url, e.getMessage());
 	}
 	
 	@Override
@@ -72,14 +75,14 @@ public class GenericUrlPreview implements Callback {
 		// check for mime type
 		String contentType = response.header("Content-Type");
 		if (contentType == null) {
-			log.debug(C.LOG_PUBLIC, "no content type provided: {}", url);
+			log.debug("no content type provided: {}", url);
 			return;
 		}
 		
 		// we only care about html pages
 		String mime = contentType.split(";")[0].trim();
 		if (!"text/html".equalsIgnoreCase(mime)) {
-			log.debug(C.LOG_PUBLIC, "can't parse content type {} for {}", mime, url);
+			log.debug("can't parse content type {} for {}", mime, url);
 		}
 		
 		// documentation doesn't mention it, but we have to close the body
@@ -112,11 +115,11 @@ public class GenericUrlPreview implements Callback {
 				summary = summary.substring(0, MAX_IRC_MESSAGE_LENGTH).trim() + "[...]";
 			
 			// check if summary was posted before within timeout window
-			UrlPreviewCommand.HistoryEntry historyLookup = new UrlPreviewCommand.HistoryEntry(summary, m.channel().identifier());
+			UrlPreviewCommand.HistoryEntry historyLookup = new UrlPreviewCommand.HistoryEntry(summary, m.msg().channel().identifier());
 			if (titleHistory.contains(historyLookup)) {
 				// output has been posted, don't repeat
-				log.debug(C.LOG_PUBLIC, "not posting summary of {} in {} since it's identical with a recently posted summary",
-						url.toExternalForm(), m.channel().displayName());
+				log.debug("not posting summary of {} in {} since it's identical with a recently posted summary",
+						url.toExternalForm(), m.msg().channel().displayName());
 				return;
 			}
 			
@@ -124,8 +127,16 @@ public class GenericUrlPreview implements Callback {
 			titleHistory.add(historyLookup);
 			
 			if (!summary.isEmpty()) {
-				var reply = m.reply();
-				m.channel().output(LimiterConfig.create().maxLines(1)).plain(C.format("Linkvorschau: ", Format.BOLD) + summary).send();
+				try { // TODO: create function in ListenerMessage that can be used to unwrap exceptions and feed back to dispatcher for error handling in async code
+					ChrislieOutput reply;
+					reply = m.reply();
+					reply.plain()
+							.appendEscape("Linkvorschau: ", ChrislieFormat.BOLD)
+							.appendEscape(summary);
+					reply.send();
+				} catch (ChrislieListener.ListenerException e) {
+					log.warn("failed to create output for link preview", e);
+				}
 			}
 		}
 	}

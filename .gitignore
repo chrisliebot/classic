@@ -1,5 +1,8 @@
 # gradle related
-.gradle
+/.gradle
+/gradlew
+/gradlew.bat
+/gradle
 /build/
 /out/
 

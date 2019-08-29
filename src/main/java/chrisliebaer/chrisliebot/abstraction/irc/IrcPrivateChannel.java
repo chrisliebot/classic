@@ -12,12 +12,13 @@ import java.util.function.Function;
 
 public class IrcPrivateChannel implements ChrislieChannel {
 	
+	
 	@Getter private IrcService service;
-	@Getter private User user;
+	@Getter private IrcUser user;
 	
 	public IrcPrivateChannel(IrcService service, User user) {
 		this.service = service;
-		this.user = user;
+		this.user = new IrcUser(service, user);
 	}
 	
 	@Override
@@ -37,12 +38,12 @@ public class IrcPrivateChannel implements ChrislieChannel {
 	
 	@Override
 	public String displayName() {
-		return user.getNick();
+		return user.displayName();
 	}
 	
 	@Override
 	public String identifier() {
-		return user.getNick();
+		return user.identifier();
 	}
 	
 	@Override
@@ -52,21 +53,31 @@ public class IrcPrivateChannel implements ChrislieChannel {
 	
 	@Override
 	public List<IrcUser> users() {
-		return List.of(new IrcUser(service, user));
+		return List.of(user);
 	}
 	
 	@Override
 	public Optional<IrcUser> user(String identifier) {
-		throw new RuntimeException("not yet implemented");
+		if (user.identifier().equals(identifier))
+			return Optional.of(user);
+		return Optional.empty();
 	}
 	
 	@Override
 	public Optional<IrcUser> resolve(String callName) {
-		throw new RuntimeException("not yet implemented");
+		var user = this.user.user();
+		if (user.getNick().equalsIgnoreCase(callName))
+			return Optional.of(this.user);
+		return Optional.empty();
+	}
+	
+	@Override
+	public Optional<IrcGuild> guild() {
+		return Optional.empty();
 	}
 	
 	@Override
 	public IrcOutput output(LimiterConfig limiterConfig) {
-		return new IrcOutput(Function.identity(), s -> limiterConfig.send(user, s));
+		return new IrcOutput(Function.identity(), s -> limiterConfig.send(user.user(), s));
 	}
 }

@@ -1,5 +1,5 @@
 #!/bin/bash
 
 cd "$(dirname "$0")"
-screen -dmS chrisliebot-irc \
+screen -dmS chrisliebot \
 	./loop.sh

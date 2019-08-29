@@ -1,13 +1,19 @@
 package chrisliebaer.chrisliebot.command.timer;
 
 import chrisliebaer.chrisliebot.C;
-import chrisliebaer.chrisliebot.SharedResources;
-import chrisliebaer.chrisliebot.abstraction.*;
-import chrisliebaer.chrisliebot.command.ChrisieCommand;
+import chrisliebaer.chrisliebot.Chrisliebot;
+import chrisliebaer.chrisliebot.abstraction.ChrislieFormat;
+import chrisliebaer.chrisliebot.abstraction.ChrislieOutput;
+import chrisliebaer.chrisliebot.abstraction.ChrislieUser;
+import chrisliebaer.chrisliebot.abstraction.LimiterConfig;
+import chrisliebaer.chrisliebot.command.ChrislieListener;
+import chrisliebaer.chrisliebot.command.ListenerReference;
+import chrisliebaer.chrisliebot.config.ChrislieContext;
+import chrisliebaer.chrisliebot.config.ContextResolver;
+import chrisliebaer.chrisliebot.config.scope.Selector;
 import chrisliebaer.chrisliebot.util.ErrorOutputBuilder;
+import chrisliebaer.chrisliebot.util.GsonValidator;
 import com.google.common.base.Preconditions;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
 import com.joestelmach.natty.DateGroup;
 import com.joestelmach.natty.Parser;
@@ -17,6 +23,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 
+import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.Positive;
 import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
@@ -27,34 +35,93 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 // TODO: streamline code to reduce number of duplicated code paths and output handling
+// TODO upgrade to v3
+/* v3 features
+ * upper limit for duration, number of timers (can be combined with scope based map used for other limits I can't remember)
+ * permission for accessing other tasks / and deleting them
+ */
 @Slf4j
-public class TimerCommand implements ChrisieCommand {
+public class TimerCommand implements ChrislieListener.Command {
 	
 	private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("EE dd.MM.yyyy HH:mm:ss", Locale.GERMAN);
 	private static final Pattern FILENAME_PATTERN = Pattern.compile("^[0-9]+\\.json$");
 	
-	private ChrislieService service;
 	private File dir;
-	private Gson gson = new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create();
+	private GsonValidator gson;
 	
 	private Map<Long, TimerDescription> timers = new HashMap<>();
 	private Parser parser = new Parser();
 	
-	public TimerCommand(File dir) {
-		this.dir = dir;
+	private Chrisliebot bot;
+	private ContextResolver resolver;
+	
+	@Override
+	public Optional<String> help(ChrislieContext ctx, ListenerReference ref) throws ListenerException {
+		return Optional.of("Vergiss nie wieder wann du deine Pizza aus dem Ofen holen musst: !timer 10 min Pizza rausholen. !timer list, !timer info|delete <id>");
 	}
 	
 	@Override
-	public synchronized void execute(ChrislieMessage m, String arg) {
+	public synchronized void fromConfig(GsonValidator gson, JsonElement json) throws ListenerException {
+		var cfg = gson.fromJson(json, Config.class);
+		dir = new File(cfg.dir);
+		
+		if (!dir.isDirectory() || !dir.exists())
+			if (!dir.mkdirs())
+				throw new ListenerException("failed to create timer directory");
+		
+		if (!dir.canRead())
+			throw new ListenerException("can't read timer directory");
+	}
+	
+	@Override
+	public synchronized void init(Chrisliebot bot, ContextResolver resolver) throws ListenerException {
+		this.bot = bot;
+		this.resolver = resolver;
+		this.gson = bot.sharedResources().gson();
+	}
+	
+	@Override
+	public synchronized void start(Chrisliebot bot, ContextResolver resolver) throws ListenerException {
+		// load tasks and start timer but don't recreate files
+		if (!dir.exists())
+			Preconditions.checkState(dir.mkdirs(), "failed to create timer task dir: " + dir);
+		
+		Preconditions.checkState(dir.isDirectory() && dir.canWrite(), "can't write to: " + dir);
+		
+		// recreate timers from config
+		for (File file : dir.listFiles((d, name) -> FILENAME_PATTERN.asPredicate().test(name))) { // TODO find out if this warning is right
+			try (FileReader fr = new FileReader(file)) {
+				TimerDescription description = gson.fromJson(fr, TimerDescription.class);
+				long id = Long.parseLong(file.getName().split("\\.")[0]);
+				queueTimer(description, false, id);
+			} catch (IOException e) {
+				throw new ListenerException("failed to load timers from disk", e);
+			}
+		}
+	}
+	
+	@Override
+	public synchronized void stop(Chrisliebot bot, ContextResolver resolver) throws ListenerException {
+		// stop pending timer but keep files
+		for (var v : timers.values()) {
+			v.task().cancel();
+		}
+	}
+	
+	@Override
+	public synchronized void execute(Invocation invc) throws ListenerException {
+		var arg = invc.arg();
+		var m = invc.msg();
+		
 		if (m.channel().isDirectMessage()) {
-			ErrorOutputBuilder.generic("Timer sind aktuell nicht in privaten Nachrichten verfügbar.").write(m); // TODO: change that
+			ErrorOutputBuilder.generic("Timer sind aktuell nicht in privaten Nachrichten verfügbar.").write(invc).send(); // TODO: change that
 			return;
 		}
 		
 		if (arg.startsWith("info")) {
 			var split = arg.split(" ", 2);
 			if (split.length != 2) {
-				ErrorOutputBuilder.generic("Du hast vergessen die Id des Timers anzugeben.").write(m);
+				ErrorOutputBuilder.generic("Du hast vergessen die Id des Timers anzugeben.").write(invc).send();
 				return;
 			}
 			
@@ -62,20 +129,20 @@ public class TimerCommand implements ChrisieCommand {
 				long id = Long.parseLong(split[1]);
 				TimerDescription description = timers.get(id);
 				if (description == null) {
-					ErrorOutputBuilder.generic("Diese Id gibt es nicht.").write(m);
+					ErrorOutputBuilder.generic("Diese Id gibt es nicht.").write(invc).send();
 					return;
 				}
 				
-				createTimerReply(m.reply().title("Information über Timer " + id), id, description).send();
+				createTimerReply(invc.reply().title("Information über Timer " + id), id, description).send();
 			} catch (NumberFormatException e) {
-				ErrorOutputBuilder.generic("Das ist keine Zahl.").write(m);
+				ErrorOutputBuilder.generic("Das ist keine Zahl.").write(invc).send();
 			}
 		} else if (arg.startsWith("list")) {
 			var list = timers.entrySet().stream()
 					.filter(e -> userOwnsTimer(m.user(), e.getValue()))
 					.collect(Collectors.toList());
 			
-			var reply = m.reply();
+			var reply = invc.reply();
 			reply.title("Timer von " + m.user().displayName());
 			
 			var desc = reply.description();
@@ -97,7 +164,7 @@ public class TimerCommand implements ChrisieCommand {
 		} else if (arg.startsWith("delete") || arg.startsWith("entfernen") || arg.startsWith("del")) {
 			var split = arg.split(" ", 2);
 			if (split.length != 2) {
-				ErrorOutputBuilder.generic("Du hast keine Id angegeben.").write(m);
+				ErrorOutputBuilder.generic("Du hast keine Id angegeben.").write(invc).send();
 				return;
 			}
 			
@@ -105,33 +172,33 @@ public class TimerCommand implements ChrisieCommand {
 				long id = Long.parseLong(split[1]);
 				TimerDescription description = timers.get(id);
 				if (description == null) {
-					ErrorOutputBuilder.generic("Diese Id gibt es nicht.").write(m);
+					ErrorOutputBuilder.generic("Diese Id gibt es nicht.").write(invc).send();
 					return;
 				}
 				
 				// check if user is allowed to delete this timer
-				if (m.user().isAdmin() || userOwnsTimer(m.user(), description)) {
+				if (userOwnsTimer(m.user(), description)) {
 					File timerFile = new File(dir, id + ".json");
 					if (!timerFile.delete()) {
-						ErrorOutputBuilder.generic("Da ging etwas schief.").write(m);
-						log.error(C.LOG_PUBLIC, "failed to delete timer file: {}", timerFile);
+						ErrorOutputBuilder.generic("Da ging etwas schief.").write(invc).send();
+						log.error("failed to delete timer file: {}", timerFile);
 						return;
 					}
 					timers.remove(id);
 					description.task().cancel();
 					
-					createTimerReply(m.reply().title("Timer wurde gelöscht"), id, description).send();
+					createTimerReply(invc.reply().title("Timer wurde gelöscht"), id, description).send();
 				}
 				
 				
 			} catch (NumberFormatException e) {
-				ErrorOutputBuilder.generic("Das ist keine Zahl.").write(m);
+				ErrorOutputBuilder.generic("Das ist keine Zahl.").write(invc).send();
 			}
 		} else {
 			Optional<Pair<Date, String>> result = shrinkingParse(arg);
 			
 			if (result.isEmpty()) {
-				ErrorOutputBuilder.generic("Ich hab da leider keine Zeitangabe gefunden.").write(m);
+				ErrorOutputBuilder.generic("Ich hab da leider keine Zeitangabe gefunden.").write(invc).send();
 				return;
 			}
 			
@@ -140,14 +207,15 @@ public class TimerCommand implements ChrisieCommand {
 			String mesage = result.get().getRight();
 			
 			if (diff < 0) {
-				ErrorOutputBuilder.generic("Für diesen Zeitpunkt brauchst du eine Zeitmaschine.").write(m);
+				ErrorOutputBuilder.generic("Für diesen Zeitpunkt brauchst du eine Zeitmaschine.").write(invc).send();
 				return;
 			}
 			
 			TimerDescription description = TimerDescription.builder()
+					.service(m.service().identifier())
 					.channel(m.channel().identifier())
 					.nick(m.user().displayName())
-					.softIdentifier(m.user().softIdentifer())
+					.identifier(m.user().identifier())
 					.when(timestamp)
 					.message(mesage)
 					.build();
@@ -156,15 +224,15 @@ public class TimerCommand implements ChrisieCommand {
 			try {
 				id = queueTimer(description, true);
 			} catch (IOException e) {
-				ErrorOutputBuilder.throwable(e).write(m);
-				log.warn(C.LOG_PUBLIC, "failed to write timer {} to disk", description, e);
+				ErrorOutputBuilder.throwable(e).write(invc).send();
+				log.warn("failed to write timer {} to disk", description, e);
 				return;
 			}
 			
 			var duration = C.durationToString(diff);
 			var when = DATE_FORMAT.format(result.get().getLeft());
 			
-			var reply = m.reply();
+			var reply = invc.reply();
 			reply.title("Timer gestellt");
 			reply.description(description.message());
 			reply.field("Dauer", duration);
@@ -184,7 +252,7 @@ public class TimerCommand implements ChrisieCommand {
 	}
 	
 	private static boolean userOwnsTimer(ChrislieUser user, TimerDescription description) {
-		return user.softIdentifer().equals(description.softIdentifier());
+		return user.identifier().equals(description.identifier());
 	}
 	
 	private synchronized Optional<Pair<Date, String>> shrinkingParse(String arg) {
@@ -208,34 +276,6 @@ public class TimerCommand implements ChrisieCommand {
 		}
 	}
 	
-	@Override
-	public synchronized void init(ChrislieService client) throws Exception {
-		this.service = client;
-		
-		// load tasks and start timer but don't recreate files
-		if (!dir.exists())
-			Preconditions.checkState(dir.mkdirs(), "failed to create timer task dir: " + dir);
-		
-		Preconditions.checkState(dir.isDirectory() && dir.canWrite(), "can't write to: " + dir);
-		
-		// recreate timers from config
-		for (File file : dir.listFiles((d, name) -> FILENAME_PATTERN.asPredicate().test(name))) { // TODO find out if this warning is right
-			try (FileReader fr = new FileReader(file)) {
-				TimerDescription description = gson.fromJson(fr, TimerDescription.class);
-				long id = Long.parseLong(file.getName().split("\\.")[0]);
-				queueTimer(description, false, id);
-			}
-		}
-	}
-	
-	@Override
-	public synchronized void stop() throws Exception {
-		// stop pending timer but keep files
-		for (var v : timers.values()) {
-			v.task().cancel();
-		}
-	}
-	
 	private synchronized long queueTimer(TimerDescription description, boolean writeToDisk) throws IOException {
 		return queueTimer(description, writeToDisk, getNewTimerId());
 	}
@@ -253,11 +293,15 @@ public class TimerCommand implements ChrisieCommand {
 		var task = new TimerTask() {
 			@Override
 			public void run() {
-				completeTimer(id);
+				try {
+					completeTimer(id); // TODO: this exception should be fed back into dispatcher, if possible
+				} catch (ListenerException e) {
+					log.warn("failed to complete timer with id {}", id, e);
+				}
 			}
 		};
 		description.task(task);
-		SharedResources.INSTANCE().timer().schedule(task,
+		bot.sharedResources().timer().schedule(task,
 				Math.max(0, description.when() - System.currentTimeMillis()));
 		
 		return id;
@@ -270,7 +314,7 @@ public class TimerCommand implements ChrisieCommand {
 		}
 	}
 	
-	private synchronized void completeTimer(long id) {
+	private synchronized void completeTimer(long id) throws ListenerException {
 		TimerDescription description = timers.remove(id);
 		
 		/* If a timer is removed by a user, the queued task might already be running, in this case the
@@ -287,16 +331,22 @@ public class TimerCommand implements ChrisieCommand {
 			log.warn("failed to delete timer file {}", timerFile);
 		}
 		
-		var channel = service.channel(description.channel());
+		var service = bot.service(description.service());
+		if (service.isEmpty()) {
+			log.warn("could not send timer to user since server is not available: {}", description);
+			return; // TODO: requeue
+		}
+		
+		var channel = service.get().channel(description.channel());
 		if (channel.isEmpty()) {
-			log.warn(C.LOG_PUBLIC, "could not print timer since not in channel: {}", description);
+			log.warn("could not print timer since not in channel: {}", description);
 			return; // TODO: requeue since we otherwise lose timer if we are just starting
 		}
 		
 		// locate user in channel for proper mention
 		var chan = channel.get();
 		List<ChrislieUser> accounts = chan.users().stream()
-				.filter(u -> u.softIdentifer().equals(description.softIdentifier()))
+				.filter(u -> u.identifier().equals(description.identifier()))
 				.collect(Collectors.toList());
 		
 		// fall back to nickname match if account is not in channel
@@ -306,7 +356,10 @@ public class TimerCommand implements ChrisieCommand {
 					.map(ChrislieUser::mention)
 					.collect(Collectors.joining(", "));
 		
-		var out = chan.output();
+		var ctx = resolver.resolve(Selector::check, chan); // TODO: we also want the user that's part of the channel
+		var ref = ctx.listener(this);
+		
+		var out = chan.output(LimiterConfig.of(ref.flexConf()));
 		out.plain().append(mention);
 		out.title("Es ist soweit");
 		out.description(description.message());
@@ -314,14 +367,17 @@ public class TimerCommand implements ChrisieCommand {
 		out.send();
 	}
 	
-	public static TimerCommand fromJson(Gson gson, JsonElement element) {
-		return new TimerCommand(new File(element.getAsString()));
-	}
-	
 	private ChrislieOutput createTimerReply(ChrislieOutput reply, long id, TimerDescription description) {
+		var maybeService = bot.service(description.service());
+		if (maybeService.isEmpty()) {
+			log.warn("service for timer completion not available");
+			return reply; // TODO: this is a horrible hack
+		}
+		var service = maybeService.get();
+		
 		// process timer data
 		var when = DATE_FORMAT.format(new Date(description.when()));
-		var user = service.user(description.softIdentifier());
+		var user = service.user(description.identifier());
 		var nick = user.map(ChrislieUser::displayName).orElse(description.nick());
 		
 		reply.description(description.message());
@@ -342,12 +398,18 @@ public class TimerCommand implements ChrisieCommand {
 	@Builder
 	private static class TimerDescription {
 		
-		private long when;
-		private String channel;
-		private String nick;
-		private String softIdentifier;
+		private @Positive long when;
+		private @NotBlank String service;
+		private @NotBlank String channel;
+		private @NotBlank String nick;
+		private @NotBlank String identifier;
 		private String message;
 		private transient TimerTask task;
 		
+	}
+	
+	private static class Config {
+		
+		private @NotBlank String dir;
 	}
 }

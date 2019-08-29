@@ -1,6 +1,5 @@
 package chrisliebaer.chrisliebot.util;
 
-import chrisliebaer.chrisliebot.C;
 import lombok.extern.slf4j.Slf4j;
 import net.engio.mbassy.listener.Handler;
 import net.engio.mbassy.listener.Invoke;
@@ -39,7 +38,7 @@ public class ClientLogic {
 	@Handler
 	public void onInvite(ChannelInviteEvent ev) {
 		if (ev.getTarget().equals(ev.getClient().getNick())) {
-			log.info(C.LOG_PUBLIC, "received invite from {} to join {}", ev.getActor().getName(), ev.getChannel().getName());
+			log.info("received invite from {} to join {}", ev.getActor().getName(), ev.getChannel().getName());
 			ev.getChannel().join();
 		}
 	}

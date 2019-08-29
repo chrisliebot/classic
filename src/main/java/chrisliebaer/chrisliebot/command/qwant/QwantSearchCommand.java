@@ -1,17 +1,19 @@
 package chrisliebaer.chrisliebot.command.qwant;
 
 import chrisliebaer.chrisliebot.C;
-import chrisliebaer.chrisliebot.SharedResources;
-import chrisliebaer.chrisliebot.abstraction.ChrislieMessage;
-import chrisliebaer.chrisliebot.command.ChrisieCommand;
+import chrisliebaer.chrisliebot.Chrisliebot;
+import chrisliebaer.chrisliebot.abstraction.ChrislieOutput;
+import chrisliebaer.chrisliebot.command.ChrislieListener;
+import chrisliebaer.chrisliebot.command.ListenerReference;
 import chrisliebaer.chrisliebot.command.qwant.QwantService.QwantResponse;
+import chrisliebaer.chrisliebot.config.ChrislieContext;
+import chrisliebaer.chrisliebot.config.ContextResolver;
 import chrisliebaer.chrisliebot.util.ErrorOutputBuilder;
+import chrisliebaer.chrisliebot.util.GsonValidator;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
-import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import lombok.Data;
-import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.OkHttpClient;
 import org.apache.commons.text.StringSubstitutor;
@@ -19,13 +21,14 @@ import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 import retrofit2.Retrofit;
-import retrofit2.converter.gson.GsonConverterFactory;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 
 @Slf4j
-public class QwantSearchCommand implements ChrisieCommand {
+// TODO: implement SFW, NSFW filter via flexconf
+public class QwantSearchCommand implements ChrislieListener.Command {
 	
 	private static final ErrorOutputBuilder ERROR_NO_QUERY = ErrorOutputBuilder.generic("Du hast keine Suchanfrage eingegeben.");
 	private static final ErrorOutputBuilder ERROR_NO_ACTIVE_SEARCH = ErrorOutputBuilder.generic("Es gibt keine aktive Suchanfrage.");
@@ -35,7 +38,7 @@ public class QwantSearchCommand implements ChrisieCommand {
 	private static final int MAX_RESULT_STORAGE = 10;
 	private static final int RATE_LIMIT_CODE = 429;
 	
-	private final ErrorOutputBuilder errorRateLimited;
+	private ErrorOutputBuilder errorRateLimited;
 	
 	private Config cfg;
 	private QwantService service;
@@ -45,15 +48,24 @@ public class QwantSearchCommand implements ChrisieCommand {
 					.maximumSize(MAX_RESULT_STORAGE)
 					.build();
 	
-	public QwantSearchCommand(@NonNull Config cfg) {
-		this.cfg = cfg;
-		
-		OkHttpClient client = SharedResources.INSTANCE().httpClient()
-				.newBuilder().addNetworkInterceptor(c -> c.proceed(c.request().newBuilder().header("User-Agent", C.UA_CHROME).build())).build();
+	@Override
+	public Optional<String> help(ChrislieContext ctx, ListenerReference ref) {
+		return Optional.of("Ich zeig dir das World Wide Web.");
+	}
+	
+	@Override
+	public void fromConfig(GsonValidator gson, JsonElement json) throws ListenerException {
+		cfg = gson.fromJson(json, Config.class); // TODO: validate config
+	}
+	
+	@Override
+	public void init(Chrisliebot bot, ContextResolver resolver) throws ListenerException {
+		OkHttpClient client = bot.sharedResources().httpClient()
+				.newBuilder().addNetworkInterceptor(c -> c.proceed(c.request().newBuilder().header("User-Agent", C.UA_CHROME).build())).build(); // TODO check if this is true
 		Retrofit retrofit = new Retrofit.Builder()
 				.baseUrl(QwantService.BASE_URL)
 				.client(client)
-				.addConverterFactory(GsonConverterFactory.create())
+				.addConverterFactory(bot.sharedResources().gson().factory())
 				.build();
 		service = retrofit.create(QwantService.class);
 		
@@ -61,12 +73,14 @@ public class QwantSearchCommand implements ChrisieCommand {
 	}
 	
 	@Override
-	public void execute(ChrislieMessage m, String arg) {
-		var query = arg.trim();
+	public void execute(Invocation invc) throws ListenerException {
+		var m = invc.msg();
+		var query = invc.arg().trim();
 		var context = m.channel().identifier();
+		var reply = invc.reply();
 		
 		if (query.isEmpty()) {
-			ERROR_NO_QUERY.write(m);
+			ERROR_NO_QUERY.write(reply).send();
 			return;
 		}
 		
@@ -74,31 +88,32 @@ public class QwantSearchCommand implements ChrisieCommand {
 			synchronized (resultStorage) {
 				List<QwantResponse.QwantItem> pastResult = resultStorage.getIfPresent(context);
 				if (pastResult == null) {
-					ERROR_NO_ACTIVE_SEARCH.write(m);
+					ERROR_NO_ACTIVE_SEARCH.write(reply).send();
 					return;
 				}
 				
 				if (pastResult.isEmpty()) {
-					ERROR_EOF.write(m);
+					ERROR_EOF.write(reply).send();
 					resultStorage.invalidate(context);
 					return;
 				}
 				
-				printResultItem(m, pastResult.remove(0));
+				printResultItem(reply, pastResult.remove(0));
 				return; // don't forget to exit
 			}
 		}
 		
 		Call<QwantResponse> call = service.search(query, cfg.safeSearch(), cfg.count(), cfg.type());
+		
 		call.enqueue(new Callback<>() {
 			@Override
 			public void onResponse(Call<QwantResponse> c, Response<QwantResponse> resp) {
 				QwantResponse body = resp.body();
 				if (!resp.isSuccessful() || (body != null && !"success".equals(body.status()))) { // bad error code or "error" in status field of json
 					if (resp.code() == RATE_LIMIT_CODE) {
-						errorRateLimited.write(m);
+						errorRateLimited.write(reply).send();
 					} else {
-						ErrorOutputBuilder.remoteErrorCode(c.request(), resp).write(m);
+						ErrorOutputBuilder.remoteErrorCode(c.request(), resp).write(reply).send();
 						log.warn("remote host {} response code: {} ({})", c.request().url(), resp.code(), resp.message());
 					}
 					
@@ -113,7 +128,7 @@ public class QwantSearchCommand implements ChrisieCommand {
 				List<QwantResponse.QwantItem> items = body.items();
 				
 				if (body.items().isEmpty()) {
-					ERROR_NO_MATCH.write(m);
+					ERROR_NO_MATCH.write(reply).send();
 					return;
 				}
 				
@@ -126,17 +141,17 @@ public class QwantSearchCommand implements ChrisieCommand {
 				}
 				
 				// pop and print
-				printResultItem(m, items.remove(0));
+				printResultItem(reply, items.remove(0));
 			}
 			
 			@Override
 			public void onFailure(Call<QwantResponse> c, Throwable t) {
-				ErrorOutputBuilder.remoteRequest(c.request(), t).write(m);
+				ErrorOutputBuilder.remoteRequest(c.request(), t).write(reply).send();
 			}
 		});
 	}
 	
-	private void printResultItem(ChrislieMessage m, QwantResponse.QwantItem item) {
+	private void printResultItem(ChrislieOutput reply, QwantResponse.QwantItem item) {
 		StringSubstitutor strSub = new StringSubstitutor(key -> {
 			switch (key) {
 				case "title":
@@ -151,7 +166,7 @@ public class QwantSearchCommand implements ChrisieCommand {
 					return key.toUpperCase();
 			}
 		});
-		var reply = m.reply();
+		
 		reply.title(C.stripHtml(item.title()), item.url());
 		reply.description(C.stripHtml(item.desc()));
 		reply.image(item.media());
@@ -162,12 +177,8 @@ public class QwantSearchCommand implements ChrisieCommand {
 		reply.send();
 	}
 	
-	public static QwantSearchCommand fromJson(Gson gson, JsonElement json) {
-		return new QwantSearchCommand(gson.fromJson(json, Config.class));
-	}
-	
 	@Data
-	public static class Config {
+	private static class Config {
 		
 		private String output;
 		private int safeSearch = 0; // off, as god intended

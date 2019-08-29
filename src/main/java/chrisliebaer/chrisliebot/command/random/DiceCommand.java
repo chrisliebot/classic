@@ -1,42 +1,44 @@
 package chrisliebaer.chrisliebot.command.random;
 
 import chrisliebaer.chrisliebot.abstraction.ChrislieFormat;
-import chrisliebaer.chrisliebot.abstraction.ChrislieMessage;
-import chrisliebaer.chrisliebot.command.ChrisieCommand;
+import chrisliebaer.chrisliebot.command.ChrislieListener;
+import chrisliebaer.chrisliebot.command.ListenerReference;
+import chrisliebaer.chrisliebot.config.ChrislieContext;
 import chrisliebaer.chrisliebot.util.ErrorOutputBuilder;
 
+import java.util.Optional;
 import java.util.concurrent.ThreadLocalRandom;
 
-public class DiceCommand implements ChrisieCommand {
+public class DiceCommand implements ChrislieListener.Command {
 	
-	private long defNumber;
-	
-	public DiceCommand(long defNumber) {
-		this.defNumber = defNumber;
+	@Override
+	public Optional<String> help(ChrislieContext ctx, ListenerReference ref) {
+		return Optional.of("Du hast den Würfel für den D&D Abend vergessen oder willst eine Klausuraufgabe lösen? Dann bist du hier genau richtig.");
 	}
 	
 	@Override
-	public void execute(ChrislieMessage m, String arg) {
+	public void execute(Invocation invc) throws ListenerException {
 		try {
-			long max = defNumber;
-			
+			var arg = invc.arg();
+			long max;
 			if (!arg.isEmpty())
 				max = Long.parseLong(arg);
+			else
+				max = invc.ref().flexConf().getLongOrFail("dice.max");
 			
 			if (max < 1) {
-				long finalMax = max;
 				ErrorOutputBuilder
-						.generic(out -> out.appendEscape(String.valueOf(finalMax), ChrislieFormat.HIGHLIGHT).appendEscape(" ist zu klein."))
-						.write(m);
+						.generic(out -> out.appendEscape(String.valueOf(max), ChrislieFormat.HIGHLIGHT).appendEscape(" ist zu klein."))
+						.write(invc).send();
 				return;
 			}
 			long n = ThreadLocalRandom.current().nextLong(1, max + 1);
-			m.reply()
+			invc.reply()
 					.title("Die Würfel sind gefallen")
 					.description(out -> out.appendEscape(String.valueOf(n), ChrislieFormat.HIGHLIGHT))
 					.send();
 		} catch (NumberFormatException e) {
-			ErrorOutputBuilder.generic("Diese Zahl kenn ich nicht.").write(m);
+			ErrorOutputBuilder.generic("Diese Zahl kenn ich nicht.").write(invc).send();
 		}
 	}
 }

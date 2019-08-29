@@ -32,7 +32,11 @@ public interface ChrislieChannel extends ServiceAttached {
 	 * @param identifier The identifier of the user.
 	 * @return A potential user if the user can be found in this channel.
 	 */
-	public Optional<? extends ChrislieUser> user(String identifier);
+	public default Optional<? extends ChrislieUser> user(String identifier) {
+		return users().stream()
+				.filter(user -> user.identifier().equals(identifier))
+				.findAny();
+	}
 	
 	/**
 	 * This method attempts to resolve the given call name to a user. This method is expected to be used in commands where users might refer to other users.
@@ -43,14 +47,18 @@ public interface ChrislieChannel extends ServiceAttached {
 	public Optional<? extends ChrislieUser> resolve(String callName);
 	
 	/**
-	 * Creates a new Output instance that is associated with this channel.
+	 * Some services allow channels to be grouped in guilds. A guild is a collection of channels that usually resemble a somewhat connected community. You must not make
+	 * assumptions on the existance of a guild because of the value returned by {@link #isDirectMessage()}.
 	 *
-	 * @param limiterConfig
+	 * @return An optional guild, if this channel is part of a guild.
+	 */
+	public Optional<? extends ChrislieGuild> guild();
+	
+	/**
+	 * Creates a new output instance for this channel.
+	 *
+	 * @param limiterConfig The LimiterConfig that will be used to limit the posted message by the returned ChrislieOutput.
 	 * @return A ChrislieOutput instance that can be used to post to this channel.
 	 */
 	public ChrislieOutput output(LimiterConfig limiterConfig);
-	
-	public default ChrislieOutput output() {
-		return output(LimiterConfig.create());
-	}
 }

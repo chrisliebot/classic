@@ -2,13 +2,10 @@ package chrisliebaer.chrisliebot.abstraction.irc;
 
 import chrisliebaer.chrisliebot.C;
 import chrisliebaer.chrisliebot.abstraction.ChrislieChannel;
-import chrisliebaer.chrisliebot.abstraction.ChrislieUser;
 import chrisliebaer.chrisliebot.abstraction.LimiterConfig;
-import com.google.common.base.Function;
 import com.google.common.base.Objects;
 import lombok.Getter;
 import org.kitteh.irc.client.library.element.Channel;
-import org.kitteh.irc.client.library.element.User;
 
 import java.util.List;
 import java.util.Optional;
@@ -19,10 +16,12 @@ public class IrcChannel implements ChrislieChannel {
 	
 	@Getter private IrcService service;
 	@Getter private Channel channel;
+	private IrcGuild guild;
 	
-	public IrcChannel(IrcService service, Channel channel) {
+	public IrcChannel(IrcService service, Channel channel, IrcGuild guild) {
 		this.service = service;
 		this.channel = channel;
+		this.guild = guild;
 	}
 	
 	@Override
@@ -56,9 +55,9 @@ public class IrcChannel implements ChrislieChannel {
 	}
 	
 	@Override
-	public List<ChrislieUser> users() {
+	public List<IrcUser> users() {
 		return channel.getUsers().stream()
-				.map((Function<User, IrcUser>) user -> new IrcUser(service, user))
+				.map(user -> new IrcUser(service, user))
 				.collect(Collectors.toList());
 	}
 	
@@ -74,6 +73,11 @@ public class IrcChannel implements ChrislieChannel {
 		return channel.getUser(callName)
 				.map(user -> new IrcUser(service, user))
 				.or(() -> user(callName));
+	}
+	
+	@Override
+	public Optional<IrcGuild> guild() {
+		return Optional.ofNullable(guild);
 	}
 	
 	@Override

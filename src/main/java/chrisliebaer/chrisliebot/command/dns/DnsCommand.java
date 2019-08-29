@@ -1,8 +1,10 @@
 package chrisliebaer.chrisliebot.command.dns;
 
 import chrisliebaer.chrisliebot.abstraction.ChrislieFormat;
-import chrisliebaer.chrisliebot.abstraction.ChrislieMessage;
-import chrisliebaer.chrisliebot.command.ChrisieCommand;
+import chrisliebaer.chrisliebot.abstraction.ChrislieOutput;
+import chrisliebaer.chrisliebot.command.ChrislieListener;
+import chrisliebaer.chrisliebot.command.ListenerReference;
+import chrisliebaer.chrisliebot.config.ChrislieContext;
 import chrisliebaer.chrisliebot.util.ErrorOutputBuilder;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.TreeMultimap;
@@ -11,10 +13,12 @@ import org.xbill.DNS.Record;
 import org.xbill.DNS.TextParseException;
 import org.xbill.DNS.Type;
 
+import java.util.Optional;
 import java.util.concurrent.ForkJoinPool;
 import java.util.stream.Collectors;
 
-public class DnsCommand implements ChrisieCommand {
+//TODO: replace with async resolver
+public class DnsCommand implements ChrislieListener.Command {
 	
 	private static final int TIMEOUT = 5000;
 	
@@ -23,10 +27,15 @@ public class DnsCommand implements ChrisieCommand {
 	}
 	
 	@Override
-	public void execute(ChrislieMessage m, String arg) {
-		var args = arg.split(" ");
+	public Optional<String> help(ChrislieContext ctx, ListenerReference ref) throws ListenerException {
+		return Optional.of("<Query> [<Type>]");
+	}
+	
+	@Override
+	public void execute(Invocation invc) throws ListenerException {
+		var args = invc.arg().split(" ");
 		if (args.length < 1) {
-			ErrorOutputBuilder.generic("Kein Hostname angegeben.").write(m);
+			ErrorOutputBuilder.generic("Kein Hostname angegeben.").write(invc).send();
 			return;
 		}
 		
@@ -38,23 +47,23 @@ public class DnsCommand implements ChrisieCommand {
 					.appendEscape("Der DNS Typ: ")
 					.appendEscape(args[1], ChrislieFormat.HIGHLIGHT)
 					.appendEscape(" ist ungültig."))
-					.write(m);
+					.write(invc).send();
 			return;
 		}
 		
 		try {
-			handleLookup(new Lookup(args[0], type), m, args[0]);
+			handleLookup(new Lookup(args[0], type), invc.reply(), args[0]);
 		} catch (TextParseException e) {
-			ErrorOutputBuilder.generic("Ich erkenne da keinen Hostname. Das tut mir leid.").write(m);
+			ErrorOutputBuilder.generic("Ich erkenne da keinen Hostname. Das tut mir leid.").write(invc).send();
 		} catch (IllegalArgumentException e) {
 			ErrorOutputBuilder.generic(out -> out
 					.appendEscape("Der DNS Typ ")
 					.appendEscape(args[1], ChrislieFormat.HIGHLIGHT)
-					.appendEscape(" ist hier nicht erlaubt.")).write(m);
+					.appendEscape(" ist hier nicht erlaubt.")).write(invc).send();
 		}
 	}
 	
-	private void handleLookup(Lookup lookup, ChrislieMessage m, String host) {
+	private void handleLookup(Lookup lookup, ChrislieOutput reply, String host) {
 		ForkJoinPool.commonPool().execute(() -> {
 			Record[] records = lookup.run();
 			if (records != null) {
@@ -62,14 +71,13 @@ public class DnsCommand implements ChrisieCommand {
 				for (Record record : records)
 					mm.put(record.getType(), record);
 				
-				var reply = m.reply();
 				reply.title("DNS Ergebnis");
 				
 				// convert results into message fields
 				for (var entry : mm.asMap().entrySet()) {
 					String typeStr = Type.string(entry.getKey());
 					
-					// convert records to strings and seperate by newline
+					// convert records to strings and separate by newline
 					String result = entry.getValue().stream().map(Record::rdataToString).collect(Collectors.joining("\n"));
 					
 					reply.field(typeStr, result);
@@ -83,7 +91,7 @@ public class DnsCommand implements ChrisieCommand {
 										.map(Record::rdataToString).collect(Collectors.joining(" "))).collect(Collectors.joining(", ")));
 				reply.send();
 			} else {
-				ErrorOutputBuilder.generic("Keine Antwort vom Server.").write(m);
+				ErrorOutputBuilder.generic("Keine Antwort vom Server.").write(reply).send();
 			}
 		});
 	}

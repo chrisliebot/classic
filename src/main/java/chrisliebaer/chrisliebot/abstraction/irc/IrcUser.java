@@ -1,5 +1,6 @@
 package chrisliebaer.chrisliebot.abstraction.irc;
 
+import chrisliebaer.chrisliebot.abstraction.ChrislieChannel;
 import chrisliebaer.chrisliebot.abstraction.ChrislieUser;
 import lombok.Getter;
 import org.kitteh.irc.client.library.element.User;
@@ -37,13 +38,10 @@ public class IrcUser implements ChrislieUser {
 	}
 	
 	@Override
-	public Optional<String> identifier() {
-		return user.getAccount();
-	}
-	
-	@Override
-	public String softIdentifer() {
-		return identifier().orElse(user.getNick());
+	public String identifier() {
+		// we try to lock the itendifier to the nickserv account but fall back to nickname if not available
+		return user.getAccount().map(s -> IrcService.PREFIX_USER_BY_ACCOUNT + s)
+				.orElse(IrcService.PREFIX_USER_BY_NICKNAME + user.getNick());
 	}
 	
 	@Override
@@ -52,12 +50,7 @@ public class IrcUser implements ChrislieUser {
 	}
 	
 	@Override
-	public boolean isAdmin() {
-		return service.isAdmin(user);
-	}
-	
-	@Override
-	public IrcPrivateChannel directMessage() {
-		return new IrcPrivateChannel(service, user);
+	public Optional<? extends ChrislieChannel> directMessage() {
+		return Optional.of(new IrcPrivateChannel(service, user));
 	}
 }

@@ -1,8 +1,8 @@
 package chrisliebaer.chrisliebot.util;
 
-import chrisliebaer.chrisliebot.SharedResources;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import net.engio.mbassy.listener.Handler;
 import org.kitteh.irc.client.library.element.User;
@@ -11,6 +11,7 @@ import org.kitteh.irc.client.library.event.abstractbase.ActorPrivateMessageEvent
 import org.kitteh.irc.client.library.event.channel.*;
 import org.kitteh.irc.client.library.event.user.*;
 
+import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Timestamp;
@@ -21,6 +22,12 @@ public class IrcToSqlLogger {
 	
 	public enum MessageType {
 		NORMAL, CTCP, NOTICE, JOIN, PART, QUIT, NICK, KICK
+	}
+	
+	private DataSource dataSource;
+	
+	public IrcToSqlLogger(@NonNull DataSource dataSource) {
+		this.dataSource = dataSource;
 	}
 	
 	private void ensureEncoding(Connection conn) {
@@ -91,7 +98,7 @@ public class IrcToSqlLogger {
 		
 		try {
 			String sql = "INSERT INTO chatlog(timestamp, context, type, nickname, realname, ident, host, account, message) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
-			try (Connection connection = SharedResources.INSTANCE().dataSource().getConnection();
+			try (Connection connection = dataSource.getConnection();
 				 var stmt = connection.prepareStatement(sql)) {
 				
 				ensureEncoding(connection);

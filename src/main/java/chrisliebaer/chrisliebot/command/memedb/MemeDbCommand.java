@@ -1,13 +1,15 @@
 package chrisliebaer.chrisliebot.command.memedb;
 
-import chrisliebaer.chrisliebot.C;
-import chrisliebaer.chrisliebot.SharedResources;
-import chrisliebaer.chrisliebot.abstraction.ChrislieMessage;
-import chrisliebaer.chrisliebot.command.ChrisieCommand;
+import chrisliebaer.chrisliebot.Chrisliebot;
+import chrisliebaer.chrisliebot.abstraction.ChrislieOutput;
+import chrisliebaer.chrisliebot.command.ChrislieListener;
+import chrisliebaer.chrisliebot.command.ListenerReference;
+import chrisliebaer.chrisliebot.config.ChrislieContext;
+import chrisliebaer.chrisliebot.config.ContextResolver;
 import chrisliebaer.chrisliebot.util.BetterScheduledService;
 import chrisliebaer.chrisliebot.util.ErrorOutputBuilder;
+import chrisliebaer.chrisliebot.util.GsonValidator;
 import com.google.common.util.concurrent.AbstractScheduledService;
-import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
@@ -15,7 +17,6 @@ import me.xdrop.fuzzywuzzy.FuzzySearch;
 import retrofit2.Call;
 import retrofit2.Response;
 import retrofit2.Retrofit;
-import retrofit2.converter.gson.GsonConverterFactory;
 import retrofit2.http.GET;
 
 import java.util.*;
@@ -24,7 +25,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @Slf4j
-public class MemeDbCommand implements ChrisieCommand {
+// TODO: include nsfw filter, requires change to tags in meme indexer?
+public class MemeDbCommand implements ChrislieListener.Command {
 	
 	private static final ErrorOutputBuilder ERROR_NO_DATABASE =
 			ErrorOutputBuilder.generic("Ich habe leider aktuell keine Datenbank zum Durchsuchen. Versuche es später nochmal.");
@@ -36,32 +38,54 @@ public class MemeDbCommand implements ChrisieCommand {
 	private MemeDbService service;
 	private BetterScheduledService updateService;
 	
+	private Map<String, List<DatabaseEntry>> taggedMemes;
+	
+	
+	@Override
+	public void fromConfig(GsonValidator gson, JsonElement json) throws ListenerException {
+		cfg = gson.fromJson(json, Config.class);
+	}
+	
+	@Override
+	public Optional<String> help(ChrislieContext ctx, ListenerReference ref) {
+		return Optional.of("Dank Memes vom Memelord. MEME HARD!! Du willst deine eigenen Memes teilen? Frag Chrisliebaer.");
+	}
+	
 	// taggedMemes will be updated in a different thread than it is read.
 	// Therefore if a map was set to this attribute it should not be modified
 	// again. If you need to change or update the map, create a new instance and
 	// overwrite the references after all changes were made.
-	private Map<String, List<DatabaseEntry>> taggedMemes;
-	
-	public MemeDbCommand(Config cfg) {
-		this.cfg = cfg;
+	@Override
+	public void init(Chrisliebot bot, ContextResolver resolver) throws ListenerException {
 		updateService = new BetterScheduledService(this::update,
 				AbstractScheduledService.Scheduler.newFixedDelaySchedule(0, cfg.updateInterval(), TimeUnit.MILLISECONDS));
 		Retrofit retrofit = new Retrofit.Builder()
 				.baseUrl(cfg.baseUrl())
-				.client(SharedResources.INSTANCE().httpClient())
-				.addConverterFactory(GsonConverterFactory.create(SharedResources.INSTANCE().gson()))
+				.client(bot.sharedResources().httpClient())
+				.addConverterFactory(bot.sharedResources().gson().factory())
 				.build();
 		service = retrofit.create(MemeDbService.class);
 	}
 	
 	@Override
-	public void execute(ChrislieMessage m, String arg) {
+	public void start(Chrisliebot bot, ContextResolver resolver) throws ListenerException {
+		updateService.startAsync().awaitRunning();
+	}
+	
+	@Override
+	public void stop(Chrisliebot bot, ContextResolver resolver) throws ListenerException {
+		updateService.stopAsync().awaitTerminated();
+	}
+	
+	@Override
+	public void execute(Invocation invc) throws ListenerException {
+		var m = invc.msg();
 		if (taggedMemes == null) {
-			ERROR_NO_DATABASE.write(m);
+			ERROR_NO_DATABASE.write(invc).send();
 			return;
 		}
 		
-		var query = arg.trim();
+		var query = invc.arg().trim();
 		if (query.isEmpty()) {
 			var set = taggedMemes.values().stream()
 					.flatMap(Collection::stream)
@@ -70,14 +94,14 @@ public class MemeDbCommand implements ChrisieCommand {
 			var it = set.iterator();
 			for (int i = 0; i < idx; i++)
 				it.next();
-			printResult(m, it.next());
+			printResult(invc.reply(), it.next());
 			return;
 		}
 		
 		var one = FuzzySearch.extractOne(query, taggedMemes.entrySet(), Map.Entry::getKey);
 		
 		if (one.getScore() <= cfg.acceptScore()) {
-			ERROR_NO_MATCH.write(m);
+			ERROR_NO_MATCH.write(invc).send();
 			return;
 		}
 		
@@ -86,13 +110,12 @@ public class MemeDbCommand implements ChrisieCommand {
 		
 		var choice = ThreadLocalRandom.current().nextInt(items.size());
 		var item = items.get(choice);
-		printResult(m, item);
+		printResult(invc.reply(), item);
 	}
 	
-	private void printResult(ChrislieMessage m, DatabaseEntry item) {
+	private void printResult(ChrislieOutput reply, DatabaseEntry item) {
 		var url = cfg.baseUrl() + "hash/" + item.hash();
 		
-		var reply = m.reply();
 		reply.title("Ergebnis", url);
 		reply.image(url);
 		
@@ -105,13 +128,13 @@ public class MemeDbCommand implements ChrisieCommand {
 		try {
 			Response<List<DatabaseEntry>> response = service.getDatabase().execute();
 			if (!response.isSuccessful()) {
-				log.warn(C.LOG_PUBLIC, "request to meme database was not successfull, error code: {}", response.code());
+				log.warn("request to meme database was not successfull, error code: {}", response.code());
 				return;
 			}
 			
 			var responseMemes = response.body();
 			if (responseMemes == null) {
-				log.warn(C.LOG_PUBLIC, "received null from meme database server");
+				log.warn("received null from meme database server");
 				return;
 			}
 			
@@ -126,18 +149,8 @@ public class MemeDbCommand implements ChrisieCommand {
 			log.debug("refreshed meme database, contains {} elements and {} distinct tags", responseMemes.size(), newTaggedMemes.size());
 			
 		} catch (@SuppressWarnings("OverlyBroadCatchBlock") Throwable t) {
-			log.warn(C.LOG_PUBLIC, "failed to fetch meme database", t);
+			log.warn("failed to fetch meme database", t);
 		}
-	}
-	
-	@Override
-	public void start() throws Exception {
-		updateService.startAsync().awaitRunning();
-	}
-	
-	@Override
-	public void stop() throws Exception {
-		updateService.stopAsync().awaitTerminated();
 	}
 	
 	@Data
@@ -160,9 +173,5 @@ public class MemeDbCommand implements ChrisieCommand {
 		
 		@GET("db.json")
 		public Call<List<DatabaseEntry>> getDatabase();
-	}
-	
-	public static MemeDbCommand fromJson(Gson gson, JsonElement json) {
-		return new MemeDbCommand(gson.fromJson(json, Config.class));
 	}
 }

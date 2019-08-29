@@ -1,31 +1,35 @@
 package chrisliebaer.chrisliebot.command.mensa;
 
 import chrisliebaer.chrisliebot.C;
-import chrisliebaer.chrisliebot.SharedResources;
+import chrisliebaer.chrisliebot.Chrisliebot;
 import chrisliebaer.chrisliebot.abstraction.ChrislieFormat;
-import chrisliebaer.chrisliebot.abstraction.ChrislieMessage;
-import chrisliebaer.chrisliebot.command.ChrisieCommand;
+import chrisliebaer.chrisliebot.command.ChrislieListener;
+import chrisliebaer.chrisliebot.command.ListenerReference;
 import chrisliebaer.chrisliebot.command.mensa.api.MensaApiMeal;
 import chrisliebaer.chrisliebot.command.mensa.api.MensaApiMeta;
 import chrisliebaer.chrisliebot.command.mensa.api.MensaApiService;
+import chrisliebaer.chrisliebot.config.ChrislieContext;
+import chrisliebaer.chrisliebot.config.ContextResolver;
+import chrisliebaer.chrisliebot.config.flex.CommonFlex;
 import chrisliebaer.chrisliebot.util.BetterScheduledService;
 import chrisliebaer.chrisliebot.util.ErrorOutputBuilder;
+import chrisliebaer.chrisliebot.util.GsonValidator;
 import com.google.common.base.Preconditions;
+import com.google.common.reflect.TypeToken;
 import com.google.common.util.concurrent.AbstractScheduledService;
-import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import lombok.AllArgsConstructor;
 import lombok.Data;
-import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.Credentials;
 import retrofit2.Call;
 import retrofit2.Response;
 import retrofit2.Retrofit;
-import retrofit2.converter.gson.GsonConverterFactory;
 
+import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.NotNull;
+import javax.validation.constraints.Positive;
 import java.text.DecimalFormat;
-import java.text.SimpleDateFormat;
 import java.time.DayOfWeek;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -34,39 +38,70 @@ import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 @Slf4j
-public class MensaCommand implements ChrisieCommand {
+public class MensaCommand implements ChrislieListener.Command {
 	
-	private static final String UNICODE_FISH = "\uD83D\uDC1F";
-	private static final String UNICODE_MEAT = "\uD83C\uDF56";
-	private static final String UNICODE_SALAD = "\uD83E\uDD57";
+	// symbols to prefix various kinds of meals
+	private static final String FLEX_FISH_CODE = "mensa.symbol.fish";
+	private static final String FLEX_MEAT_CODE = "mensa.symbol.meat";
+	private static final String FLEX_VEG_CODE = "mensa.symbol.veg";
+	
+	private static final String FLEX_DEFAULT_MENSA = "mensa.default"; // default mensa if no mensa is given
+	private static final String FLEX_FILTER = "mensa.filter"; // array with lines in form of "$mensa.$line|*" to filter
+	
+	private static final String FLEX_CUTOFF = "mensa.cutoff"; // price below which meals are not displayed
+	private static final String FLEX_ALLOW_LIST = "mensa.allowList"; // enables or disables `list` subdommand
+	private static final String FLEX_ALLOW_PICK = "mensa.allowPick"; // enables or disables picking a mensa by name
 	
 	private static final DecimalFormat PRICE_FORMAT = new DecimalFormat("0.00");
-	private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("EE dd.MM.yyyy", Locale.GERMAN);
 	
-	private final Config cfg;
+	private Config cfg;
 	
+	private Chrisliebot bot;
 	private BetterScheduledService updateService;
 	private MensaApiService service;
 	
 	private Map<String, Mensa> menu = new HashMap<>();
 	
-	public MensaCommand(@NonNull Config cfg) {
-		this.cfg = cfg;
-		Preconditions.checkArgument(cfg.username() != null && !cfg.username().isEmpty(), "mensa username empty");
-		Preconditions.checkArgument(cfg.password() != null && !cfg.password().isEmpty(), "password username empty");
-		
+	@Override
+	public Optional<String> help(ChrislieContext ctx, ListenerReference ref) throws ListenerException {
+		return Optional.of("Stellt den aktuellen Speiseplan des Studierendenwerks bereit.");
+	}
+	
+	@Override
+	public synchronized void fromConfig(GsonValidator gson, JsonElement json) throws ListenerException {
+		this.cfg = gson.fromJson(json, Config.class);
+	}
+	
+	@Override
+	public synchronized void init(Chrisliebot bot, ContextResolver resolver) {
+		this.bot = bot;
 		updateService = new BetterScheduledService(this::update,
-				AbstractScheduledService.Scheduler.newFixedDelaySchedule(0, cfg.updateInterval(), TimeUnit.MILLISECONDS));
+				AbstractScheduledService.Scheduler.newFixedDelaySchedule(0, cfg.updateInterval, TimeUnit.MILLISECONDS));
 		Retrofit retrofit = new Retrofit.Builder()
 				.baseUrl(MensaApiService.MENSA_BASE_URL)
-				.client(SharedResources.INSTANCE().httpClient())
-				.addConverterFactory(GsonConverterFactory.create(SharedResources.INSTANCE().gson()))
+				.client(bot.sharedResources().httpClient())
+				.addConverterFactory(bot.sharedResources().gson().factory())
 				.build();
 		service = retrofit.create(MensaApiService.class);
 	}
 	
 	@Override
-	public synchronized void execute(ChrislieMessage m, String arg) {
+	public synchronized void start(Chrisliebot bot, ContextResolver resolver) {
+		updateService.startAsync().awaitRunning();
+	}
+	
+	@Override
+	public synchronized void stop(Chrisliebot bot, ContextResolver resolver) {
+		updateService.stopAsync().awaitTerminated();
+	}
+	
+	@Override
+	public synchronized void execute(Invocation invc) throws ListenerException {
+		var m = invc.msg();
+		var arg = invc.arg();
+		var flex = invc.ref().flexConf();
+		var dateFormat = CommonFlex.DATE_FORMAT().getOrFail(flex);
+		
 		boolean useDisplay = true;
 		
 		// required since Arrays.asList doesn't support remove
@@ -83,12 +118,16 @@ public class MensaCommand implements ChrisieCommand {
 		
 		// the parameters to gather for invocation
 		long timestamp = System.currentTimeMillis();
-		String mensaName = cfg.fallback();
+		String mensaName = flex.getStringOrFail(FLEX_DEFAULT_MENSA);
 		
-		// check if argument require anything but default case and update query parameters
-		if (!args.isEmpty() && !args.get(0).isBlank()) {
+		if (!args.isEmpty() && !args.get(0).isBlank()) { // argument stack is not empty
 			if ("list".equalsIgnoreCase(args.get(0))) { // check if first argument matches "list"
-				var reply = m.reply();
+				
+				// list requires permission
+				if (!flex.isSet(FLEX_ALLOW_LIST))
+					return;
+				
+				var reply = invc.reply();
 				reply.title("Diese Mensen kenne ich");
 				var joiner = reply.description().joiner(", ");
 				for (String s : menu.keySet()) {
@@ -98,15 +137,19 @@ public class MensaCommand implements ChrisieCommand {
 				return;
 			} else {
 				var argMensaName = args.get(0).toLowerCase();
-				if (menu.containsKey(argMensaName.toLowerCase())) { // check if first argument matches valid mensa name
-					mensaName = argMensaName;
-					
-					// remove mensa name from argument stack
-					args.remove(0);
-				} else if (args.size() >= 2) { // if two arguments, assume user mistyped mensa name
-					ErrorOutputBuilder.generic(out -> out
-							.appendEscape("Ich kenne keine Mensa mit dem Namen ").appendEscape(argMensaName, ChrislieFormat.HIGHLIGHT));
-					return;
+				
+				// mensa selection is only attempted if user is allowed to
+				if (flex.isSet(FLEX_ALLOW_PICK)) {
+					if (menu.containsKey(argMensaName.toLowerCase())) { // check if first argument matches valid mensa name
+						mensaName = argMensaName;
+						
+						// remove mensa name from argument stack
+						args.remove(0);
+					} else if (args.size() >= 2) { // if two arguments, assume user mistyped mensa name
+						ErrorOutputBuilder.generic(out -> out
+								.appendEscape("Ich kenne keine Mensa mit dem Namen ").appendEscape(argMensaName, ChrislieFormat.HIGHLIGHT)).write(invc).send();
+						return;
+					}
 				}
 				
 				// check if time offset is present
@@ -116,8 +159,9 @@ public class MensaCommand implements ChrisieCommand {
 			}
 		}
 		
+		// negative timestamp indicates invalid input
 		if (timestamp < 0) {
-			ErrorOutputBuilder.generic("Ich habe leider keine Ahnung welcher Tag das sein soll.").write(m);
+			ErrorOutputBuilder.generic("Ich habe leider keine Ahnung welcher Tag das sein soll.").write(invc).send();
 			return;
 		}
 		
@@ -129,7 +173,7 @@ public class MensaCommand implements ChrisieCommand {
 		Mensa mensa = menu.get(mensaName);
 		
 		if (mensa == null) {
-			ErrorOutputBuilder.generic("Ich habe keine Daten für diese Mensa.").write(m);
+			ErrorOutputBuilder.generic("Ich habe keine Daten für diese Mensa.").write(invc).send();
 			return;
 		}
 		
@@ -137,32 +181,57 @@ public class MensaCommand implements ChrisieCommand {
 		
 		if (maybeDay.isEmpty()) {
 			ErrorOutputBuilder.generic(out -> out
-					.appendEscape("Ich habe leider keine Daten ab dem ").appendEscape(DATE_FORMAT.format(new Date(finalTimestamp)))).write(m);
+					.appendEscape("Ich habe leider keine Daten ab dem ").appendEscape(dateFormat.format(new Date(finalTimestamp)))).write(invc).send();
 			return;
 		}
 		var day = maybeDay.get();
 		
-		var reply = m.reply();
+		// output code starts here
+		var reply = invc.reply();
 		var replace = reply.replace();
-		reply.title("Mensaeinheitsbrei für " + (useDisplay ? mensa.displayName() : mensa.name()) + " am " + DATE_FORMAT.format(new Date(day.timestamp())));
+		reply.title("Mensaeinheitsbrei für " + (useDisplay ? mensa.displayName() : mensa.name()) + " am " + dateFormat.format(new Date(day.timestamp())));
 		replace
 				.appendEscape("Mensaeinheitsbrei für ")
 				.appendEscape(useDisplay ? mensa.displayName() : mensa.name(), ChrislieFormat.HIGHLIGHT)
 				.appendEscape(" am ")
-				.appendEscape(DATE_FORMAT.format(new Date(day.timestamp())), ChrislieFormat.HIGHLIGHT)
+				.appendEscape(dateFormat.format(new Date(day.timestamp())), ChrislieFormat.HIGHLIGHT)
 				.newLine();
 		
+		// load symbols used to mark food
+		var symbolFish = flex.getString(FLEX_FISH_CODE).orElse("");
+		var symbolmeat = flex.getString(FLEX_MEAT_CODE).orElse("");
+		var symbolVeg = flex.getString(FLEX_VEG_CODE).orElse("");
+		
+		// load ignore list
+		Set<String> ignoreLines;
+		//noinspection UnnecessaryCodeBlock
+		{ // scope fuckery to hide type fuckery, the perfect crime
+			Optional<Set<String>> maybeIgnoreLines = flex.get(FLEX_FILTER, new TypeToken<Set<String>>() {}.getType());
+			ignoreLines = maybeIgnoreLines.orElse(Set.of());
+		}
+		
+		// load cuttoff price
+		var cutoff = flex.getDoubleorFail(FLEX_CUTOFF);
+		
 		for (MensaLine line : day.lines()) {
+			// skip lines on ignore list
+			if (ignoreLines.contains(mensa.name + "." + line.name))
+				continue;
+			
 			String lineName = useDisplay ? line.displayName() : line.name();
 			
 			// build meals of line
-			StringJoiner joiner = new StringJoiner(", ");
+			StringJoiner joiner = new StringJoiner(", ").setEmptyValue("");
 			for (MensaApiMeal meal : line.meals()) {
 				// highlight meal type with unicode
 				boolean meat = meal.cow() || meal.cowRaw() || meal.pork() || meal.porkRaw();
 				boolean veg = meal.veg() || meal.vegan();
 				boolean fish = meal.fish();
-				String mealSymbol = meat ? UNICODE_MEAT : (veg ? UNICODE_SALAD : (fish ? UNICODE_FISH : ""));
+				String mealSymbol = meat ? symbolmeat : (veg ? symbolVeg : (fish ? symbolFish : ""));
+				
+				// skip meals below cutoff
+				if (meal.price1().doubleValue() < cutoff)
+					continue;
 				
 				String price = PRICE_FORMAT.format(meal.price1());
 				
@@ -174,8 +243,12 @@ public class MensaCommand implements ChrisieCommand {
 			}
 			
 			var lineStr = joiner.toString();
-			reply.field(lineName, lineStr);
-			replace.appendEscape(lineName, ChrislieFormat.BOLD).appendEscape(": " + lineStr).newLine();
+			
+			// filtering may produce empty lines, so we need to check and skip them during output
+			if (!lineStr.isBlank()) {
+				reply.field(lineName, lineStr);
+				replace.appendEscape(lineName, ChrislieFormat.BOLD).appendEscape(": " + lineStr).newLine();
+			}
 		}
 		
 		reply.send();
@@ -234,19 +307,9 @@ public class MensaCommand implements ChrisieCommand {
 		return date.atStartOfDay().atZone(TimeZone.getDefault().toZoneId()).toEpochSecond() * 1000;
 	}
 	
-	@Override
-	public synchronized void start() throws Exception {
-		updateService.startAsync().awaitRunning();
-	}
-	
-	@Override
-	public synchronized void stop() throws Exception {
-		updateService.stopAsync().awaitTerminated();
-	}
-	
 	private synchronized void update() {
 		try {
-			String credentials = Credentials.basic(cfg.username(), cfg.password());
+			String credentials = Credentials.basic(cfg.username, cfg.password);
 			Call<MensaApiMeta> metaReq = service.getMeta(credentials);
 			Call<JsonElement> canteensReq = service.getCanteen(credentials);
 			
@@ -273,7 +336,7 @@ public class MensaCommand implements ChrisieCommand {
 			}
 			
 			// reads as: mensaname, timestamp, line name, meals
-			Map<String, Map<Long, Map<String, List<MensaApiMeal>>>> canteen = MensaApiService.unfuck(SharedResources.INSTANCE().gson(), canteenJson);
+			Map<String, Map<Long, Map<String, List<MensaApiMeal>>>> canteen = MensaApiService.unfuck(bot.sharedResources().gson(), canteenJson);
 			
 			// clean up returned json and attempt to validate structure
 			menu = validateAndFilter(meta, canteen);
@@ -286,7 +349,7 @@ public class MensaCommand implements ChrisieCommand {
 	}
 	
 	// welcome to generic hell java 11 edition (also the most defensive method you will ever find)
-	private Map<String, Mensa> validateAndFilter(MensaApiMeta meta, Map<String, Map<Long, Map<String, List<MensaApiMeal>>>> canteen) {
+	private synchronized Map<String, Mensa> validateAndFilter(MensaApiMeta meta, Map<String, Map<Long, Map<String, List<MensaApiMeal>>>> canteen) {
 		Preconditions.checkArgument(meta.mensa() != null, "no mensa entries in meta");
 		Preconditions.checkArgument(canteen != null, "canteens is null");
 		
@@ -329,18 +392,11 @@ public class MensaCommand implements ChrisieCommand {
 				MensaRecord mensaRecord = new MensaRecord(timestamp, new ArrayList<>(lines.size()));
 				for (String lineName : mensaMeta.linesSort()) {
 					
-					// filter if line is on ignore list
-					if (cfg.ignoreLines().contains(mensaName + "." + lineName))
-						continue;
-					
 					List<MensaApiMeal> line = lines.get(lineName);
 					String lineDisplayName = mensaMeta.lines().get(lineName);
 					
 					// QUIRK: remove meals if invalid
 					line.removeIf(in -> in.meal() == null);
-					
-					// filter meals below cut price
-					line.removeIf(in -> in.price1().floatValue() < cfg.cutoff());
 					
 					// sort in descending order by price
 					line.sort((o1, o2) -> o2.price1().subtract(o1.price2()).signum());
@@ -363,10 +419,6 @@ public class MensaCommand implements ChrisieCommand {
 		}
 		
 		return mensaMenu;
-	}
-	
-	public static MensaCommand fromJson(Gson gson, JsonElement json) {
-		return new MensaCommand(gson.fromJson(json, Config.class));
 	}
 	
 	@Data
@@ -398,13 +450,10 @@ public class MensaCommand implements ChrisieCommand {
 		private List<MensaApiMeal> meals;
 	}
 	
-	@Data
 	private static class Config {
 		
-		private String username, password;
-		private String fallback; // name of the mensa to fall back on if none specified
-		private List<String> ignoreLines; // in format "mensa.line"
-		private float cutoff; // cuts off all meals that are cheapter than this value
-		private long updateInterval;
+		private @NotNull @NotBlank String username;
+		private @NotNull @NotBlank String password;
+		private @Positive long updateInterval;
 	}
 }

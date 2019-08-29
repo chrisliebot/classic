@@ -1,8 +1,10 @@
 package chrisliebaer.chrisliebot.abstraction.irc;
 
+import chrisliebaer.chrisliebot.abstraction.ChrislieChannel;
 import chrisliebaer.chrisliebot.abstraction.ChrislieMessage;
 import chrisliebaer.chrisliebot.abstraction.ChrislieService;
 import chrisliebaer.chrisliebot.abstraction.ServiceAttached;
+import com.google.common.collect.Multimap;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.Setter;
@@ -13,43 +15,70 @@ import org.kitteh.irc.client.library.element.User;
 import org.kitteh.irc.client.library.event.channel.ChannelMessageEvent;
 import org.kitteh.irc.client.library.event.user.PrivateMessageEvent;
 
+import java.util.Collection;
 import java.util.Optional;
-import java.util.Set;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 public class IrcService implements ChrislieService {
 	
-	@Getter private Client client;
+	/* IRC has a problem: it doesn't share a lot of information about clients without being asked. This means we have to get creative.
+	 * so first of all, we don't have a per user identifier, a user might just use a nickname so we introduce a few limitation on the reliability of this service
+	 *
+	 * 1. identifiers contain information about how they relate to a user, this allows us to lock account identifier to an account
+	 * 2. we use nick identifiers that are more or less a best effort attempt of identifying a user
+	 * 3. we can only instance ChrislieUser objects for users that we have access to, this means users have to share a channel with us, otherwise they don't exist
+	 * 4. While channels are relatively easy in IRC, we use the same prefix system for creating channel identifiers in private conversations
+	 *
+	 * This identifier scheme is an implementation detail and may change any time, code outside of this service should therefore not make any assumptions
+	 * about it's existance.
+	 */
+	public static final String PREFIX_USER_BY_ACCOUNT = "ACCOUNT:";
 	
-	private Set<String> admins;
-	private Set<String> ignores;
+	public static final String PREFIX_USER_BY_NICKNAME = "NICK:";
+	
+	@Getter private final Client client;
+	@Getter private final String identifier;
+	private final Multimap<String, Pattern> guildMap;
 	
 	@Setter private Consumer<ChrislieMessage> sink;
 	
-	public IrcService(@NonNull Client client, Set<String> admins, Set<String> ignores) {
+	public IrcService(@NonNull Client client, @NonNull String identifier, Multimap<String, Pattern> guildMap) {
 		this.client = client;
-		this.admins = admins;
-		this.ignores = ignores;
-		
+		this.identifier = identifier;
+		this.guildMap = guildMap;
+	}
+	
+	protected Optional<IrcGuild> channelToGuild(Channel channel) {
+		var channelName = channel.getName();
+		for (var e : guildMap.asMap().entrySet()) {
+			var name = e.getKey();
+			for (var pattern : e.getValue()) {
+				if (pattern.matcher(channelName).find())
+					return guild(name);
+			}
+		}
+		return Optional.empty();
+	}
+	
+	@Override
+	public void awaitReady() throws Exception {
 		client.getEventManager().registerEventListener(this);
+		
+		// TODO: check if and how we can ensure we are somewhat ready for connections
 	}
 	
 	@Handler
 	public void onChannelMessage(ChannelMessageEvent ev) {
-		if (blockedUser(ev.getActor()))
-			return;
-		
 		var sink = this.sink;
 		if (sink != null)
 			sink.accept(IrcMessage.of(this, ev));
-		
 	}
 	
 	@Handler
 	public void onPrivateMessage(PrivateMessageEvent ev) {
-		if (blockedUser(ev.getActor()))
-			return;
-		
 		var sink = this.sink;
 		if (sink != null)
 			sink.accept(IrcMessage.of(this, ev));
@@ -67,37 +96,76 @@ public class IrcService implements ChrislieService {
 	}
 	
 	@Override
-	public Optional<IrcChannel> channel(String identifier) {
-		return client.getChannel(identifier)
-				.map(channel -> new IrcChannel(this, channel));
+	public Optional<? extends ChrislieChannel> channel(String identifier) {
+		
+		var prefixes = client.getServerInfo().getChannelPrefixes();
+		var isChannel = prefixes.stream()
+				.anyMatch(p -> identifier.startsWith(String.valueOf(p)));
+		
+		if (isChannel) {
+			return client.getChannel(identifier)
+					.map(channel -> {
+						var guildIdentifier = channelToGuild(channel);
+						return new IrcChannel(this, channel, guildIdentifier.orElse(null));
+					});
+		} else {
+			return userByPrefixedIdentifier(identifier).map(user -> new IrcPrivateChannel(this, user));
+		}
 	}
 	
-	// TODO: figure out a way that doesn't required looping over every single user
 	@Override
 	public Optional<IrcUser> user(String identifier) {
-		for (Channel channel : client.getChannels()) {
-			for (User user : channel.getUsers()) {
-				if (user.getAccount().orElse(user.getNick()).equals(identifier))
-					return Optional.of(new IrcUser(this, user));
-			}
+		return userByPrefixedIdentifier(identifier).map(user -> new IrcUser(this, user));
+	}
+	
+	// This method resolves a prefixed indentifier, as it is used by the irc service to a library user instance.
+	private Optional<User> userByPrefixedIdentifier(String prefixedIdentifier) {
+		Predicate<User> pred;
+		if (prefixedIdentifier.startsWith(PREFIX_USER_BY_ACCOUNT)) {
+			pred = userByAccount(prefixedIdentifier.substring(PREFIX_USER_BY_ACCOUNT.length()));
+		} else if (prefixedIdentifier.startsWith(PREFIX_USER_BY_NICKNAME)) {
+			pred = userByNickname(prefixedIdentifier.substring(PREFIX_USER_BY_NICKNAME.length()));
+		} else {
+			throw new IllegalArgumentException("unkown prefix in user identifier: " + prefixedIdentifier);
 		}
-		return Optional.empty();
+		return findUser(pred);
 	}
 	
-	public boolean isAdmin(User user) {
-		return user.getAccount().map(admins::contains).orElse(false);
+	public Optional<User> findUser(Predicate<User> predicate) {
+		return client.getChannels().stream()
+				.map(Channel::getUsers)
+				.flatMap(Collection::stream)
+				.filter(predicate)
+				.findFirst();
 	}
 	
-	private boolean blockedUser(User user) {
-		return client.isUser(user) || ignores.contains(user.getNick());
+	private Predicate<User> userByAccount(String account) {
+		return user -> user.getAccount().filter(s -> s.equals(account)).isPresent();
 	}
 	
-	public static void run(ChrislieService service, Consumer<IrcService> fn) {
-		if (service instanceof IrcService)
-			fn.accept((IrcService) service);
+	private Predicate<User> userByNickname(String nickname) {
+		return user -> user.getNick().equals(nickname);
 	}
 	
-	public static void run(ServiceAttached serviceAttached, Consumer<IrcService> fn) {
-		run(serviceAttached.service(), fn);
+	@Override
+	public Optional<IrcGuild> guild(String identifier) {
+		
+		var patterns = guildMap.get(identifier);
+		if (patterns == null)
+			return Optional.empty();
+		
+		var pred = patterns.stream()
+				.map(Pattern::asPredicate)
+				.reduce(Predicate::or).orElse(s -> false); // if no regex is given, we still instance the guild with no channels
+		
+		var channels = client.getChannels().stream()
+				.filter(channel -> pred.test(channel.getName()))
+				.collect(Collectors.toList());
+		
+		return Optional.of(new IrcGuild(this, identifier, channels));
+	}
+	
+	public static boolean isIrc(ServiceAttached service) {
+		return service instanceof IrcService;
 	}
 }

@@ -1,15 +1,22 @@
 package chrisliebaer.chrisliebot.command.mock;
 
-import chrisliebaer.chrisliebot.abstraction.ChrislieMessage;
-import chrisliebaer.chrisliebot.command.ChrisieCommand;
+import chrisliebaer.chrisliebot.command.ChrislieListener;
+import chrisliebaer.chrisliebot.command.ListenerReference;
+import chrisliebaer.chrisliebot.config.ChrislieContext;
 
+import java.util.Optional;
 import java.util.concurrent.ThreadLocalRandom;
 
-public class MockCommand implements ChrisieCommand {
+public class MockCommand implements ChrislieListener.Command {
 	
 	@Override
-	public void execute(ChrislieMessage m, String arg) {
-		
+	public Optional<String> help(ChrislieContext ctx, ListenerReference ref) {
+		return Optional.of("Wenn eine Aussage so dumm ist, dass es keinen weiteren Kommentar bedarf.");
+	}
+	
+	@Override
+	public void execute(Invocation invc) throws ListenerException {
+		var arg = invc.arg();
 		if (arg.isBlank())
 			return;
 		
@@ -23,6 +30,6 @@ public class MockCommand implements ChrisieCommand {
 			state = !state;
 		}
 		
-		m.reply(new String(chars));
+		invc.reply(new String(chars));
 	}
 }

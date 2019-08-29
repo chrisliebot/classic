@@ -1,9 +1,8 @@
 package chrisliebaer.chrisliebot.command.quiz;
 
-import chrisliebaer.chrisliebot.abstraction.ChrislieMessage;
-import chrisliebaer.chrisliebot.command.ChrisieCommand;
+import chrisliebaer.chrisliebot.command.ChrislieListener;
 
-public class QuizCommand implements ChrisieCommand {
+public class QuizCommand implements ChrislieListener.Command {
 	
 	/* Entwurf für Command Interface und Verhalten
 	 *
@@ -11,9 +10,4 @@ public class QuizCommand implements ChrisieCommand {
 	 * fragen können aus verschiedenen interface implementierungen kommen
 	 * fragentypen: multiple choice, freitext, levensthein distance
 	 */
-	
-	@Override
-	public void execute(ChrislieMessage m, String arg) {
-	
-	}
 }

@@ -65,7 +65,6 @@ public interface PlainOutput {
 		public PlainOutputSubstituion clear() { return this; }
 	}
 	
-	// TODO: seperator has to be called explicitly since otherwise there is no way to seperate multiple append calls without seperator
 	public static final class JoinPlainOutput implements PlainOutput {
 		
 		private @NonNull PlainOutput out;

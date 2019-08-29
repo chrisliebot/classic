@@ -1,6 +1,6 @@
 package chrisliebaer.chrisliebot.command.mensa.api;
 
-import com.google.gson.Gson;
+import chrisliebaer.chrisliebot.util.GsonValidator;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
@@ -29,7 +29,7 @@ public interface MensaApiService {
 	 * @param json Regular API response.
 	 * @return Not really unfucked but still better than what it was before and actually usable.
 	 */
-	public static Map<String, Map<Long, Map<String, List<MensaApiMeal>>>> unfuck(Gson gson, JsonElement json) {
+	public static Map<String, Map<Long, Map<String, List<MensaApiMeal>>>> unfuck(GsonValidator gson, JsonElement json) {
 		if (json == null)
 			return null;
 		
