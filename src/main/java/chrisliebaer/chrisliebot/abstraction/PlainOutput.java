@@ -1,5 +1,7 @@
 package chrisliebaer.chrisliebot.abstraction;
 
+import lombok.NonNull;
+
 public interface PlainOutput {
 	
 	public PlainOutput append(String s, Object... format);
@@ -9,6 +11,10 @@ public interface PlainOutput {
 	public PlainOutput newLine();
 	
 	public PlainOutput clear();
+	
+	public default JoinPlainOutput joiner(String delimiter) {
+		return new JoinPlainOutput(this, delimiter);
+	}
 	
 	public interface PlainOutputSubstituion extends PlainOutput {
 		
@@ -57,5 +63,55 @@ public interface PlainOutput {
 		
 		@Override
 		public PlainOutputSubstituion clear() { return this; }
+	}
+	
+	public static final class JoinPlainOutput implements PlainOutput {
+		
+		private @NonNull PlainOutput out;
+		private @NonNull String delimiter;
+		
+		private boolean pending;
+		
+		public JoinPlainOutput(@NonNull PlainOutput out, @NonNull String delimiter) {
+			this.out = out;
+			this.delimiter = delimiter;
+		}
+		
+		@Override
+		public JoinPlainOutput append(String s, Object... format) {
+			seperator();
+			out.append(s, format);
+			pending = true;
+			return this;
+		}
+		
+		@Override
+		public JoinPlainOutput appendEscape(String s, Object... format) {
+			seperator();
+			out.appendEscape(s, format);
+			pending = true;
+			return this;
+		}
+		
+		@Override
+		public JoinPlainOutput newLine() {
+			seperator();
+			out.newLine();
+			return this;
+		}
+		
+		@Override
+		public JoinPlainOutput clear() {
+			pending = false;
+			out.clear();
+			return this;
+		}
+		
+		private void seperator() {
+			if (pending) {
+				pending = false;
+				out.appendEscape(delimiter);
+			}
+		}
 	}
 }

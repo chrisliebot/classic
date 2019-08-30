@@ -36,11 +36,13 @@ public class HelpCommand implements ChrisieCommand {
 			
 			boolean follow = false;
 			for (Collection<String> s : aliasMap.asMap().values()) {
+				if (follow)
+					description.appendEscape(", ");
+				
 				String aliasGroup = String.join("|", s);
 				description.appendEscape(aliasGroup, ChrislieFormat.HIGHLIGHT);
 				
-				if (follow)
-					description.appendEscape(", ");
+				
 				follow = true;
 			}
 			

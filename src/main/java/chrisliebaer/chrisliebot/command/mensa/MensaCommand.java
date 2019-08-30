@@ -2,13 +2,14 @@ package chrisliebaer.chrisliebot.command.mensa;
 
 import chrisliebaer.chrisliebot.C;
 import chrisliebaer.chrisliebot.SharedResources;
+import chrisliebaer.chrisliebot.abstraction.ChrislieFormat;
 import chrisliebaer.chrisliebot.abstraction.ChrislieMessage;
 import chrisliebaer.chrisliebot.command.ChrisieCommand;
 import chrisliebaer.chrisliebot.command.mensa.api.MensaApiMeal;
 import chrisliebaer.chrisliebot.command.mensa.api.MensaApiMeta;
 import chrisliebaer.chrisliebot.command.mensa.api.MensaApiService;
 import chrisliebaer.chrisliebot.util.BetterScheduledService;
-import com.google.common.base.Joiner;
+import chrisliebaer.chrisliebot.util.ErrorOutputBuilder;
 import com.google.common.base.Preconditions;
 import com.google.common.util.concurrent.AbstractScheduledService;
 import com.google.gson.Gson;
@@ -18,7 +19,6 @@ import lombok.Data;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.Credentials;
-import org.kitteh.irc.client.library.util.Format;
 import retrofit2.Call;
 import retrofit2.Response;
 import retrofit2.Retrofit;
@@ -32,10 +32,13 @@ import java.time.LocalDate;
 import java.time.temporal.TemporalAdjusters;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 @Slf4j
 public class MensaCommand implements ChrisieCommand {
+	
+	private static final String UNICODE_FISH = "\uD83D\uDC1F";
+	private static final String UNICODE_MEAT = "\uD83C\uDF56";
+	private static final String UNICODE_SALAD = "\uD83E\uDD57";
 	
 	private static final DecimalFormat PRICE_FORMAT = new DecimalFormat("0.00");
 	private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("EE dd.MM.yyyy", Locale.GERMAN);
@@ -85,8 +88,13 @@ public class MensaCommand implements ChrisieCommand {
 		// check if argument require anything but default case and update query parameters
 		if (!args.isEmpty() && !args.get(0).isBlank()) {
 			if ("list".equalsIgnoreCase(args.get(0))) { // check if first argument matches "list"
-				m.reply("Ich kann dir die folgenden Mensen anbieten: "
-						+ menu.keySet().stream().map(C::highlight).collect(Collectors.joining(", ")));
+				var reply = m.reply();
+				reply.title("Diese Mensen kenne ich");
+				var joiner = reply.description().joiner(", ");
+				for (String s : menu.keySet()) {
+					joiner.appendEscape(s, ChrislieFormat.HIGHLIGHT);
+				}
+				reply.send();
 				return;
 			} else {
 				var argMensaName = args.get(0).toLowerCase();
@@ -96,7 +104,8 @@ public class MensaCommand implements ChrisieCommand {
 					// remove mensa name from argument stack
 					args.remove(0);
 				} else if (args.size() >= 2) { // if two arguments, assume user mistyped mensa name
-					m.reply(C.error("Ich kenne keine Mensa mit dem Namen " + C.highlight(argMensaName)));
+					ErrorOutputBuilder.generic(out -> out
+							.appendEscape("Ich kenne keine Mensa mit dem Namen ").appendEscape(argMensaName, ChrislieFormat.HIGHLIGHT));
 					return;
 				}
 				
@@ -108,7 +117,7 @@ public class MensaCommand implements ChrisieCommand {
 		}
 		
 		if (timestamp < 0) {
-			m.reply(C.error("Ich habe leider keine Ahnung welcher Tag das sein soll."));
+			ErrorOutputBuilder.generic("Ich habe leider keine Ahnung welcher Tag das sein soll.").write(m);
 			return;
 		}
 		
@@ -121,41 +130,49 @@ public class MensaCommand implements ChrisieCommand {
 		var maybeDay = mensa.records().stream().dropWhile(in -> in.timestamp() < finalTimestamp).findFirst();
 		
 		if (maybeDay.isEmpty()) {
-			m.reply(C.error("Ich habe leider keine Daten ab dem " + C.highlight(DATE_FORMAT.format(new Date(timestamp))) + "."));
+			ErrorOutputBuilder.generic(out -> out
+					.appendEscape("Ich habe leider keine Daten ab dem ").appendEscape(DATE_FORMAT.format(new Date(finalTimestamp)))).write(m);
 			return;
 		}
 		var day = maybeDay.get();
 		
-		m.reply("Mensaeinheitsbrei für " + C.highlight(useDisplay ? mensa.displayName() : mensa.name())
-				+ " am " + C.highlight(DATE_FORMAT.format(new Date(day.timestamp()))));
+		var reply = m.reply();
+		var replace = reply.replace();
+		reply.title("Mensaeinheitsbrei für " + (useDisplay ? mensa.displayName() : mensa.name()) + " am " + DATE_FORMAT.format(new Date(day.timestamp())));
+		replace
+				.appendEscape("Mensaeinheitsbrei für ")
+				.appendEscape(useDisplay ? mensa.displayName() : mensa.name(), ChrislieFormat.HIGHLIGHT)
+				.appendEscape(" am ")
+				.appendEscape(DATE_FORMAT.format(new Date(day.timestamp())), ChrislieFormat.HIGHLIGHT)
+				.newLine();
 		
 		for (MensaLine line : day.lines()) {
 			String lineName = useDisplay ? line.displayName() : line.name();
 			
-			StringBuilder sb = new StringBuilder(Format.BOLD + lineName + Format.RESET + ": ");
-			StringBuilder[] mealBuilders = new StringBuilder[line.meals().size()]; // hmm, meal builder
-			int i = 0;
+			// build meals of line
+			StringJoiner joiner = new StringJoiner(", ");
 			for (MensaApiMeal meal : line.meals()) {
-				// color meals according to ingredients
+				// highlight meal type with unicode
 				boolean meat = meal.cow() || meal.cowRaw() || meal.pork() || meal.porkRaw();
 				boolean veg = meal.veg() || meal.vegan();
 				boolean fish = meal.fish();
-				Format nameFormat = meat ? Format.PURPLE : (veg ? Format.GREEN : (fish ? Format.BLUE : Format.WHITE));
+				String mealSymbol = meat ? UNICODE_MEAT : (veg ? UNICODE_SALAD : (fish ? UNICODE_FISH : ""));
 				
 				String price = PRICE_FORMAT.format(meal.price1());
 				
 				// append dish with whitespace if set
-				String title = meal.meal() + (meal.dish() == null || meal.dish().isBlank() ? "" : (" " + meal.dish()));
+				String mealTitle = meal.meal() + (meal.dish() == null || meal.dish().isBlank() ? "" : (" " + meal.dish()));
 				
-				// one line magic
-				mealBuilders[i++] = new StringBuilder().append(nameFormat).append(title).append(" (").append(price).append("€)");
+				// accumulate meals of current line
+				joiner.add(mealSymbol + mealTitle + " (" + price + "€)");
 			}
 			
-			// join meal strings
-			Joiner.on(", ").appendTo(sb, mealBuilders);
-			
-			m.reply(sb.toString());
+			var lineStr = joiner.toString();
+			reply.field(lineName, lineStr);
+			replace.appendEscape(lineName, ChrislieFormat.BOLD).appendEscape(": " + lineStr).newLine();
 		}
+		
+		reply.send();
 	}
 	
 	private static long parseDayOffset(String s) {
