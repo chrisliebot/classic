@@ -96,7 +96,7 @@ public class MemeDbCommand implements ChrisieCommand {
 		reply.title("Ergebnis", url);
 		reply.image(url);
 		
-		reply.convert("${title}: ${url}");
+		reply.convert("${title}: ${titleUrl}");
 		
 		reply.send();
 	}

@@ -55,7 +55,7 @@ public class UrbanDictionaryCommand implements ChrisieCommand {
 				reply.footer("powered by urbandictionary.com");
 				
 				reply.convert()
-						.appendEscape("Beste Definition für ").appendEscapeSub("${title}", ChrislieFormat.HIGHLIGHT)
+						.appendEscapeSub("${title}", ChrislieFormat.HIGHLIGHT)
 						.appendEscapeSub("${description}");
 				reply.send();
 			}
