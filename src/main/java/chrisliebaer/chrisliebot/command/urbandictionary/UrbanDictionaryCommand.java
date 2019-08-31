@@ -1,7 +1,6 @@
 package chrisliebaer.chrisliebot.command.urbandictionary;
 
 import chrisliebaer.chrisliebot.SharedResources;
-import chrisliebaer.chrisliebot.abstraction.ChrislieFormat;
 import chrisliebaer.chrisliebot.abstraction.ChrislieMessage;
 import chrisliebaer.chrisliebot.command.ChrisieCommand;
 import chrisliebaer.chrisliebot.command.urbandictionary.UrbanDictionaryService.DefinitionList;
@@ -54,9 +53,6 @@ public class UrbanDictionaryCommand implements ChrisieCommand {
 				reply.author("Autor: " + def.author());
 				reply.footer("powered by urbandictionary.com");
 				
-				reply.convert()
-						.appendEscapeSub("${title}", ChrislieFormat.HIGHLIGHT)
-						.appendEscapeSub("${description}");
 				reply.send();
 			}
 			
