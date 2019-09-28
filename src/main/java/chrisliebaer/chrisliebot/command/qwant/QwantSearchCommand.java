@@ -97,6 +97,12 @@ public class QwantSearchCommand implements ChrisieCommand {
 						ErrorOutputBuilder.remoteErrorCode(c.request(), resp).write(m);
 						log.warn("remote host {} response code: {} ({})", c.request().url(), resp.code(), resp.message());
 					}
+					
+					// clear search cache so we don't confuse user with old results
+					synchronized (resultStorage) {
+						resultStorage.invalidate(context);
+					}
+					
 					return;
 				}
 				assert body != null; // shut up about body being null, it can't
