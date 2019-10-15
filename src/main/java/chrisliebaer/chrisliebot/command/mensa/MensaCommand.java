@@ -48,7 +48,7 @@ public class MensaCommand implements ChrisieCommand {
 	private BetterScheduledService updateService;
 	private MensaApiService service;
 	
-	private Map<String, Mensa> menu;
+	private Map<String, Mensa> menu = new HashMap<>();
 	
 	public MensaCommand(@NonNull Config cfg) {
 		this.cfg = cfg;
@@ -127,6 +127,12 @@ public class MensaCommand implements ChrisieCommand {
 		
 		// get mensa and find next matching day
 		Mensa mensa = menu.get(mensaName);
+		
+		if (mensa == null) {
+			ErrorOutputBuilder.generic("Ich habe keine Daten für diese Mensa.").write(m);
+			return;
+		}
+		
 		var maybeDay = mensa.records().stream().dropWhile(in -> in.timestamp() < finalTimestamp).findFirst();
 		
 		if (maybeDay.isEmpty()) {
