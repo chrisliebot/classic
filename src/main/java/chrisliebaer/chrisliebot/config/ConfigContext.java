@@ -110,9 +110,9 @@ public final class ConfigContext {
 		addCommandDefinition("restart", new RestartCommand(bot),
 				"Beendet den Botprozess und startet ihn anschließend neu.");
 		addCommandDefinition("upgrade", new UpgradeCommand(bot),
-				"Läd den neusten Quellcode und Konfiguration von git und führt ein Upgrade durch.");
+				"Lädt den neusten Quellcode und Konfiguration von git und führt ein Upgrade durch.");
 		addCommandDefinition("reload", new ReloadCommand(bot),
-				"Versucht Teile der Konfiguration neu zu Laden.");
+				"Versucht, Teile der Konfiguration neu zu Laden.");
 		addCommandDefinition("reconnect", new ReconnectCommand(bot),
 				"Trennt die Verbindung mit dem aktuellen IRC Server und baut sie erneut auf.");
 		addCommandDefinition("dirty", new DirtyCheck(bot),
@@ -120,9 +120,9 @@ public final class ConfigContext {
 		addCommandDefinition("help", new HelpCommand(bindings, cmdDefs),
 				"Zeigt Informationen über den übergebenen Befehl an.");
 		addCommandDefinition("channellist", new ChannelListCommand(),
-				"Zeigt dir an in welchen Channeln du mich gerade findest.");
+				"Zeigt dir an, in welchen Channeln du mich gerade findest.");
 		addCommandDefinition("uptime", new UptimeCommand(),
-				"Lass mal gucken wer den längeren hat.");
+				"Lass mal gucken, wer den Längeren hat.");
 		addCommandDefinition("join", new JoinCommand(),
 				"Joint dem angegebenen Channel (mit optionalem Passwort).");
 		addCommandDefinition("part", new PartCommand(),
@@ -147,9 +147,9 @@ public final class ConfigContext {
 		addCommandDefinition("dns", new DnsCommand(),
 				"<host> [<type>]");
 		addCommandDefinition("klaxa", new KlaxaCommand(),
-				"Shortcut um klaxa zu begrüßen.");
+				"Shortcut, um klaxa zu begrüßen.");
 		addCommandDefinition("vote", new VoteCommand(),
-				"Starte eine Umfrage mit: !vote <Frage>? Option1, Option2, Option3, ... oder nimm an einer Umfrage Teil mit !vote <OptNum>");
+				"Starte eine Umfrage mit: !vote <Frage>? Option1, Option2, Option3, ... oder nimm an einer Umfrage teil mit !vote <OptNum>");
 		addCommandDefinition("until", new UntilCommand(), "Kein Geld für einen Kalender. Ich berechne für dich, wie lange ein Datum noch entfernt ist.");
 		addCommandDefinition("flip", new FlipCommand(), "˙ɟdoʞ ʇɥǝʇs ʇlǝM ǝᴉp");
 		addCommandDefinition("unicode", new UnicodeCommand(), "Keine Ahnung von Unicode? Geb mir entweder ein Zeichen oder einen Codepoint (startet mit U+).");
@@ -163,8 +163,11 @@ public final class ConfigContext {
 		// but also add some aliases
 		addCommandBinding("action", "me");
 		addCommandBinding("h", "help");
+		addCommandBinding("hilfe", "help");
 		addCommandBinding("v", "vote");
 		addCommandBinding("random", "dice");
+		addCommandBinding("würfel", "dice");
+		addCommandBinding("münze", "coin");
 		addCommandBinding("spinbottle", "bottlespin");
 		addCommandBinding("flaschendrehen", "bottlespin");
 		addCommandBinding("bis", "until");

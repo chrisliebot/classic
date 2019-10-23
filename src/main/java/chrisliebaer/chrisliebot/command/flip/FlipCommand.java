@@ -11,10 +11,10 @@ public class FlipCommand implements ChrisieCommand {
 	
 	static {
 		String normal = "ABCDEFGHIJKLMNOPQRSTUVWXYZ" +
-				"abcdefghijklmnopqrstuvwxyz_,;.?!/\\\\'" +
+				"abcdefghijklmnopqrstuvwxyz_,;.?!()[]{}<>/\\\\'" +
 				"0123456789";
 		String flip = "∀qϽᗡƎℲƃHIſʞ˥WNOԀὉᴚS⊥∩ΛMXʎZ" +
-				"ɐqɔpǝɟbɥıظʞןɯuodbɹsʇnʌʍxʎz‾'؛˙¿¡/\\\\," +
+				"ɐqɔpǝɟbɥᴉظʞןɯuodbɹsʇnʌʍxʎz‾'؛˙¿¡)(][}{></\\\\," +
 				"0ƖᄅƐㄣϛ9ㄥ86";
 		
 		LOOKUP_NORMAL = normal + flip;
