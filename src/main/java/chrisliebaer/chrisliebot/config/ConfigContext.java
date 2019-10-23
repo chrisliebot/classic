@@ -122,7 +122,7 @@ public final class ConfigContext {
 		addCommandDefinition("channellist", new ChannelListCommand(),
 				"Zeigt dir an in welchen Channeln du mich gerade findest.");
 		addCommandDefinition("uptime", new UptimeCommand(),
-				"Lass mal gucken wer den längeren hat.");
+				"Lass mal gucken wer den Längeren hat.");
 		addCommandDefinition("join", new JoinCommand(),
 				"Joint dem angegebenen Channel (mit optionalem Passwort).");
 		addCommandDefinition("part", new PartCommand(),
@@ -163,8 +163,13 @@ public final class ConfigContext {
 		// but also add some aliases
 		addCommandBinding("action", "me");
 		addCommandBinding("h", "help");
+		addCommandBinding("hilfe", "help");
+		addCommandBinding("echo", "return");
+		addCommandBinding("tell", "say");
 		addCommandBinding("v", "vote");
 		addCommandBinding("random", "dice");
+		addCommandBinding("würfel", "dice");
+		addCommandBinding("münze", "coin");
 		addCommandBinding("spinbottle", "bottlespin");
 		addCommandBinding("flaschendrehen", "bottlespin");
 		addCommandBinding("bis", "until");
