@@ -43,6 +43,8 @@ public final class C {
 	public static final char ZERO_WIDTH_NO_BREAK_SPACE = '\uFEFF';
 	public static final Marker LOG_PUBLIC = MarkerFactory.getMarker("LOG_PUBLIC");
 	
+	public static final String UA_CHROME = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/77.0.3865.120 Safari/537.36";
+	
 	public static String escapeStrSubstitution(String s) {
 		return s.replaceAll("\\$\\{", "\\$\\${");
 	}

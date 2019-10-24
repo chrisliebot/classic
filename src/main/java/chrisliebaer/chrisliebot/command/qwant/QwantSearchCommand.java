@@ -13,6 +13,7 @@ import com.google.gson.JsonElement;
 import lombok.Data;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
+import okhttp3.OkHttpClient;
 import org.apache.commons.text.StringSubstitutor;
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -46,9 +47,12 @@ public class QwantSearchCommand implements ChrisieCommand {
 	
 	public QwantSearchCommand(@NonNull Config cfg) {
 		this.cfg = cfg;
+		
+		OkHttpClient client = SharedResources.INSTANCE().httpClient()
+				.newBuilder().addNetworkInterceptor(c -> c.proceed(c.request().newBuilder().header("User-Agent", C.UA_CHROME).build())).build();
 		Retrofit retrofit = new Retrofit.Builder()
 				.baseUrl(QwantService.BASE_URL)
-				.client(SharedResources.INSTANCE().httpClient())
+				.client(client)
 				.addConverterFactory(GsonConverterFactory.create())
 				.build();
 		service = retrofit.create(QwantService.class);
