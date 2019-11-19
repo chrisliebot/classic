@@ -92,7 +92,7 @@ public class MensaCommand implements ChrisieCommand {
 				reply.title("Diese Mensen kenne ich");
 				var joiner = reply.description().joiner(", ");
 				for (String s : menu.keySet()) {
-					joiner.appendEscape(s, ChrislieFormat.HIGHLIGHT);
+					joiner.seperator().appendEscape(s, ChrislieFormat.HIGHLIGHT);
 				}
 				reply.send();
 				return;

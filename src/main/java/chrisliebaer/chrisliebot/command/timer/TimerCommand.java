@@ -2,11 +2,9 @@ package chrisliebaer.chrisliebot.command.timer;
 
 import chrisliebaer.chrisliebot.C;
 import chrisliebaer.chrisliebot.SharedResources;
-import chrisliebaer.chrisliebot.abstraction.ChrislieMessage;
-import chrisliebaer.chrisliebot.abstraction.ChrislieService;
-import chrisliebaer.chrisliebot.abstraction.ChrislieUser;
+import chrisliebaer.chrisliebot.abstraction.*;
 import chrisliebaer.chrisliebot.command.ChrisieCommand;
-import com.google.common.base.Function;
+import chrisliebaer.chrisliebot.util.ErrorOutputBuilder;
 import com.google.common.base.Preconditions;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -28,6 +26,7 @@ import java.util.*;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+// TODO: streamline code to reduce number of duplicated code paths and output handling
 @Slf4j
 public class TimerCommand implements ChrisieCommand {
 	
@@ -48,14 +47,14 @@ public class TimerCommand implements ChrisieCommand {
 	@Override
 	public synchronized void execute(ChrislieMessage m, String arg) {
 		if (m.channel().isDirectMessage()) {
-			m.reply(C.error("Timer sind aktuell nur in Channeln verfügbar.")); // TODO: change that
+			ErrorOutputBuilder.generic("Timer sind aktuell nicht in privaten Nachrichten verfügbar.").write(m); // TODO: change that
 			return;
 		}
 		
 		if (arg.startsWith("info")) {
 			var split = arg.split(" ", 2);
 			if (split.length != 2) {
-				m.reply(C.error("Du hast vergessen die Id des Timers anzugeben."));
+				ErrorOutputBuilder.generic("Du hast vergessen die Id des Timers anzugeben.").write(m);
 				return;
 			}
 			
@@ -63,31 +62,42 @@ public class TimerCommand implements ChrisieCommand {
 				long id = Long.parseLong(split[1]);
 				TimerDescription description = timers.get(id);
 				if (description == null) {
-					m.reply(C.error("Diese Id gibt es nicht."));
+					ErrorOutputBuilder.generic("Diese Id gibt es nicht.").write(m);
 					return;
 				}
 				
-				m.reply("Timer " + id + ": " + C.highlight(description.message())
-						+ ", Fällig: " + C.highlight(DATE_FORMAT.format(new Date(description.when()))));
+				createTimerReply(m.reply().title("Information über Timer " + id), id, description).send();
 			} catch (NumberFormatException e) {
-				m.reply(C.error("Das ist keine Zahl."));
+				ErrorOutputBuilder.generic("Das ist keine Zahl.").write(m);
 			}
 		} else if (arg.startsWith("list")) {
-			String list = timers.entrySet().stream()
+			var list = timers.entrySet().stream()
 					.filter(e -> userOwnsTimer(m.user(), e.getValue()))
-					.map((Function<Map.Entry<Long, TimerDescription>, String>) in -> {
-						long id = in.getKey();
-						var description = in.getValue();
-						var abbrev = StringUtils.abbreviate(description.message(), 15);
-						return "Id " + id + ": " + abbrev;
-					}).map(C::highlight)
-					.collect(Collectors.joining(", "));
-			m.reply("Deine Timer: " + list);
+					.collect(Collectors.toList());
 			
+			var reply = m.reply();
+			reply.title("Timer von " + m.user().displayName());
+			
+			var desc = reply.description();
+			var joiner = reply.convert().appendEscapeSub("${title}: ").joiner(", ");
+			for (var e : list) {
+				var id = e.getKey();
+				var description = e.getValue();
+				var abbrev = StringUtils.abbreviate(description.message(), 200);
+				desc.appendEscape("Id " + id + ": ").appendEscape(abbrev).newLine().newLine();
+				joiner.seperator().appendEscape("Id ").appendEscape(String.valueOf(id), ChrislieFormat.HIGHLIGHT).appendEscape(": " + abbrev);
+			}
+			
+			if (list.isEmpty()) {
+				desc.appendEscape("Du hast leider keine Timer");
+				joiner.appendEscape("Du hast leider keine Timer");
+			}
+			
+			reply.send();
 		} else if (arg.startsWith("delete") || arg.startsWith("entfernen") || arg.startsWith("del")) {
 			var split = arg.split(" ", 2);
 			if (split.length != 2) {
-				m.reply(C.error("Du hast vergessen die Id des Timers anzugeben."));
+				ErrorOutputBuilder.generic("Du hast keine Id angegeben.").write(m);
 				return;
 			}
 			
@@ -95,7 +105,7 @@ public class TimerCommand implements ChrisieCommand {
 				long id = Long.parseLong(split[1]);
 				TimerDescription description = timers.get(id);
 				if (description == null) {
-					m.reply(C.error("Diese Id gibt es nicht."));
+					ErrorOutputBuilder.generic("Diese Id gibt es nicht.").write(m);
 					return;
 				}
 				
@@ -103,24 +113,25 @@ public class TimerCommand implements ChrisieCommand {
 				if (m.user().isAdmin() || userOwnsTimer(m.user(), description)) {
 					File timerFile = new File(dir, id + ".json");
 					if (!timerFile.delete()) {
-						m.reply(C.error("Da ging etwas schief."));
+						ErrorOutputBuilder.generic("Da ging etwas schief.").write(m);
 						log.error(C.LOG_PUBLIC, "failed to delete timer file: {}", timerFile);
 						return;
 					}
 					timers.remove(id);
 					description.task().cancel();
-					m.reply("Der Timer '" + C.highlight(description.message()) + "' wurde gelöscht.");
+					
+					createTimerReply(m.reply().title("Timer wurde gelöscht"), id, description).send();
 				}
 				
 				
 			} catch (NumberFormatException e) {
-				m.reply(C.error("Das ist keine Zahl."));
+				ErrorOutputBuilder.generic("Das ist keine Zahl.").write(m);
 			}
 		} else {
 			Optional<Pair<Date, String>> result = shrinkingParse(arg);
 			
 			if (result.isEmpty()) {
-				m.reply(C.error("Ich hab da leider keine Zeitangabe gefunden."));
+				ErrorOutputBuilder.generic("Ich hab da leider keine Zeitangabe gefunden.").write(m);
 				return;
 			}
 			
@@ -129,7 +140,7 @@ public class TimerCommand implements ChrisieCommand {
 			String mesage = result.get().getRight();
 			
 			if (diff < 0) {
-				m.reply(C.error("Für diesen Zeitpunkt brauchst du eine Zeitmaschine."));
+				ErrorOutputBuilder.generic("Für diesen Zeitpunkt brauchst du eine Zeitmaschine.").write(m);
 				return;
 			}
 			
@@ -145,13 +156,28 @@ public class TimerCommand implements ChrisieCommand {
 			try {
 				id = queueTimer(description, true);
 			} catch (IOException e) {
-				m.reply(C.error("Fehler beim Speichern des Timers."));
+				ErrorOutputBuilder.throwable(e).write(m);
 				log.warn(C.LOG_PUBLIC, "failed to write timer {} to disk", description, e);
 				return;
 			}
 			
-			m.reply("Timer gestellt für: " + C.highlight(DATE_FORMAT.format(result.get().getLeft())) + ", die Id lautet " + id +
-					" das ist in " + C.highlight(C.durationToString(diff)));
+			var duration = C.durationToString(diff);
+			var when = DATE_FORMAT.format(result.get().getLeft());
+			
+			var reply = m.reply();
+			reply.title("Timer gestellt");
+			reply.description(description.message());
+			reply.field("Dauer", duration);
+			reply.field("Fällig", when);
+			reply.field("Id", String.valueOf(id));
+			
+			reply.convert()
+					.appendEscapeSub("${title} für: ")
+					.appendEscapeSub("${description}", ChrislieFormat.HIGHLIGHT)
+					.appendEscapeSub(", die Id lautet ${f-Id}, das ist in ")
+					.appendEscapeSub("${f-Dauer}", ChrislieFormat.HIGHLIGHT);
+			
+			reply.send();
 		}
 	}
 	
@@ -279,7 +305,10 @@ public class TimerCommand implements ChrisieCommand {
 					.collect(Collectors.joining(", "));
 		
 		var out = chan.output();
-		out.plain().append(mention).appendEscape(" es ist so weit: " + description.message());
+		out.plain().append(mention);
+		out.title("Es ist soweit");
+		out.description(description.message());
+		out.replace().append(mention).appendEscape(" es ist soweit: " + description.message());
 		out.send();
 	}
 	
@@ -287,15 +316,36 @@ public class TimerCommand implements ChrisieCommand {
 		return new TimerCommand(new File(element.getAsString()));
 	}
 	
+	private ChrislieOutput createTimerReply(ChrislieOutput reply, long id, TimerDescription description) {
+		// process timer data
+		var when = DATE_FORMAT.format(new Date(description.when()));
+		var user = service.user(description.softIdentifier());
+		var nick = user.map(ChrislieUser::displayName).orElse(description.nick());
+		
+		reply.description(description.message());
+		reply.field("Fällig", when);
+		user.ifPresent(u -> reply.field("Besitzer", u.mention()));
+		
+		reply.convert()
+				.appendEscapeSub("${title}, ")
+				.appendEscape("Timer für ")
+				.appendEscape(nick, ChrislieFormat.HIGHLIGHT)
+				.appendEscape(": ").appendEscape(description.message(), ChrislieFormat.HIGHLIGHT)
+				.appendEscape(", Fällig: ").appendEscape(when, ChrislieFormat.HIGHLIGHT);
+		
+		return reply;
+	}
+	
 	@Data
 	@Builder
 	private static class TimerDescription {
+		
 		private long when;
 		private String channel;
 		private String nick;
 		private String softIdentifier;
 		private String message;
 		private transient TimerTask task;
-	
+		
 	}
 }

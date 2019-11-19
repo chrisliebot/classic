@@ -8,6 +8,7 @@ import lombok.NonNull;
 import lombok.Setter;
 import net.engio.mbassy.listener.Handler;
 import org.kitteh.irc.client.library.Client;
+import org.kitteh.irc.client.library.element.Channel;
 import org.kitteh.irc.client.library.element.User;
 import org.kitteh.irc.client.library.event.channel.ChannelMessageEvent;
 import org.kitteh.irc.client.library.event.user.PrivateMessageEvent;
@@ -71,9 +72,16 @@ public class IrcService implements ChrislieService {
 				.map(channel -> new IrcChannel(this, channel));
 	}
 	
+	// TODO: figure out a way that doesn't required looping over every single user
 	@Override
 	public Optional<IrcUser> user(String identifier) {
-		throw new RuntimeException("not implemented yet");
+		for (Channel channel : client.getChannels()) {
+			for (User user : channel.getUsers()) {
+				if (user.getAccount().orElse(user.getNick()).equals(identifier))
+					return Optional.of(new IrcUser(this, user));
+			}
+		}
+		return Optional.empty();
 	}
 	
 	public boolean isAdmin(User user) {

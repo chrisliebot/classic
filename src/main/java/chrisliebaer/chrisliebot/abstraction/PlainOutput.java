@@ -65,6 +65,7 @@ public interface PlainOutput {
 		public PlainOutputSubstituion clear() { return this; }
 	}
 	
+	// TODO: seperator has to be called explicitly since otherwise there is no way to seperate multiple append calls without seperator
 	public static final class JoinPlainOutput implements PlainOutput {
 		
 		private @NonNull PlainOutput out;
@@ -79,7 +80,6 @@ public interface PlainOutput {
 		
 		@Override
 		public JoinPlainOutput append(String s, Object... format) {
-			seperator();
 			out.append(s, format);
 			pending = true;
 			return this;
@@ -87,7 +87,6 @@ public interface PlainOutput {
 		
 		@Override
 		public JoinPlainOutput appendEscape(String s, Object... format) {
-			seperator();
 			out.appendEscape(s, format);
 			pending = true;
 			return this;
@@ -95,7 +94,6 @@ public interface PlainOutput {
 		
 		@Override
 		public JoinPlainOutput newLine() {
-			seperator();
 			out.newLine();
 			return this;
 		}
@@ -107,11 +105,15 @@ public interface PlainOutput {
 			return this;
 		}
 		
-		private void seperator() {
+		/**
+		 * Will add delimiter if output has been appended since last call to this method.
+		 */
+		public JoinPlainOutput seperator() {
 			if (pending) {
 				pending = false;
 				out.appendEscape(delimiter);
 			}
+			return this;
 		}
 	}
 }
