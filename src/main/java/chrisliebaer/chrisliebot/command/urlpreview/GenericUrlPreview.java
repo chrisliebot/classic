@@ -3,6 +3,7 @@ package chrisliebaer.chrisliebot.command.urlpreview;
 import chrisliebaer.chrisliebot.C;
 import chrisliebaer.chrisliebot.SharedResources;
 import chrisliebaer.chrisliebot.abstraction.ChrislieMessage;
+import chrisliebaer.chrisliebot.abstraction.LimiterConfig;
 import lombok.NonNull;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
@@ -122,8 +123,10 @@ public class GenericUrlPreview implements Callback {
 			// add output to history
 			titleHistory.add(historyLookup);
 			
-			if (!summary.isEmpty())
-				m.reply(C.format("Linkvorschau: ", Format.BOLD) + summary);
+			if (!summary.isEmpty()) {
+				var reply = m.reply();
+				m.channel().output(LimiterConfig.create().maxLines(1)).plain(C.format("Linkvorschau: ", Format.BOLD) + summary).send();
+			}
 		}
 	}
 }
