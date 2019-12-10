@@ -175,7 +175,9 @@ public class TimerCommand implements ChrisieCommand {
 					.appendEscapeSub("${title} für: ")
 					.appendEscapeSub("${description}", ChrislieFormat.HIGHLIGHT)
 					.appendEscapeSub(", die Id lautet ${f-Id}, das ist in ")
-					.appendEscapeSub("${f-Dauer}", ChrislieFormat.HIGHLIGHT);
+					.appendEscapeSub("${f-Dauer}", ChrislieFormat.HIGHLIGHT)
+					.appendEscapeSub(" also am ")
+					.appendEscapeSub("${f-Fällig}", ChrislieFormat.HIGHLIGHT);
 			
 			reply.send();
 		}
