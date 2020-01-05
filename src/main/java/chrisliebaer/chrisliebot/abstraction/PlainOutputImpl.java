@@ -2,11 +2,15 @@ package chrisliebaer.chrisliebot.abstraction;
 
 import lombok.NonNull;
 
+import javax.annotation.CheckReturnValue;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.BiFunction;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
-// TODO: replace marker feature with list of function calls?, could make functions protected and substitution could use protected methods directly, also backslash escape bug
 public class PlainOutputImpl implements PlainOutput {
 	
 	private static final Pattern ESCAPE_PATTERN = Pattern.compile("[\u0000\\\\]");
@@ -14,10 +18,10 @@ public class PlainOutputImpl implements PlainOutput {
 	private static final char ESCAPE_MARKER = '\0';
 	private static final char ESCAPE_CHARACTER = '\\';
 	
-	private StringBuilder builder = new StringBuilder();
-	
 	private Function<String, String> escaper;
 	private BiFunction<Object, String, String> formatResolver;
+	
+	private List<Supplier<String>> calls = new ArrayList<>();
 	
 	public PlainOutputImpl(@NonNull Function<String, String> escaper,
 						   @NonNull BiFunction<Object, String, String> formatResolver) {
@@ -27,85 +31,34 @@ public class PlainOutputImpl implements PlainOutput {
 	
 	@Override
 	public PlainOutput append(String s, Object... format) {
-		s = applyFormats(s, format);
-		escape(s);
+		append(() -> s, format);
 		return this;
 	}
 	
 	@Override
 	public PlainOutput appendEscape(String s, Object... format) {
-		if (!s.isEmpty()) {
-			s = applyFormats(s, format);
-			
-			builder.ensureCapacity(s.length() + 2);
-			builder.append(ESCAPE_MARKER);
-			escape(s);
-			builder.append(ESCAPE_MARKER);
-		}
+		appendEscape(() -> s, format);
 		return this;
 	}
 	
 	@Override
 	public PlainOutput newLine() {
-		builder.append('\n');
+		calls.add(() -> "\n");
 		return this;
 	}
 	
 	@Override
 	public PlainOutput clear() {
-		builder.setLength(0);
+		calls.clear();
 		return this;
 	}
 	
-	
-	public String string() {
-		StringBuilder sb = new StringBuilder(builder.length());
-		
-		// keeps track of current state
-		boolean escaped = false, escapeRegion = false;
-		
-		// remember content of escape region
-		StringBuilder tmp = new StringBuilder();
-		
-		for (int i = 0; i < builder.length(); i++) {
-			char c = builder.charAt(i);
-			
-			if (c == ESCAPE_CHARACTER && !escaped) { // start escape sequence
-				escaped = true;
-			} else if (c == ESCAPE_MARKER && !escaped) { // start or end escape region
-				if (escapeRegion) {
-					// leaving escape region
-					escapeRegion = false;
-					
-					// append escaped content and reset temporary string builder
-					sb.append(escaper.apply(tmp.toString()));
-					tmp.setLength(0);
-				} else {
-					// entering escape region
-					escapeRegion = true;
-				}
-			} else {
-				escaped = false; // always reset escape flag
-				
-				if (escapeRegion)
-					tmp.append(c);
-				else
-					sb.append(c);
-			}
-		}
-		return sb.toString();
+	protected void appendEscape(Supplier<String> supplier, Object... formats) {
+		calls.add(() -> escaper.apply(applyFormats(supplier.get(), formats)));
 	}
 	
-	private void escape(String s) {
-		var matcher = ESCAPE_PATTERN.matcher(s);
-		while (matcher.find()) {
-			char match = matcher.group().charAt(0);
-			if (match == ESCAPE_MARKER)
-				matcher.appendReplacement(builder, "\\0");
-			else if (match == ESCAPE_CHARACTER)
-				matcher.appendReplacement(builder, "\\\\\\\\");
-		}
-		matcher.appendTail(builder);
+	protected void append(Supplier<String> supplier, Object... formats) {
+		calls.add(() -> applyFormats(supplier.get(), formats));
 	}
 	
 	private String applyFormats(String s, Object... formats) {
@@ -113,5 +66,12 @@ public class PlainOutputImpl implements PlainOutput {
 			s = formatResolver.apply(format, s);
 		}
 		return s;
+	}
+	
+	@CheckReturnValue
+	public String string() {
+		return calls.stream()
+				.map(Supplier::get)
+				.collect(Collectors.joining());
 	}
 }
