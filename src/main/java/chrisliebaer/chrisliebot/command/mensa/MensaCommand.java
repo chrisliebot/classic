@@ -10,7 +10,6 @@ import chrisliebaer.chrisliebot.command.mensa.api.MensaApiMeta;
 import chrisliebaer.chrisliebot.command.mensa.api.MensaApiService;
 import chrisliebaer.chrisliebot.config.ChrislieContext;
 import chrisliebaer.chrisliebot.config.ContextResolver;
-import chrisliebaer.chrisliebot.config.flex.CommonFlex;
 import chrisliebaer.chrisliebot.util.BetterScheduledService;
 import chrisliebaer.chrisliebot.util.ErrorOutputBuilder;
 import chrisliebaer.chrisliebot.util.GsonValidator;
@@ -30,6 +29,7 @@ import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Positive;
 import java.text.DecimalFormat;
+import java.text.SimpleDateFormat;
 import java.time.DayOfWeek;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -100,7 +100,7 @@ public class MensaCommand implements ChrislieListener.Command {
 		var m = invc.msg();
 		var arg = invc.arg();
 		var flex = invc.ref().flexConf();
-		var dateFormat = CommonFlex.DATE_FORMAT().getOrFail(flex);
+		var dateFormat = new SimpleDateFormat("EE dd.MM.yyyy"); // not threadsafe
 		
 		boolean useDisplay = true;
 		

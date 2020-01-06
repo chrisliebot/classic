@@ -27,10 +27,8 @@ public class SedListener implements ChrislieListener {
 	public void onMessage(ListenerMessage msg, boolean isCommand) throws ListenerException {
 		var m = msg.msg();
 		
-		if (isCommand)
+		if (isCommand || m.channel().isDirectMessage())
 			return;
-		if (m.channel().isDirectMessage())
-			throw new ListenerException("sed does not support private channels");
 		
 		// we are called for every single message, so we need to store each message in the backbuffer but ignore sed invocations
 		var matcher = SED_PATTERN.matcher(m.message());

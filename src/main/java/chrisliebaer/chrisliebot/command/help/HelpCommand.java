@@ -42,7 +42,7 @@ public class HelpCommand implements ChrislieListener.Command {
 			var exposed = ref.aliasSet().get().values().stream()
 					.filter(AliasSet.Alias::exposed)
 					.map(AliasSet.Alias::name)
-					.collect(Collectors.toUnmodifiableList());
+					.collect(Collectors.toList());
 			
 			// some listeners might not have any exposed commands, so we skip them
 			if (exposed.isEmpty())

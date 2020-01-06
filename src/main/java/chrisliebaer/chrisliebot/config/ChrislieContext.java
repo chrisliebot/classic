@@ -90,9 +90,8 @@ public class ChrislieContext {
 		return Optional.ofNullable(aliases.get(alias));
 	}
 	
-	@SuppressWarnings({"OptionalGetWithoutIsPresent", "ReturnOfInnerClass"}) // we want the exception and this is a short lived return object
-	public ListenerReference listener(ChrislieListener listener) throws NoSuchElementException {
-		return listeners.values().stream().filter(ctx -> ctx.envelope().listener() == listener).findAny().get();
+	public Optional<? extends ListenerReference> listener(ChrislieListener listener) throws NoSuchElementException {
+		return listeners.values().stream().filter(ctx -> ctx.envelope().listener() == listener).findAny();
 	}
 	
 	/* While this class extends ListenerReference, it can enter states that are invalid for ListenerReference instances. However, the ChrislieContext implementation

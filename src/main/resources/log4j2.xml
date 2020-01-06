@@ -18,10 +18,14 @@
 	<Loggers>
 		<!-- some shit is simply annoying -->
 		<Logger name="io.netty" level="INFO"/>
+		<Logger name="chrisliebaer.chrisliebot.config.ChrislieContext" level="DEBUG"/>
 		<Logger name="chrisliebaer.chrisliebot.command.mensa.MensaCommand" level="DEBUG"/>
+		<Logger name="chrisliebaer.chrisliebot.util.IrcToSqlLogger" level="DEBUG"/>
+		<Logger name="chrisliebaer.chrisliebot.command.ChrislieDispatcher" level="DEBUG"/>
 		<Logger name="com.joestelmach.natty" level="ERROR"/>
 		<Logger name="net.dv8tion.jda" level="WARN"/>
 		<Logger name="org.hibernate.validator" level="WARN"/>
+		
 		
 		<Root level="TRACE">
 			<AppenderRef ref="ConsoleDebug"/>

@@ -5,21 +5,26 @@ import lombok.Getter;
 import lombok.NonNull;
 import lombok.experimental.UtilityClass;
 
-import java.text.SimpleDateFormat;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.Optional;
 import java.util.function.BiFunction;
 
 @UtilityClass
 public class CommonFlex {
 	
-	@Getter private static final Provider<SimpleDateFormat> DATE_TIME_FORMAT = provider(
-			(flex, key) -> flex.getString(key).map(SimpleDateFormat::new), "chrisliebot.dateTimeFormat");
+	@Getter private static final Provider<DateTimeFormatter> DATE_TIME_FORMAT = provider(
+			(flex, key) -> flex.getString(key).map(DateTimeFormatter::ofPattern), "chrisliebot.dateTimeFormat");
 	
-	@Getter private static final Provider<SimpleDateFormat> TIME_FORMAT = provider(
-			(flex, key) -> flex.getString(key).map(SimpleDateFormat::new), "chrisliebot.timeFormat");
+	@Getter private static final Provider<DateTimeFormatter> TIME_FORMAT = provider(
+			(flex, key) -> flex.getString(key).map(DateTimeFormatter::ofPattern), "chrisliebot.timeFormat");
 	
-	@Getter private static final Provider<SimpleDateFormat> DATE_FORMAT = provider(
-			(flex, key) -> flex.getString(key).map(SimpleDateFormat::new), "chrisliebot.dateFormat");
+	@Getter private static final Provider<DateTimeFormatter> DATE_FORMAT = provider(
+			(flex, key) -> flex.getString(key).map(DateTimeFormatter::ofPattern), "chrisliebot.dateFormat");
+	
+	@Getter private static final Provider<ZoneId> ZONE_ID = provider(
+			(flex, key) -> flex.getString(key).map(ZoneId::of), "chrisliebot.zoneId");
+	
 	
 	private static final class ProviderImpl<T> implements Provider<T> {
 		

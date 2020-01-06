@@ -14,7 +14,6 @@ import java.util.function.Supplier;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-// TODO: This class really needs some documentation because I already forgot how it works
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 @ToString
 public final class AliasSet implements Supplier<Map<String, AliasSet.Alias>> {

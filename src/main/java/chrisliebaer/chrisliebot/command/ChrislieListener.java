@@ -125,7 +125,7 @@ public interface ChrislieListener {
 		 * @param invc An Invocation object, containing the details of this invocation.
 		 * @throws ListenerException Indicates that the listener was unable to function properly and user intervention is required to resolve the problem.
 		 */
-		public default void execute(Invocation invc) throws ListenerException {}
+		public void execute(Invocation invc) throws ListenerException;
 		
 		/**
 		 * Allows listeners to provide a hard coded help text. Note that the returned help text should not include alias names.

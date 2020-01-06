@@ -21,6 +21,7 @@ import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class IrcService implements ChrislieService {
 	
@@ -118,8 +119,16 @@ public class IrcService implements ChrislieService {
 		return userByPrefixedIdentifier(identifier).map(user -> new IrcUser(this, user));
 	}
 	
+	protected Optional<User> userByPrefixedIdentifier(String prefixedIdentifier) {
+		// creates a stream of all users known to this instance
+		var userStream = client.getChannels().stream()
+				.map(Channel::getUsers)
+				.flatMap(Collection::stream);
+		return userByPrefixedIdentifier(prefixedIdentifier, userStream);
+	}
+	
 	// This method resolves a prefixed indentifier, as it is used by the irc service to a library user instance.
-	private Optional<User> userByPrefixedIdentifier(String prefixedIdentifier) {
+	protected Optional<User> userByPrefixedIdentifier(String prefixedIdentifier, Stream<User> userStream) {
 		Predicate<User> pred;
 		if (prefixedIdentifier.startsWith(PREFIX_USER_BY_ACCOUNT)) {
 			pred = userByAccount(prefixedIdentifier.substring(PREFIX_USER_BY_ACCOUNT.length()));
@@ -128,13 +137,12 @@ public class IrcService implements ChrislieService {
 		} else {
 			throw new IllegalArgumentException("unkown prefix in user identifier: " + prefixedIdentifier);
 		}
-		return findUser(pred);
+		
+		return findUser(pred, userStream);
 	}
 	
-	public Optional<User> findUser(Predicate<User> predicate) {
-		return client.getChannels().stream()
-				.map(Channel::getUsers)
-				.flatMap(Collection::stream)
+	public Optional<User> findUser(Predicate<User> predicate, Stream<User> userStream) {
+		return userStream
 				.filter(predicate)
 				.findFirst();
 	}

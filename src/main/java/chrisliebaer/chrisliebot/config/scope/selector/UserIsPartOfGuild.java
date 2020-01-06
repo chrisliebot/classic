@@ -41,6 +41,10 @@ public class UserIsPartOfGuild implements Selector {
 	
 	@Override
 	public boolean check(ChrislieChannel channel) {
+		
+		// listeners that are accesing private channels might not know they are targeting a single user and thous only use the channel handle
+		if (channel.isDirectMessage())
+			return channel.users().stream().anyMatch(this::check);
 		return false;
 	}
 	

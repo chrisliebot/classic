@@ -12,7 +12,7 @@ public class ScopeMapping extends CombinationSelector {
 	@Getter private List<ChrislieGroup> groups;
 	
 	public ScopeMapping(List<Selector> selectors, List<ChrislieGroup> groups) {
-		super(selectors, Boolean::logicalAnd);
+		super(selectors, Operation.AND);
 		this.groups = ImmutableList.copyOf(groups);
 	}
 }

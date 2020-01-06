@@ -5,33 +5,60 @@ import chrisliebaer.chrisliebot.abstraction.ChrislieMessage;
 import chrisliebaer.chrisliebot.abstraction.ChrislieService;
 import chrisliebaer.chrisliebot.abstraction.ChrislieUser;
 import chrisliebaer.chrisliebot.config.scope.Selector;
+import com.google.common.base.Preconditions;
 
 import java.util.List;
 import java.util.function.BiFunction;
-import java.util.function.BinaryOperator;
 
 public class CombinationSelector implements Selector {
 	
 	private List<Selector> selectors;
-	private BinaryOperator<Boolean> operator;
+	private Operation operation;
 	
-	protected CombinationSelector(List<Selector> selectors, BinaryOperator<Boolean> operator) {
+	protected enum Operation {
+		OR, AND
+	}
+	
+	protected CombinationSelector(List<Selector> selectors, Operation operation) {
+		Preconditions.checkArgument(!selectors.isEmpty(), "selector list must no be empty");
+		
 		this.selectors = selectors;
-		this.operator = operator;
+		this.operation = operation;
 	}
 	
 	public static CombinationSelector or(List<Selector> selectors) {
-		return new CombinationSelector(selectors, Boolean::logicalOr);
+		return new CombinationSelector(selectors, Operation.OR);
 	}
 	
 	public static CombinationSelector and(List<Selector> selectors) {
-		return new CombinationSelector(selectors, Boolean::logicalAnd);
+		return new CombinationSelector(selectors, Operation.AND);
 	}
 	
 	public <T> boolean checkAll(BiFunction<Selector, T, Boolean> fn, T in) {
-		return selectors.stream()
-				.map(selector -> fn.apply(selector, in)) // map selectors to their state
-				.reduce(operator).orElse(false); // operation decides on final value (no short cut option!)
+		switch (operation) {
+			case OR:
+				return checkAllOr(fn, in);
+			case AND:
+				return checkAllAnd(fn, in);
+			default:
+				throw new Error("unkown operation: " + operation);
+		}
+	}
+	
+	public <T> boolean checkAllOr(BiFunction<Selector, T, Boolean> fn, T in) {
+		for (var selector : selectors) {
+			if (fn.apply(selector, in))
+				return true;
+		}
+		return false;
+	}
+	
+	public <T> boolean checkAllAnd(BiFunction<Selector, T, Boolean> fn, T in) {
+		for (var selector : selectors) {
+			if (!fn.apply(selector, in))
+				return false;
+		}
+		return true;
 	}
 	
 	@Override

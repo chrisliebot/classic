@@ -63,9 +63,7 @@ public class IrcChannel implements ChrislieChannel {
 	
 	@Override
 	public Optional<IrcUser> user(String identifier) {
-		return channel.getUsers().stream()
-				.filter(user -> user.getAccount().map(s -> s.equals(identifier)).orElse(false))
-				.findFirst().map(user -> new IrcUser(service, user));
+		return service.userByPrefixedIdentifier(identifier, channel.getUsers().stream()).map(user -> new IrcUser(service, user));
 	}
 	
 	@Override
