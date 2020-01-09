@@ -64,7 +64,8 @@ public class DiscordService implements ChrislieService {
 	}
 	
 	@Override
-	public void exit() throws Exception {
+	public void exit() {
+		// TODO: actually wait for full shutdown
 		jda.removeEventListener(this);
 		jda.shutdown();
 	}

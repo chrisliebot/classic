@@ -48,7 +48,7 @@ public class SharedResources extends AbstractIdleService {
 	}
 	
 	@Override
-	protected void shutDown() throws Exception {
+	protected void shutDown() throws Chrisliebot.ChrisliebotException {
 		// remember: reverse order
 		timer.cancel();
 		httpClient.dispatcher().executorService().shutdown(); // TODO: are the executors blocking? should we configure the pool by ourself?

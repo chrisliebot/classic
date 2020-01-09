@@ -100,7 +100,8 @@ public class IrcService implements ChrislieService {
 	}
 	
 	@Override
-	public void exit() throws Exception {
+	public void exit() {
+		// TODO: actually wait for full shutdown
 		client.getEventManager().unregisterEventListener(this);
 		client.shutdown();
 	}

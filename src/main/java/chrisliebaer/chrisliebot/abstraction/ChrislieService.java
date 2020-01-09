@@ -23,26 +23,26 @@ public interface ChrislieService {
 	public void awaitReady() throws Exception;
 	
 	/**
-	 * @param sink
-	 * @return
+	 * @param sink The new sink to pump messages to.
+	 * @return This service for method chaining.
 	 */
 	public ChrislieService sink(@Nullable Consumer<ChrislieMessage> sink);
 	
 	/**
-	 * @param identifier
-	 * @return
+	 * @param identifier The unique channel identifier of a channel that's owned by this service.
+	 * @return An optional containing the channel if the given identifier could be resolved.
 	 */
 	public Optional<? extends ChrislieChannel> channel(String identifier);
 	
 	/**
-	 * @param identifier
-	 * @return
+	 * @param identifier The unique user identifier of a user that's owned by this service.
+	 * @return An optional containing the user if the given identifier could be resolved.
 	 */
 	public Optional<? extends ChrislieUser> user(String identifier);
 	
 	/**
-	 * @param identifier
-	 * @return
+	 * @param identifier The unique user identifier of a guild that's owned by this service.
+	 * @return An optional containing the guild if the given identifier could be resolved.
 	 */
 	public Optional<? extends ChrislieGuild> guild(String identifier);
 	
@@ -52,9 +52,28 @@ public interface ChrislieService {
 	public default void reconnect() {}
 	
 	/**
-	 * Called by Chrisliebot to shutdown this service. The implementation should block until it has completly shut down.
+	 * Called by Chrisliebot to shutdown this service. The implementation should block until it has completly shut down. After returning from this method, the service is
+	 * must no longer interact with the Chrisliebot framework.
 	 *
-	 * @throws Exception If a proper shutdown is not possible.
+	 * @throws ServiceException If a proper shutdown is not possible.
 	 */
-	public void exit() throws Exception;
+	public void exit() throws ServiceException;
+	
+	public static class ServiceException extends Exception {
+		
+		public ServiceException() {
+		}
+		
+		public ServiceException(String message) {
+			super(message);
+		}
+		
+		public ServiceException(String message, Throwable cause) {
+			super(message, cause);
+		}
+		
+		public ServiceException(Throwable cause) {
+			super(cause);
+		}
+	}
 }

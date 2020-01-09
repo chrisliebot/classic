@@ -15,6 +15,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Pattern;
 
 @Slf4j
@@ -24,6 +25,10 @@ public class ChrislieDispatcher {
 	private static final String DISPATCHER_PATTERN_GROUP_ARGUMENT = "argument";
 	
 	private Chrisliebot chrisliebot;
+	
+	private volatile boolean shutdown;
+	
+	private final AtomicInteger shutdownCounter = new AtomicInteger(0);
 	
 	private LoadingCache<String, Pattern> patternCache = CacheBuilder.newBuilder()
 			.maximumSize(10)
@@ -42,49 +47,74 @@ public class ChrislieDispatcher {
 	}
 	
 	/**
+	 * Shuts down this dispatcher and blocks until all incoming messages have been processed. Any incoming messages after a shutdown will be discarded.
+	 */
+	public void shutdown() throws InterruptedException {
+		shutdown = true; // discard all new messages
+		
+		// wait for other threads to exit dispatcher section
+		synchronized (shutdownCounter) {
+			while (shutdownCounter.get() != 0)
+				shutdownCounter.wait();
+		}
+	}
+	
+	/**
 	 * Public sink method of this dispatcher. Once called, the dispatcher will build the context of the given message and dispatch it to all mapped listeners and
 	 * commands.
 	 *
 	 * @param m The message that should be dispatched.
 	 */
 	public void dispatch(@NonNull ChrislieMessage m) {
-		var ctx = resolver.resolve(Selector::check, m);
-		
-		// dispatcher can be directly controlled via certain group config flax
-		if (ctx.flexConf().isSet(FlexConf.DISPATCHER_DISABLE)) {
-			log.trace("dispatcher is disabled for message: {}", m);
-			return;
-		}
-		
-		var listener = handleCommandInvocation(m, ctx);
-		var isCommand = listener.isPresent();
-		
-		// notify all listeners
-		for (var ref : ctx.listeners().values()) {
+		try {
+			shutdownCounter.incrementAndGet();
 			
-			// if a listener was called as a command, it will not be called again for the very same message
-			if (isCommand && listener.get() == ref.envelope().listener())
-				continue;
+			if (shutdown)
+				return;
 			
-			// listeners can be disabled with the same flag that disables the command dispatcher
-			if (ref.flexConf().isSet(FlexConf.DISPATCHER_DISABLE)) {
-				log.trace("listener `{}` is disabled for message: {}", ref.envelope().source(), m);
-				continue;
+			var ctx = resolver.resolve(Selector::check, m);
+			
+			// dispatcher can be directly controlled via certain group config flax
+			if (ctx.flexConf().isSet(FlexConf.DISPATCHER_DISABLE)) {
+				log.trace("dispatcher is disabled for message: {}", m);
+				return;
 			}
 			
-			// message object contains ref, so can't be shared with all listeners, sad heap allocation :(
-			var lm = new ChrislieListener.ListenerMessage(
-					chrisliebot,
-					m,
-					ref,
-					ctx
-			);
+			var listener = handleCommandInvocation(m, ctx);
+			var isCommand = listener.isPresent();
 			
-			log.trace("calling listener `{}` for message: {}", ref.envelope().source(), m);
-			try {
-				ref.envelope().listener().onMessage(lm, isCommand);
-			}  catch (@SuppressWarnings("OverlyBroadCatchBlock") Exception e) {
-				log.error("listener callback failed with exception: {}", lm, e);
+			// notify all listeners
+			for (var ref : ctx.listeners().values()) {
+				
+				// if a listener was called as a command, it will not be called again for the very same message
+				if (isCommand && listener.get() == ref.envelope().listener())
+					continue;
+				
+				// listeners can be disabled with the same flag that disables the command dispatcher
+				if (ref.flexConf().isSet(FlexConf.DISPATCHER_DISABLE)) {
+					log.trace("listener `{}` is disabled for message: {}", ref.envelope().source(), m);
+					continue;
+				}
+				
+				// message object contains ref, so can't be shared with all listeners, sad heap allocation :(
+				var lm = new ChrislieListener.ListenerMessage(
+						chrisliebot,
+						m,
+						ref,
+						ctx
+				);
+				
+				log.trace("calling listener `{}` for message: {}", ref.envelope().source(), m);
+				try {
+					ref.envelope().listener().onMessage(lm, isCommand);
+				} catch (@SuppressWarnings("OverlyBroadCatchBlock") Exception e) {
+					log.error("listener callback failed with exception: {}", lm, e);
+				}
+			}
+		} finally {
+			synchronized (shutdownCounter) {
+				shutdownCounter.decrementAndGet();
+				shutdownCounter.notifyAll();
 			}
 		}
 	}
