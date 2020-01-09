@@ -12,6 +12,8 @@ import org.apache.commons.lang.text.StrLookup;
 import org.apache.commons.lang.text.StrSubstitutor;
 
 import javax.validation.constraints.NotNull;
+import java.io.File;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
@@ -34,13 +36,19 @@ public class GeneratorCommand implements ChrislieListener.Command {
 	}
 	
 	private Generator loadGenerator(GsonValidator gson, GeneratorConfig cfg) throws ListenerException {
-		switch (cfg.type) {
-			case "static":
-				return new StaticGenerator(cfg.cfg.getAsString());
-			case "file":
-				return new FileGenerator(gson.fromJson(cfg.cfg, FileGenerator.Config.class));
-			default:
-				throw new ListenerException("unkown generator type: " + cfg.type);
+		try {
+			switch (cfg.type) {
+				case "static":
+					return new StaticGenerator(cfg.cfg.getAsString());
+				case "staticfile":
+					return new StaticGenerator(new File(cfg.cfg.getAsString()));
+				case "file":
+					return new FileGenerator(gson.fromJson(cfg.cfg, FileGenerator.Config.class));
+				default:
+					throw new ListenerException("unkown generator type: " + cfg.type);
+			}
+		} catch (IOException e) {
+			throw new ListenerException("io error in generator", e);
 		}
 	}
 	

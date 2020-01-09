@@ -29,6 +29,13 @@ public interface ChrislieChannel extends ServiceAttached {
 	public List<? extends ChrislieUser> users();
 	
 	/**
+	 * @return {@code true} if this channel is marked as a NSFW channel.
+	 */
+	public default boolean isNSFW() {
+		return false;
+	}
+	
+	/**
 	 * @param identifier The identifier of the user.
 	 * @return A potential user if the user can be found in this channel.
 	 */

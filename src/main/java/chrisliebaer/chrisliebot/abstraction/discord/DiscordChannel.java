@@ -8,12 +8,13 @@ import lombok.NonNull;
 import net.dv8tion.jda.api.entities.GuildChannel;
 import net.dv8tion.jda.api.entities.MessageChannel;
 import net.dv8tion.jda.api.entities.PrivateChannel;
+import net.dv8tion.jda.api.entities.TextChannel;
 
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-public class DiscordChannel implements ChrislieChannel {
+public class DiscordChannel implements ChrislieChannel { // TODO: we should probably split this into two implementations for guild and no guild channels
 	
 	@Getter private DiscordService service;
 	@Getter private MessageChannel channel;
@@ -36,6 +37,15 @@ public class DiscordChannel implements ChrislieChannel {
 	@Override
 	public boolean isDirectMessage() {
 		return channel instanceof PrivateChannel;
+	}
+	
+	@Override
+	public boolean isNSFW() {
+		if (channel instanceof TextChannel) {
+			TextChannel c = (TextChannel) channel;
+			return c.isNSFW();
+		}
+		return false;
 	}
 	
 	@Override

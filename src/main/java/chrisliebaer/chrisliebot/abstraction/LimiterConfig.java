@@ -24,6 +24,7 @@ public class LimiterConfig {
 	private static final String FLEX_STRIP_LINEBREAK = "limitercfg.stripLinebreak";
 	private static final String FLEX_CUT_NOTICE = "limitercfg.cutNotice";
 	private static final String FLEX_OUT_OF_BAND = "limitercfg.oob";
+	private static final String FLEX_OUT_OF_BAND_DISABLE = "limitercfg.oob.disable";
 	
 	// offset will be added to the size parameter of split method
 	private int offset;
@@ -46,7 +47,10 @@ public class LimiterConfig {
 		cfg.maxLines = flex.getIntegerOrFail(FLEX_MAX_LINES);
 		cfg.stripLineBreak = flex.isSet(FLEX_STRIP_LINEBREAK);
 		cfg.appendCutNotice = flex.isSet(FLEX_CUT_NOTICE);
-		cfg.outOfBand = flex.get(FLEX_OUT_OF_BAND, OutOfBandTransmission.class).orElse(null);
+		
+		if (!flex.isSet(FLEX_OUT_OF_BAND_DISABLE))
+			cfg.outOfBand = flex.get(FLEX_OUT_OF_BAND, OutOfBandTransmission.class).orElse(null);
+		
 		return cfg;
 	}
 	

@@ -2,18 +2,20 @@ package chrisliebaer.chrisliebot.command.qwant;
 
 import chrisliebaer.chrisliebot.C;
 import chrisliebaer.chrisliebot.Chrisliebot;
+import chrisliebaer.chrisliebot.abstraction.ChrislieIdentifier;
 import chrisliebaer.chrisliebot.abstraction.ChrislieOutput;
+import chrisliebaer.chrisliebot.abstraction.SerializedOutput;
 import chrisliebaer.chrisliebot.command.ChrislieListener;
 import chrisliebaer.chrisliebot.command.ListenerReference;
 import chrisliebaer.chrisliebot.command.qwant.QwantService.QwantResponse;
 import chrisliebaer.chrisliebot.config.ChrislieContext;
 import chrisliebaer.chrisliebot.config.ContextResolver;
+import chrisliebaer.chrisliebot.config.flex.CommonFlex;
 import chrisliebaer.chrisliebot.util.ErrorOutputBuilder;
 import chrisliebaer.chrisliebot.util.GsonValidator;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.gson.JsonElement;
-import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.OkHttpClient;
 import org.apache.commons.text.StringSubstitutor;
@@ -22,12 +24,16 @@ import retrofit2.Callback;
 import retrofit2.Response;
 import retrofit2.Retrofit;
 
+import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.NotNull;
+import javax.validation.constraints.Positive;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 
 @Slf4j
-// TODO: implement SFW, NSFW filter via flexconf
+@SuppressWarnings({"SynchronizeOnNonFinalField", "FieldAccessedSynchronizedAndUnsynchronized"}) // resultStorage never changes but can't be final
 public class QwantSearchCommand implements ChrislieListener.Command {
 	
 	private static final ErrorOutputBuilder ERROR_NO_QUERY = ErrorOutputBuilder.generic("Du hast keine Suchanfrage eingegeben.");
@@ -35,33 +41,42 @@ public class QwantSearchCommand implements ChrislieListener.Command {
 	private static final ErrorOutputBuilder ERROR_EOF = ErrorOutputBuilder.generic("Das waren alle Ergebnisse. Mehr hab ich nicht.");
 	private static final ErrorOutputBuilder ERROR_NO_MATCH = ErrorOutputBuilder.generic("Deine Suche ergab leider keine Treffer.");
 	
-	private static final int MAX_RESULT_STORAGE = 10;
+	private static final CommonFlex.Provider<QwantService.SafeSearch> FLEX_SAFE_SEARCH = CommonFlex.provider(
+			(flex, key) -> flex.get(key, QwantService.SafeSearch.class), "qwant.safeSearch");
+	
 	private static final int RATE_LIMIT_CODE = 429;
 	
 	private ErrorOutputBuilder errorRateLimited;
 	
-	private Config cfg;
+	
 	private QwantService service;
 	
-	private final Cache<String, List<QwantResponse.QwantItem>> resultStorage =
-			CacheBuilder.newBuilder()
-					.maximumSize(MAX_RESULT_STORAGE)
-					.build();
+	private Config cfg;
+	private Cache<ChrislieIdentifier.ChannelIdentifier, List<QwantResponse.QwantItem>> resultStorage;
 	
 	@Override
 	public Optional<String> help(ChrislieContext ctx, ListenerReference ref) {
-		return Optional.of("Ich zeig dir das World Wide Web.");
+		return Optional.of("Ich zeig dir das World Wide Web. Gib einfach deine Suchanfrage ein.");
 	}
 	
 	@Override
 	public void fromConfig(GsonValidator gson, JsonElement json) throws ListenerException {
-		cfg = gson.fromJson(json, Config.class); // TODO: validate config
+		cfg = gson.fromJson(json, Config.class);
 	}
 	
 	@Override
 	public void init(Chrisliebot bot, ContextResolver resolver) throws ListenerException {
-		OkHttpClient client = bot.sharedResources().httpClient()
-				.newBuilder().addNetworkInterceptor(c -> c.proceed(c.request().newBuilder().header("User-Agent", C.UA_CHROME).build())).build(); // TODO check if this is true
+		resultStorage = CacheBuilder.newBuilder()
+				.expireAfterAccess(cfg.resultTimeout, TimeUnit.MILLISECONDS)
+				.build();
+		
+		@SuppressWarnings("resource") // warning makes no sense and is probably result of lambda usage
+				OkHttpClient client = bot.sharedResources().httpClient()
+				.newBuilder().addNetworkInterceptor(
+						c -> c.proceed(c.request()
+								.newBuilder()
+								.header("User-Agent", C.UA_CHROME).build())).build();
+		
 		Retrofit retrofit = new Retrofit.Builder()
 				.baseUrl(QwantService.BASE_URL)
 				.client(client)
@@ -69,14 +84,14 @@ public class QwantSearchCommand implements ChrislieListener.Command {
 				.build();
 		service = retrofit.create(QwantService.class);
 		
-		errorRateLimited = ErrorOutputBuilder.generic(out -> out.appendEscape("Ich wurde ausgesperrt. Bitte hilf mir: ").append(cfg.captchaUrl()));
+		errorRateLimited = ErrorOutputBuilder.generic(out -> out.appendEscape("Ich wurde ausgesperrt. Bitte hilf mir: ").append(cfg.captchaUrl));
 	}
 	
 	@Override
 	public void execute(Invocation invc) throws ListenerException {
 		var m = invc.msg();
 		var query = invc.arg().trim();
-		var context = m.channel().identifier();
+		var identifier = ChrislieIdentifier.ChannelIdentifier.of(m.channel());
 		var reply = invc.reply();
 		
 		if (query.isEmpty()) {
@@ -86,7 +101,7 @@ public class QwantSearchCommand implements ChrislieListener.Command {
 		
 		if ("next".equalsIgnoreCase(query)) {
 			synchronized (resultStorage) {
-				List<QwantResponse.QwantItem> pastResult = resultStorage.getIfPresent(context);
+				List<QwantResponse.QwantItem> pastResult = resultStorage.getIfPresent(identifier);
 				if (pastResult == null) {
 					ERROR_NO_ACTIVE_SEARCH.write(reply).send();
 					return;
@@ -94,17 +109,17 @@ public class QwantSearchCommand implements ChrislieListener.Command {
 				
 				if (pastResult.isEmpty()) {
 					ERROR_EOF.write(reply).send();
-					resultStorage.invalidate(context);
+					resultStorage.invalidate(identifier);
 					return;
 				}
 				
 				printResultItem(reply, pastResult.remove(0));
-				return; // don't forget to exit
+				return;
 			}
 		}
 		
-		Call<QwantResponse> call = service.search(query, cfg.safeSearch(), cfg.count(), cfg.type());
-		
+		var safeSearch = FLEX_SAFE_SEARCH.getOrFail(invc);
+		Call<QwantResponse> call = service.search(query, safeSearch, cfg.count, cfg.type);
 		call.enqueue(new Callback<>() {
 			@Override
 			public void onResponse(Call<QwantResponse> c, Response<QwantResponse> resp) {
@@ -119,29 +134,28 @@ public class QwantSearchCommand implements ChrislieListener.Command {
 					
 					// clear search cache so we don't confuse user with old results
 					synchronized (resultStorage) {
-						resultStorage.invalidate(context);
+						resultStorage.invalidate(identifier);
 					}
 					
 					return;
 				}
 				assert body != null; // shut up about body being null, it can't
 				List<QwantResponse.QwantItem> items = body.items();
-				
-				if (body.items().isEmpty()) {
+				if (body.items() == null || body.items().isEmpty()) {
 					ERROR_NO_MATCH.write(reply).send();
 					return;
 				}
 				
-				if (cfg.randomize())
+				if (cfg.randomize)
 					Collections.shuffle(items);
 				
 				synchronized (resultStorage) {
 					// add result to storage for later lookups
-					resultStorage.put(context, items);
+					resultStorage.put(identifier, items);
+					
+					// pop and print
+					printResultItem(reply, items.remove(0));
 				}
-				
-				// pop and print
-				printResultItem(reply, items.remove(0));
 			}
 			
 			@Override
@@ -167,24 +181,17 @@ public class QwantSearchCommand implements ChrislieListener.Command {
 			}
 		});
 		
-		reply.title(C.stripHtml(item.title()), item.url());
-		reply.description(C.stripHtml(item.desc()));
-		reply.image(item.media());
-		reply.footer("powered by qwant.com", "https://www.qwant.com/favicon.png");
-		
-		reply.replace(strSub.replace(cfg.output()));
-		
+		cfg.output.apply(reply, strSub::replace);
 		reply.send();
 	}
 	
-	@Data
 	private static class Config {
 		
-		private String output;
-		private int safeSearch = 0; // off, as god intended
-		private String type; // web, news, images
+		private @NotNull SerializedOutput output;
+		private @NotNull QwantService.Type type;
+		private @Positive long resultTimeout; // duration in milliseconds until cached results expire
 		private boolean randomize;
-		private int count; // limited to 50
-		private String captchaUrl; // posted when rate limited
+		private @Positive int count; // limited to 50
+		private @NotBlank String captchaUrl; // posted when rate limited
 	}
 }

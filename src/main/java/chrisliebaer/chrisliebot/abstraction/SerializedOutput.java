@@ -24,7 +24,7 @@ public class SerializedOutput {
 	private Integer color;
 	
 	private String author;
-	// without the author field, these are ignored, null is also a valid value, so need to wrap in optional
+	// without the author field, these are ignored, null is also a valid value, so no need to wrap in optional
 	private String authorUrl;
 	private String authorIcon;
 	
@@ -75,10 +75,6 @@ public class SerializedOutput {
 	
 	private static void applyCalls(List<PlainOutputCall> calls, PlainOutput out, Function<String, String> fn) {
 		calls.forEach(call -> call.apply(out, fn));
-	}
-	
-	private static String runIfNotNull(String s, Function<String, String> fn) {
-		return s == null ? null : fn.apply(s);
 	}
 	
 	private static final class Field {

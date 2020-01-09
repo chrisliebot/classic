@@ -60,7 +60,7 @@ public class JsonBotConfig {
 	private static class ListenerAnchor {
 		// both ref and def are defined within the same class so we can ensure the uer didn't provide conflicting fields
 		
-		private String type; // ref, def
+		private String type; // ref, def // TODO: implement weakref that is only valid if ref can be resolved and will fail silently otherwise, then use for nsfw qwant
 		
 		private String name; // identifier
 		private String help; // help text, valid in ref and def
@@ -225,6 +225,9 @@ public class JsonBotConfig {
 					break;
 				case "and":
 					selector = CombinationSelector.and(instanceSelectors(json.json));
+					break;
+				case "nsfw":
+					selector = new NSFWSelector();
 					break;
 				case "regex":
 					selector = new RegExpSelector();

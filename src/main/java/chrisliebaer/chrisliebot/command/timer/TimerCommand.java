@@ -36,9 +36,11 @@ import java.util.stream.Collectors;
 /* v3 features TODO
  * upper limit for duration, number of timers (can be combined with scope based map used for other limits I can't remember)
  * permission for accessing other tasks / and deleting them
+ * order timer output by expiration time
+ * implement ^ selector for last expired timer
  */
 @Slf4j
-public class TimerCommand implements ChrislieListener.Command { // TODO: move error message in static builders
+public class TimerCommand implements ChrislieListener.Command {
 	
 	private static final BaseEncoding TIMER_CODEC = BaseEncoding.base64Url().omitPadding();
 	private static final long PURGE_INTERVAL = 60 * 60 * 1000;
@@ -59,7 +61,7 @@ public class TimerCommand implements ChrislieListener.Command { // TODO: move er
 	
 	@Override
 	public Optional<String> help(ChrislieContext ctx, ListenerReference ref) throws ListenerException {
-		return Optional.of("!timer 10 min Pizza. !timer list, !timer info|delete|restore <id>, !timer snooze <id> 2 days");
+		return Optional.of("10 min Pizza|list, info|delete|restore <id>, snooze <id> 2 days");
 	}
 	
 	@Override
@@ -127,7 +129,7 @@ public class TimerCommand implements ChrislieListener.Command { // TODO: move er
 			return;
 		}
 		
-		var pair = shrinkingParse(arg, CommonFlex.ZONE_ID().getOrFail(invc.ref().flexConf()));
+		var pair = shrinkingParse(arg, CommonFlex.ZONE_ID().getOrFail(invc));
 		if (pair.isEmpty()) {
 			ERROR_INVALID_DATE.write(invc).send();
 			return;
@@ -357,7 +359,7 @@ public class TimerCommand implements ChrislieListener.Command { // TODO: move er
 			return;
 		}
 		var id = decodeTimer(args[0]);
-		var maybeWhen = parse(args[1], CommonFlex.ZONE_ID().getOrFail(invc.ref().flexConf()));
+		var maybeWhen = parse(args[1], CommonFlex.ZONE_ID().getOrFail(invc));
 		if (maybeWhen.isEmpty()) {
 			ERROR_INVALID_DATE.write(invc).send();
 			return;
