@@ -20,6 +20,7 @@ import org.kitteh.irc.client.library.feature.sending.SingleDelaySender;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.regex.Pattern;
 
 @Slf4j
@@ -38,6 +39,8 @@ public class IrcBootstrap implements ServiceBootstrap {
 	private String realname;
 	
 	private Map<String, List<String>> guilds;
+	
+	private Set<String> ignore;
 	
 	@Override
 	public IrcService service(Chrisliebot bot, String identifier) throws NullPointerException {
@@ -65,7 +68,7 @@ public class IrcBootstrap implements ServiceBootstrap {
 		
 		// connect and pass to service, service should not assume client to be still disconnected, setup is done here
 		client.connect();
-		return new IrcService(client, identifier, buildGuildMap(guilds));
+		return new IrcService(client, identifier, buildGuildMap(guilds), ignore);
 	}
 	
 	private static Multimap<String, Pattern> buildGuildMap(Map<String, List<String>> guilds) {

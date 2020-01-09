@@ -17,6 +17,7 @@ import org.kitteh.irc.client.library.event.user.PrivateMessageEvent;
 
 import java.util.Collection;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
@@ -43,13 +44,15 @@ public class IrcService implements ChrislieService {
 	@Getter private final Client client;
 	@Getter private final String identifier;
 	private final Multimap<String, Pattern> guildMap;
+	private Set<String> ignore;
 	
 	@Setter private Consumer<ChrislieMessage> sink;
 	
-	public IrcService(@NonNull Client client, @NonNull String identifier, Multimap<String, Pattern> guildMap) {
+	public IrcService(@NonNull Client client, @NonNull String identifier, Multimap<String, Pattern> guildMap, Set<String> ignore) {
 		this.client = client;
 		this.identifier = identifier;
 		this.guildMap = guildMap;
+		this.ignore = ignore;
 	}
 	
 	protected Optional<IrcGuild> channelToGuild(Channel channel) {
@@ -73,6 +76,9 @@ public class IrcService implements ChrislieService {
 	
 	@Handler
 	public void onChannelMessage(ChannelMessageEvent ev) {
+		if (ignore.contains(ev.getActor().getNick()))
+			return;
+		
 		var sink = this.sink;
 		if (sink != null)
 			sink.accept(IrcMessage.of(this, ev));
@@ -80,6 +86,9 @@ public class IrcService implements ChrislieService {
 	
 	@Handler
 	public void onPrivateMessage(PrivateMessageEvent ev) {
+		if (ignore.contains(ev.getActor().getNick()))
+			return;
+		
 		var sink = this.sink;
 		if (sink != null)
 			sink.accept(IrcMessage.of(this, ev));
