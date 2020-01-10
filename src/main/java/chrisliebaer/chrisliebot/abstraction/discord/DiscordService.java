@@ -8,10 +8,12 @@ import lombok.Setter;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.TextChannel;
 import net.dv8tion.jda.api.entities.User;
+import net.dv8tion.jda.api.events.ShutdownEvent;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.hooks.SubscribeEvent;
 
 import java.util.Optional;
+import java.util.concurrent.CountDownLatch;
 import java.util.function.Consumer;
 
 public class DiscordService implements ChrislieService {
@@ -64,10 +66,28 @@ public class DiscordService implements ChrislieService {
 	}
 	
 	@Override
-	public void exit() {
-		// TODO: actually wait for full shutdown
+	public void exit() throws ServiceException {
+		final var helper = new Object() {
+			private final CountDownLatch latch = new CountDownLatch(1);
+			
+			@SubscribeEvent
+			public void onShutdown(ShutdownEvent ev) {
+				latch.countDown();
+			}
+		};
+		
+		// register helper to keep track shutdown event
+		jda.addEventListener(helper);
 		jda.removeEventListener(this);
 		jda.shutdown();
+		
+		// wait for shutdown event to occur
+		try {
+			helper.latch.await();
+		} catch (InterruptedException e) {
+			Thread.currentThread().interrupt();
+			throw new ServiceException("got interrupted while waiting for jda shutdown", e);
+		}
 	}
 	
 	public static boolean isDiscord(ServiceAttached service) {
