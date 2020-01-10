@@ -1,4 +1,6 @@
-import java.text.SimpleDateFormat
+import java.time.ZonedDateTime
+import java.time.format.DateTimeFormatter
+import java.time.temporal.ChronoUnit
 
 plugins {
 	// gradle dependencyUpdates -Drevision=release
@@ -17,7 +19,7 @@ targetCompatibility = 12
 compileJava.options.encoding = 'UTF-8'
 
 group = "chrisliebaer"
-version "v3-" + gitVersion()
+version gitVersion()
 mainClassName = "chrisliebaer.chrisliebot.Chrisliebot"
 
 // set up generation of ressources
@@ -31,12 +33,15 @@ task generateResources() {
 task generateBuildInfo() {
 	doLast() {
 		def det = versionDetails()
-		new File(generatedResources, "build.txt").text = """
+		new File(generatedResources).mkdirs()
+		def f = new File(generatedResources, "vcs.properties")
+		f.createNewFile()
+		f.text = """
 version: ${project.version}
 commit: ${det.gitHashFull}
 branch: ${det.branchName}
 clean: ${det.isCleanTag}
-buildtime: ${new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date())}
+buildTime: ${DateTimeFormatter.ISO_ZONED_DATE_TIME.format(ZonedDateTime.now().truncatedTo(ChronoUnit.SECONDS))}
 """
 	}
 }

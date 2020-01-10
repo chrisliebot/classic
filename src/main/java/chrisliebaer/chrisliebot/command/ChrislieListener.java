@@ -119,15 +119,6 @@ public interface ChrislieListener {
 	public interface Command extends ChrislieListener {
 		
 		/**
-		 * This method is called if this command was referenced by an alias in a command invocation. Calls to this method are exclusive in that no other command will
-		 * receive the same call for the same message.
-		 *
-		 * @param invc An Invocation object, containing the details of this invocation.
-		 * @throws ListenerException Indicates that the listener was unable to function properly and user intervention is required to resolve the problem.
-		 */
-		public void execute(Invocation invc) throws ListenerException;
-		
-		/**
 		 * Allows listeners to provide a hard coded help text. Note that the returned help text should not include alias names.
 		 *
 		 * @param ctx The context for which the help should be provided. Note that implementations of this method must not fetch their own help from their {@link
@@ -138,6 +129,15 @@ public interface ChrislieListener {
 		 * @throws ListenerException If accessing the help failed.
 		 */
 		public default Optional<String> help(ChrislieContext ctx, ListenerReference ref) throws ListenerException {return Optional.empty();}
+		
+		/**
+		 * This method is called if this command was referenced by an alias in a command invocation. Calls to this method are exclusive in that no other command will
+		 * receive the same call for the same message.
+		 *
+		 * @param invc An Invocation object, containing the details of this invocation.
+		 * @throws ListenerException Indicates that the listener was unable to function properly and user intervention is required to resolve the problem.
+		 */
+		public void execute(Invocation invc) throws ListenerException;
 	}
 	
 	/**

@@ -14,7 +14,7 @@ import java.util.Timer;
 
 public class SharedResources extends AbstractIdleService {
 	
-	private static final String DEFAULT_USER_AGENT = "Chrisliebot/" + VersionUtil.versionString() + " (+https://git.kd-tree.com/Chrisliebot/core)";
+	private static final String DEFAULT_USER_AGENT = "Chrisliebot/" + VersionUtil.version() + " (+https://git.kd-tree.com/Chrisliebot/core)";
 	
 	@Getter private OkHttpClient httpClient;
 	@Getter private Timer timer;
