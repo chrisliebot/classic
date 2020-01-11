@@ -11,7 +11,7 @@
 		<!-- Console logger for debugging (prints stacktrace) -->
 		<Console name="ConsoleDebug" target="SYSTEM_OUT">
 			<PatternLayout
-					pattern="%highlight{[%d{HH:mm:ss]}[%p{length=3}][%15.15c{1}] %m%n}{FATAL=black, ERROR=red, WARN=yellow, INFO=green, DEBUG=blue, TRACE=white}"
+					pattern="%highlight{[%d{HH:mm:ss]}[%p{length=3}][%c] %m%n}{FATAL=black, ERROR=red, WARN=yellow, INFO=green, DEBUG=blue, TRACE=white}"
 					disableAnsi="false"/>
 		</Console>
 	</Appenders>
@@ -22,8 +22,9 @@
 		<Logger name="chrisliebaer.chrisliebot.command.mensa.MensaCommand" level="DEBUG"/>
 		<Logger name="chrisliebaer.chrisliebot.util.IrcToSqlLogger" level="DEBUG"/>
 		<Logger name="chrisliebaer.chrisliebot.command.ChrislieDispatcher" level="DEBUG"/>
+		<Logger name="org.zeroturnaround.exec.stream" level="DEBUG"/>
 		<Logger name="com.joestelmach.natty" level="ERROR"/>
-		<Logger name="net.dv8tion.jda" level="WARN"/>
+		<Logger name="net.dv8tion.jda" level="INFO"/>
 		<Logger name="org.hibernate.validator" level="WARN"/>
 		
 		

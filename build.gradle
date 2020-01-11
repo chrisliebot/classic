@@ -89,6 +89,9 @@ dependencies { // TODO: cleanup?
 	// webserver
 	implementation 'io.undertow:undertow-core:2.0.23.Final'
 
+	// the only fuckling exec library that doesn't suck fucking donkey balls
+	implementation 'org.zeroturnaround:zt-exec:1.11'
+
 	// features
 	implementation 'com.joestelmach:natty:0.11'
 	implementation 'dnsjava:dnsjava:2.1.8'

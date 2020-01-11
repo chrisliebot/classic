@@ -22,4 +22,13 @@ public class BetterScheduledService extends AbstractScheduledService {
 	protected Scheduler scheduler() {
 		return scheduler;
 	}
+	
+	/**
+	 * Just a regular {@link Runnable} but it can throw exceptions.
+	 */
+	@FunctionalInterface
+	public static interface ExceptionalRunnable {
+		
+		public void run() throws Exception;
+	}
 }

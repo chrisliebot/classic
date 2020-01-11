@@ -95,6 +95,4 @@ public interface ChrislieOutput {
 	private static void plainSimpleSet(String s, PlainOutput plainOutput) {
 		plainOutput.clear().appendEscape(s);
 	}
-	
-	// TODO: would be nice to have some way of wrapping ListenerException methods via this object to feed back asynchronous exception to the invoking dispatcher
 }

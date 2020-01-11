@@ -4,6 +4,7 @@ import chrisliebaer.chrisliebot.abstraction.ChrislieOutput;
 import chrisliebaer.chrisliebot.abstraction.PlainOutput;
 import chrisliebaer.chrisliebot.abstraction.PlainOutputImpl;
 import lombok.NonNull;
+import lombok.extern.slf4j.Slf4j;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.MessageBuilder;
 import net.dv8tion.jda.api.entities.MessageChannel;
@@ -11,12 +12,13 @@ import net.dv8tion.jda.api.entities.MessageChannel;
 import java.awt.*;
 import java.util.function.Function;
 
+@Slf4j
 public class DiscordOutput implements ChrislieOutput {
 	
 	private MessageChannel channel;
 	private EmbedBuilder embedBuilder = new EmbedBuilder();
-	private PlainOutputImpl plain = new PlainOutputImpl(Function.identity(), (a,b) -> b); // TODO: replace identity?
-	private PlainOutputImpl descrption = new PlainOutputImpl(Function.identity(), (a,b) -> b);
+	private PlainOutputImpl plain = new PlainOutputImpl(Function.identity(), (a, b) -> b); // TODO: replace identity?
+	private PlainOutputImpl descrption = new PlainOutputImpl(Function.identity(), (a, b) -> b);
 	
 	private String authorName, authorUrl, authorIcon;
 	
@@ -115,7 +117,11 @@ public class DiscordOutput implements ChrislieOutput {
 		if (!embedBuilder.isEmpty())
 			mb.setEmbed(embedBuilder.build());
 		
-		mb.append(plain.string());
-		mb.sendTo(channel).queue();
+		try {
+			mb.append(plain.string());
+			mb.sendTo(channel).queue(m -> {}, error -> log.error("failed to send message", error));
+		} catch (IllegalArgumentException e) { // if the message is to long or other undocumented shit inside jda
+			log.error("failed to queue message", e);
+		}
 	}
 }

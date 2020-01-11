@@ -8,14 +8,14 @@ import java.util.Optional;
 public interface ChrislieUser extends ServiceAttached {
 	
 	/**
-	 * @return The display name which should be used to talk about the user in human facing messages.
-	 */
-	public String displayName();
-	
-	/**
 	 * @return An internal identifier of a user. Should be used when storing user associated data.
 	 */
 	public String identifier();
+	
+	/**
+	 * @return The display name which should be used to talk about the user in human facing messages.
+	 */
+	public String displayName();
 	
 	/**
 	 * @return The string that should be used to {@code ping} the user.

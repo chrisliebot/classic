@@ -172,10 +172,12 @@ public interface ChrislieListener {
 	@ToString
 	public static class ListenerMessage implements ServiceAttached {
 		
-		public ListenerMessage(@NonNull Chrisliebot bot,
+		public ListenerMessage(@NonNull ExceptionHandler exceptionHandler,
+							   @NonNull Chrisliebot bot,
 							   @NonNull ChrislieMessage msg,
 							   @NonNull ListenerReference ref,
 							   @NonNull ChrislieContext ctx) {
+			this.exceptionHandler = exceptionHandler;
 			this.bot = bot;
 			this.msg = msg;
 			this.ref = ref;
@@ -201,6 +203,13 @@ public interface ChrislieListener {
 		 * The context that matches the source of the command.
 		 */
 		@Getter private final @NonNull ChrislieContext ctx;
+		
+		/**
+		 * A lot of listeners rely on asynchronous operations to complete their task. While synchronous code can simply throw a {@link ListenerException} to rais an
+		 * error, asynchronous code can not. In order to still maintain relationship between an invocation an the potential error raised, listeners can use this exception
+		 * handler to feed back their errors into the dispatcher.
+		 */
+		@Getter private final @NonNull ExceptionHandler exceptionHandler;
 		
 		@Override
 		public ChrislieService service() {
@@ -229,16 +238,52 @@ public interface ChrislieListener {
 		}
 	}
 	
+	/**
+	 * This interface allows asynchronous code to feed back listener exception into the dispatcher, allowing to identify which invocations caused an exception to occur.
+	 */
+	public interface ExceptionHandler {
+		
+		/**
+		 * Sends the given to the dispatcher for error handling.
+		 *
+		 * @param e The exception that was raised during execution.
+		 */
+		public void escalateException(@NonNull ListenerException e);
+		
+		/**
+		 * Executes the given code block while propagatin all raised {@link ListenerException}s back to the dispatcher. Ideally this should be used to wrap the top level
+		 * entry point of any asynchronous code.
+		 *
+		 * @param fn The function to wrap.
+		 */
+		public default void unwrap(@NonNull ListenerRunnable fn) {
+			try {
+				fn.run();
+			} catch (ListenerException e) {
+				escalateException(e);
+			}
+		}
+	}
+	
+	/**
+	 * Regular runnable but it can throw {@link ListenerException}.
+	 */
+	public interface ListenerRunnable {
+		
+		public void run() throws ListenerException;
+	}
+	
 	@ToString(callSuper = true)
 	public static class Invocation extends ListenerMessage {
 		
-		public Invocation(@NonNull Chrisliebot bot,
+		public Invocation(@NonNull ExceptionHandler exceptionHandler,
+						  @NonNull Chrisliebot bot,
 						  @NonNull ChrislieMessage msg,
 						  @NonNull ListenerReference ref,
 						  @NonNull ChrislieContext ctx,
 						  @NonNull String arg,
 						  @NonNull String alias) {
-			super(bot, msg, ref, ctx);
+			super(exceptionHandler, bot, msg, ref, ctx);
 			this.arg = arg;
 			this.alias = alias;
 		}
@@ -247,9 +292,16 @@ public interface ChrislieListener {
 		 * The argument that was passed along the command. Never null.
 		 */
 		@Getter private final @NonNull String arg;
+		/**
+		 * The alias that was used to access this command.
+		 */
+		@Getter private final @NonNull String alias;
+		
 		
 		public Invocation arg(@NonNull String arg) {
-			return new Invocation(bot(),
+			return new Invocation(
+					exceptionHandler(),
+					bot(),
 					msg(),
 					ref(),
 					ctx(),
@@ -258,17 +310,14 @@ public interface ChrislieListener {
 		}
 		
 		public Invocation ref(@NonNull ListenerReference ref) {
-			return new Invocation(bot(),
+			return new Invocation(
+					exceptionHandler(),
+					bot(),
 					msg(),
 					ref,
 					ctx(),
 					arg(),
 					alias());
 		}
-		
-		/**
-		 * The alias that was used to access this command.
-		 */
-		@Getter private final @NonNull String alias;
 	}
 }

@@ -1,7 +1,9 @@
-package chrisliebaer.chrisliebot.command.exec;
+package chrisliebaer.chrisliebot.command.external;
 
 import chrisliebaer.chrisliebot.command.ChrislieListener;
 import lombok.NonNull;
+
+import java.util.Objects;
 
 // HUGE TODO
 /*
@@ -31,31 +33,21 @@ import lombok.NonNull;
  */
 public abstract class ExternalCommandListener implements ChrislieListener.Command {
 	
-	private Config cfg;
+	protected abstract @NonNull @org.checkerframework.checker.nullness.qual.NonNull Config externalConfig();
 	
-	/**
-	 * This method needs to be called from implementing classes with a valid config instance of this base class. Most implementations want to put this class into their
-	 * own config.
-	 *
-	 * @param cfg Config instance of this base class to configure which events are redirected to the child implementation.
-	 */
-	protected void init(@NonNull Config cfg) {
-		this.cfg = cfg;
+	private Config cfg() {
+		return Objects.requireNonNull(externalConfig());
 	}
 	
 	@Override
 	public final void execute(Invocation invc) throws ListenerException {
-		if (cfg == null)
-			throw new ListenerException("child class has not yet configured the base ExternalCommandListener class");
-		
-		if (cfg.implementsCommand)
+		if (cfg().implementsCommand)
 			handleCommand(invc);
 	}
 	
 	@Override
 	public final void onMessage(ListenerMessage msg, boolean isCommand) throws ListenerException {
-		if (cfg == null)
-			throw new ListenerException("child class has not yet configured the base ExternalCommandListener class");
+		var cfg = cfg();
 		
 		if (cfg.implementsListener && (!isCommand) || cfg.includeCommands)
 			externalMessage(msg);
@@ -65,7 +57,7 @@ public abstract class ExternalCommandListener implements ChrislieListener.Comman
 	
 	protected abstract void externalMessage(ListenerMessage msg) throws ListenerException;
 	
-	private static class Config {
+	protected static class Config {
 		
 		private boolean implementsListener;
 		private boolean implementsCommand;

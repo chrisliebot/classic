@@ -6,14 +6,14 @@ import java.util.stream.Collectors;
 public interface ChrislieGuild extends ServiceAttached {
 	
 	/**
-	 * @return The display name which should be used to refer to this guild in human facing messages.
-	 */
-	public String displayName();
-	
-	/**
 	 * @return An internal identifier of this guild. Should be used when storing guild associated data.
 	 */
 	public String identifier();
+	
+	/**
+	 * @return The display name which should be used to refer to this guild in human facing messages.
+	 */
+	public String displayName();
 	
 	/**
 	 * @return A list of all users that are currently part of this guild.

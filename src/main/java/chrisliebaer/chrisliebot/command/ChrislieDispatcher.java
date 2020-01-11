@@ -97,18 +97,21 @@ public class ChrislieDispatcher {
 				}
 				
 				// message object contains ref, so can't be shared with all listeners, sad heap allocation :(
+				var exceptionHandler = new ListenerMessageExceptionHandler();
 				var lm = new ChrislieListener.ListenerMessage(
+						exceptionHandler,
 						chrisliebot,
 						m,
 						ref,
 						ctx
 				);
+				exceptionHandler.msg = lm; // TODO: do we want to do this properly?
 				
 				log.trace("calling listener `{}` for message: {}", ref.envelope().source(), m);
 				try {
 					ref.envelope().listener().onMessage(lm, isCommand);
 				} catch (@SuppressWarnings("OverlyBroadCatchBlock") Exception e) {
-					log.error("listener callback failed with exception: {}", lm, e);
+					exceptionHandler.escalateException(e);
 				}
 			}
 		} finally {
@@ -190,7 +193,9 @@ public class ChrislieDispatcher {
 		ChrislieListener.Command listener = (ChrislieListener.Command) ref.envelope().listener();
 		
 		// invocation is packed into object to keep argument list short and allow for easy adding of new data to invocation without reworking every command
+		var exceptionHandler = new InvocationExceptionHandler();
 		var invocation = new ChrislieListener.Invocation(
+				exceptionHandler,
 				chrisliebot,
 				m,
 				maybeRef.get(),
@@ -198,25 +203,54 @@ public class ChrislieDispatcher {
 				argument,
 				alias
 		);
+		exceptionHandler.invc = invocation; // TODO: do we want to do this properly?
 		
 		try {
 			listener.execute(invocation);
 		} catch (@SuppressWarnings("OverlyBroadCatchBlock") Exception e) {
-			log.error("command invocation failed with exception: {}", invocation, e);
-			
-			// if verbose mode is enabled, we output generic error message (note that we are not using the exception text, as it might contain private information)
-			if (flexConf.isSet(FlexConf.DISPATCHER_VERBOSE)) {
-				try {
-					ErrorOutputBuilder.generic("Da ging etwas schief. Das tut mir leid.").write(invocation).send();
-				} catch (ChrislieListener.ListenerException ex) {
-					log.warn("unable to instance reply instance for dispatcher error", ex);
-				}
-			}
+			exceptionHandler.escalateException(e);
 		}
 		
 		/* the listener logic relies on knowing if a message does trigger a command, so even if
 		 * the command failed inside the try-catch-block we still consider it a valid mapping
 		 */
 		return Optional.of(listener);
+	}
+	
+	private static class ListenerMessageExceptionHandler implements ChrislieListener.ExceptionHandler {
+		
+		private ChrislieListener.ListenerMessage msg;
+		
+		@Override
+		public void escalateException(ChrislieListener.@NonNull ListenerException e) {
+			escalateException((Exception) e);
+		}
+		
+		public void escalateException(Exception e) {
+			log.error("listener callback failed with exception: {}", msg, e);
+		}
+	}
+	
+	private static class InvocationExceptionHandler implements ChrislieListener.ExceptionHandler {
+		
+		private ChrislieListener.Invocation invc;
+		
+		@Override
+		public void escalateException(ChrislieListener.@NonNull ListenerException e) {
+			escalateException((Exception) e);
+		}
+		
+		public void escalateException(Exception e) {
+			log.error("command invocation failed with exception: {}", invc, e);
+			
+			// if verbose mode is enabled, we output generic error message (note that we are not using the exception text, as it might contain private information)
+			if (invc.ref().flexConf().isSet(FlexConf.DISPATCHER_VERBOSE)) {
+				try {
+					ErrorOutputBuilder.generic("Da ging etwas schief. Das tut mir leid.").write(invc).send();
+				} catch (ChrislieListener.ListenerException ex) {
+					log.warn("unable to instance reply instance for dispatcher error", ex);
+				}
+			}
+		}
 	}
 }

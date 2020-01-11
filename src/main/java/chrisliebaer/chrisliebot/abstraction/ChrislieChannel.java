@@ -9,14 +9,14 @@ import java.util.Optional;
 public interface ChrislieChannel extends ServiceAttached {
 	
 	/**
-	 * @return The display name which should be used to refer to this channel in human facing messages.
-	 */
-	public String displayName();
-	
-	/**
 	 * @return An internal identifier of this channel. Should be used when storing channel associated data.
 	 */
 	public String identifier();
+	
+	/**
+	 * @return The display name which should be used to refer to this channel in human facing messages.
+	 */
+	public String displayName();
 	
 	/**
 	 * @return {@code true} if this channel represents a one to one communication.
