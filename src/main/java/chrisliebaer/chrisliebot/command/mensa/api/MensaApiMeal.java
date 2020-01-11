@@ -10,6 +10,7 @@ import java.util.List;
 /**
  * Class representation of JSON object describing meals.
  */
+@SuppressWarnings("MissingDeprecatedAnnotation")
 @ToString
 public class MensaApiMeal {
 	

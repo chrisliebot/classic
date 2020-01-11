@@ -54,6 +54,8 @@ public class TimerCommand implements ChrislieListener.Command {
 	private Chrisliebot bot;
 	private Timer timer;
 	private DataSource dataSource;
+	
+	@SuppressWarnings("FieldAccessedSynchronizedAndUnsynchronized") // usage inside lambda is still within synchronisation
 	private ContextResolver resolver;
 	
 	private TimerTask purgeTask;

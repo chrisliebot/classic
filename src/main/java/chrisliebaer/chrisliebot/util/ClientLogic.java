@@ -14,7 +14,6 @@ import org.kitteh.irc.client.library.feature.filter.CommandFilter;
 public class ClientLogic {
 	
 	//TODO: keep track of incoming lines and reconnect if timeout
-
 	
 	// znc will keep connection lingering after sending an error
 	@CommandFilter("ERROR")

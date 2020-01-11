@@ -26,7 +26,10 @@ import java.util.concurrent.TimeoutException;
 @Slf4j
 public class ShellCommand extends ExternalCommandListener {
 	
+	@SuppressWarnings("FieldAccessedSynchronizedAndUnsynchronized")
 	private GsonValidator gson;
+	
+	@SuppressWarnings("FieldAccessedSynchronizedAndUnsynchronized")
 	private Config cfg;
 	private ExternalMessageTranslator translator = new ExternalMessageTranslator();
 	

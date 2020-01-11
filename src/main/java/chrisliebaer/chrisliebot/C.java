@@ -14,7 +14,6 @@ import java.util.Arrays;
 import java.util.Optional;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 @Slf4j
 @UtilityClass
@@ -207,13 +206,5 @@ public final class C {
 		}
 		
 		return Optional.empty();
-	}
-	
-	@Deprecated // do we need that?
-	@SafeVarargs // T is never touched, only for signature match
-	public <T> Stream<? extends T> merge(Stream<? extends T>... streams) {
-		if (streams == null || streams.length == 0)
-			return Stream.empty();
-		return Arrays.stream(streams).reduce(Stream::concat).get();
 	}
 }

@@ -65,7 +65,7 @@ public class DiscordChannel implements ChrislieChannel { // TODO: we should prob
 	
 	@Override
 	public Optional<DiscordUser> resolve(String callName) {
-		throw new RuntimeException("not yet implemented");
+		throw new RuntimeException("not yet implemented"); // TODO
 	}
 	
 	@Override

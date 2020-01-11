@@ -10,7 +10,7 @@ import java.util.function.Consumer;
 public interface ChrislieService {
 	
 	/**
-	 * @return
+	 * @return Unique indentifier of this service.
 	 */
 	public String identifier();
 	

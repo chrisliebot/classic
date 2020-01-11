@@ -19,7 +19,6 @@ import java.util.*;
 
 import static java.lang.String.format;
 
-@SuppressWarnings("MismatchedQueryAndUpdateOfCollection")
 @Slf4j
 @ToString
 public class JsonBotConfig { // TODO: replace code validation with java bean validation
@@ -60,7 +59,7 @@ public class JsonBotConfig { // TODO: replace code validation with java bean val
 	private static class ListenerAnchor {
 		// both ref and def are defined within the same class so we can ensure the uer didn't provide conflicting fields
 		
-		private String type; // ref, def // TODO: implement weakref that is only valid if ref can be resolved and will fail silently otherwise, then use for nsfw qwant
+		private String type; // ref, def
 		
 		private String name; // identifier
 		private String help; // help text, valid in ref and def

@@ -97,6 +97,7 @@ public final class ExternalMessageTranslator{
 		}
 	}
 	
+	@SuppressWarnings("MismatchedQueryAndUpdateOfCollection")
 	public static class ExternalInvocation {
 		
 		private String argument; // non-null argument string
