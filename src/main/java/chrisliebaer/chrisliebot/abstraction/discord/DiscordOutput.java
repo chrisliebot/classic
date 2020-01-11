@@ -120,7 +120,7 @@ public class DiscordOutput implements ChrislieOutput {
 		try {
 			mb.append(plain.string());
 			mb.sendTo(channel).queue(m -> {}, error -> log.error("failed to send message", error));
-		} catch (IllegalArgumentException e) { // if the message is to long or other undocumented shit inside jda
+		} catch (IllegalArgumentException e) { // if the message is too long or other undocumented shit inside jda
 			log.error("failed to queue message", e);
 		}
 	}

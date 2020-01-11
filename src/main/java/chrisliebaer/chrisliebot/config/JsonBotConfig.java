@@ -22,7 +22,7 @@ import static java.lang.String.format;
 @SuppressWarnings("MismatchedQueryAndUpdateOfCollection")
 @Slf4j
 @ToString
-public class JsonBotConfig {
+public class JsonBotConfig { // TODO: replace code validation with java bean validation
 	
 	private List<ScopeToGroup> mappings; // contains scope selectors and groups
 	private Map<String, Group> groups; // list of groups with their command anchors

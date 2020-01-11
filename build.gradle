@@ -4,8 +4,8 @@ import java.time.temporal.ChronoUnit
 
 plugins {
 	// gradle dependencyUpdates -Drevision=release
-	id "com.github.ben-manes.versions" version "0.20.0"
-	id "com.github.johnrengelman.shadow" version "4.0.4"
+	id "com.github.ben-manes.versions" version "0.27.0"
+	id "com.github.johnrengelman.shadow" version "5.2.0"
 	id 'com.palantir.git-version' version "0.12.2"
 	id 'java'
 }
@@ -57,14 +57,14 @@ dependencies { // TODO: cleanup?
 	annotationProcessor "org.projectlombok:lombok:1.18.10"
 
 	// beans
-	implementation 'javax.validation:validation-api:2.0.0.Final'
+	implementation 'javax.validation:validation-api:2.0.1.Final'
 	implementation 'org.hibernate.validator:hibernate-validator:6.1.0.Final'
 	implementation 'org.hibernate.validator:hibernate-validator-annotation-processor:6.1.0.Final'
 	implementation 'org.glassfish:javax.el:3.0.1-b11'
 
 	// logging
-	def slf4j = "1.7.25"
-	def log4j2 = "2.11.2"
+	def slf4j = "1.7.30"
+	def log4j2 = "2.13.0"
 	implementation "org.slf4j:slf4j-api:$slf4j"
 	implementation "org.apache.logging.log4j:log4j-core:$log4j2"
 	implementation "org.apache.logging.log4j:log4j-slf4j-impl:$log4j2"
@@ -72,37 +72,36 @@ dependencies { // TODO: cleanup?
 
 	// commons stuff you don't know you actually want until you realise it's missing
 	implementation group: 'commons-io', name: 'commons-io', version: '2.6'
-	implementation group: 'org.apache.commons', name: 'commons-lang3', version: '3.8.1'
-	implementation group: 'org.apache.commons', name: 'commons-text', version: '1.6'
-	implementation group: 'org.apache.commons', name: 'commons-collections4', version: '4.3'
-	implementation "com.google.code.gson:gson:2.8.5"
-	implementation "com.google.guava:guava:27.0.1-jre"
+	implementation group: 'org.apache.commons', name: 'commons-lang3', version: '3.9'
+	implementation group: 'org.apache.commons', name: 'commons-text', version: '1.8'
+	implementation "com.google.code.gson:gson:2.8.6"
+	implementation "com.google.guava:guava:28.2-jre"
 
 	// retrofit
-	implementation "com.squareup.retrofit2:retrofit:2.5.0"
-	implementation "com.squareup.retrofit2:converter-gson:2.5.0"
+	implementation "com.squareup.retrofit2:retrofit:2.7.1"
+	implementation "com.squareup.retrofit2:converter-gson:2.7.1"
 
 	// okhttp
-	implementation 'com.squareup.okhttp3:okhttp:3.13.1'
-	implementation 'com.squareup.okhttp3:logging-interceptor:3.13.1'
+	implementation 'com.squareup.okhttp3:okhttp:4.3.1'
+	implementation 'com.squareup.okhttp3:logging-interceptor:4.3.1'
 
 	// webserver
-	implementation 'io.undertow:undertow-core:2.0.23.Final'
+	//implementation 'io.undertow:undertow-core:2.0.29.Final'
 
 	// the only fuckling exec library that doesn't suck fucking donkey balls
 	implementation 'org.zeroturnaround:zt-exec:1.11'
 
 	// features
-	implementation 'com.joestelmach:natty:0.11'
-	implementation 'dnsjava:dnsjava:2.1.8'
+	implementation 'com.joestelmach:natty:0.13'
+	implementation 'dnsjava:dnsjava:2.1.9'
 	implementation 'org.nibor.autolink:autolink:0.10.0'
-	implementation 'org.jsoup:jsoup:1.11.3'
-	implementation 'org.mariadb.jdbc:mariadb-java-client:2.4.0'
+	implementation 'org.jsoup:jsoup:1.12.1'
+	implementation 'org.mariadb.jdbc:mariadb-java-client:2.5.3'
 	implementation 'me.xdrop:fuzzywuzzy:1.2.0'
 
 	// protocols
 	implementation 'org.kitteh.irc:client-lib:7.2.2'
-	implementation('net.dv8tion:JDA:4.BETA.0_22') {
+	implementation('net.dv8tion:JDA:4.1.0_96') {
 		exclude module: 'opus-java'
 	}
 }
