@@ -7,6 +7,10 @@ cd "$(dirname "$0")"
 set -e
 
 git pull
+
+# delete old jar files from build directory
+rm build/libs/*.jar
+
 gradle :shadowJar
 
 # fetch current config repo
