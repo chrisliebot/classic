@@ -76,7 +76,7 @@ public class IrcService implements ChrislieService {
 	
 	@Handler
 	public void onChannelMessage(ChannelMessageEvent ev) {
-		if (ignore.contains(ev.getActor().getNick()))
+		if (ignore.contains(ev.getActor().getNick()) || client.isUser(ev.getActor()))
 			return;
 		
 		var sink = this.sink;
@@ -86,7 +86,7 @@ public class IrcService implements ChrislieService {
 	
 	@Handler
 	public void onPrivateMessage(PrivateMessageEvent ev) {
-		if (ignore.contains(ev.getActor().getNick()))
+		if (ignore.contains(ev.getActor().getNick()) || client.isUser(ev.getActor()))
 			return;
 		
 		var sink = this.sink;
