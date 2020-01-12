@@ -43,6 +43,10 @@ public final class AliasSet implements Supplier<Map<String, AliasSet.Alias>> {
 		Map<String, AliasState> aliases = new HashMap<>(set.size());
 		for (String alias : set) {
 			
+			// aliases must be lowercase, since we don't know what java counts as lowercase, we simply compare the string with toLowerCase()
+			if (!alias.equals(alias.toLowerCase()))
+				return Optional.empty();
+			
 			// parsing alias string is requied even for replacement sets since they still contain ? flag
 			var matcher = ALIAS_PATTERN.matcher(alias);
 			if (!matcher.matches()) // matcher can fail if empty alias name

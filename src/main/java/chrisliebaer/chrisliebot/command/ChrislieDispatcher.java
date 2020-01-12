@@ -171,6 +171,7 @@ public class ChrislieDispatcher {
 			log.trace("dispatcher pattern `{}` returned empty alias on message: {}", pattern.pattern(), m);
 			return Optional.empty();
 		}
+		alias = alias.toLowerCase();
 		
 		// there is no reason to differentiate between an empty argument or a null argument, so we make sure it is never null to simplify command logic
 		argument = argument == null ? "" : argument;
