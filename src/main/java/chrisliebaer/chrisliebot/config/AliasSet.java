@@ -111,10 +111,10 @@ public final class AliasSet implements Supplier<Map<String, AliasSet.Alias>> {
 	
 	public boolean isEmpty(boolean ignoreHidden) {
 		return aliases.values().stream()
-				.anyMatch(a -> {
+				.noneMatch(a -> {
 					if (ignoreHidden)
 						return a.exposed;
-					return true;
+					return false;
 				});
 	}
 	
