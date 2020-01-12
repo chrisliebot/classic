@@ -8,8 +8,8 @@ while true; do
 	java \
 			-Dfile.encoding=UTF-8 \
 			-Dlog4j.configurationFile=log4j2.xml \
-			-Dconfig.dir=prod \
-			-Xmx100m \
+			-Dchrisliebot.core=prod-core.json \
+			-Xmx200m \
 			-XX:+UseStringDeduplication \
 			-jar ../chrisliebot-*.jar
 	code=$?
