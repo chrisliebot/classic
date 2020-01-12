@@ -184,6 +184,6 @@ public class IrcService implements ChrislieService {
 	}
 	
 	public static boolean isIrc(ServiceAttached service) {
-		return service instanceof IrcService;
+		return service.service() instanceof IrcService;
 	}
 }

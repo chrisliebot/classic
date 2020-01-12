@@ -91,6 +91,6 @@ public class DiscordService implements ChrislieService {
 	}
 	
 	public static boolean isDiscord(ServiceAttached service) {
-		return service instanceof DiscordService;
+		return service.service() instanceof DiscordService;
 	}
 }
