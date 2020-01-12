@@ -71,7 +71,10 @@ public class HelpCommand implements ChrislieListener.Command {
 		var maybeRef = ctx.alias(alias);
 		
 		// becomes true if dispatcher is disabled or value is absent
-		if (maybeRef.map(ref -> ref.flexConf().isSet(FlexConf.DISPATCHER_DISABLE)).orElse(true)) {
+		var dispatcherDisabled = maybeRef.map(ref -> ref.flexConf().isSet(FlexConf.DISPATCHER_DISABLE)).orElse(true);
+		var noVisiableAlias = maybeRef.map(ref -> ref.aliasSet().isEmpty(true)).orElse(true);
+		
+		if (dispatcherDisabled || noVisiableAlias) {
 			ErrorOutputBuilder.generic(String.format("Ich kennen keinen Befehl mit dem Namen `%s` im aktuellen Kontext.", alias)).write(invc).send();
 			return;
 		}

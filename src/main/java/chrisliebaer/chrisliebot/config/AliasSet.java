@@ -109,6 +109,15 @@ public final class AliasSet implements Supplier<Map<String, AliasSet.Alias>> {
 		return replace;
 	}
 	
+	public boolean isEmpty(boolean ignoreHidden) {
+		return aliases.values().stream()
+				.anyMatch(a -> {
+					if (ignoreHidden)
+						return a.exposed;
+					return true;
+				});
+	}
+	
 	@AllArgsConstructor(access = AccessLevel.PRIVATE)
 	@ToString
 	private static final class AliasState {
