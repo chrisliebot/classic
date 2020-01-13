@@ -25,6 +25,7 @@ public class LimiterConfig {
 	private static final String FLEX_CUT_NOTICE = "limitercfg.cutNotice";
 	private static final String FLEX_OUT_OF_BAND = "limitercfg.oob";
 	private static final String FLEX_OUT_OF_BAND_DISABLE = "limitercfg.oob.disable";
+	private static final String FLEX_STRIP_IRC_FORMATTING = "limitercfg.stripIrc";
 	
 	// offset will be added to the size parameter of split method
 	private int offset;
@@ -41,12 +42,16 @@ public class LimiterConfig {
 	// handle to out of band transmission instance, setting this value will enable out of band transmission for messages that would otherwise be limited
 	private OutOfBandTransmission outOfBand;
 	
+	// strip all irc formatting codes from output
+	private boolean stripIrcFormatting;
+	
 	public static LimiterConfig of(FlexConf flex) throws ChrislieListener.ListenerException {
 		var cfg = new LimiterConfig();
 		cfg.offset = flex.getInteger(FLEX_OFFSET).orElse(0);
 		cfg.maxLines = flex.getIntegerOrFail(FLEX_MAX_LINES);
 		cfg.stripLineBreak = flex.isSet(FLEX_STRIP_LINEBREAK);
 		cfg.appendCutNotice = flex.isSet(FLEX_CUT_NOTICE);
+		cfg.stripIrcFormatting = flex.isSet(FLEX_STRIP_IRC_FORMATTING);
 		
 		if (!flex.isSet(FLEX_OUT_OF_BAND_DISABLE))
 			cfg.outOfBand = flex.get(FLEX_OUT_OF_BAND, OutOfBandTransmission.class).orElse(null);
@@ -70,6 +75,9 @@ public class LimiterConfig {
 	public List<String> split(String message, int limit) {
 		// limit is broken when connected to znc, a hard coded offset should fix that
 		limit += offset;
+		
+		if (stripIrcFormatting)
+			message = Format.stripAll(message);
 		
 		// regular messages are prefixed with special byte to prevent accidental triggering of other automated services
 		String prefix = "";

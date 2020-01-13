@@ -246,6 +246,9 @@ public class JsonBotConfig { // TODO: replace code validation with java bean val
 				case "discord":
 					selector = new ServiceSelector.DiscordSelector();
 					break;
+				case "ircChannelFlag":
+					selector = new IrcChannelFlagSelector();
+					break;
 				default:
 					throw new Selector.SelectorException(format("there is no selector of type `%s`", json.type));
 			}
