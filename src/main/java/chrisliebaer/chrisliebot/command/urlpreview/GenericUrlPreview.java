@@ -30,10 +30,10 @@ public class GenericUrlPreview implements Callback {
 	
 	private URL url;
 	private ChrislieListener.ListenerMessage m;
-	private Set<UrlPreviewCommand.HistoryEntry> titleHistory;
+	private Set<UrlPreviewListener.HistoryEntry> titleHistory;
 	
 	@SneakyThrows
-	public GenericUrlPreview(@NonNull URL url, ChrislieListener.ListenerMessage m, Set<UrlPreviewCommand.HistoryEntry> titleHistory) {
+	public GenericUrlPreview(@NonNull URL url, ChrislieListener.ListenerMessage m, Set<UrlPreviewListener.HistoryEntry> titleHistory) {
 		this.url = url;
 		this.m = m;
 		this.titleHistory = titleHistory;
@@ -115,7 +115,7 @@ public class GenericUrlPreview implements Callback {
 				summary = summary.substring(0, MAX_IRC_MESSAGE_LENGTH).trim() + "[...]";
 			
 			// check if summary was posted before within timeout window
-			UrlPreviewCommand.HistoryEntry historyLookup = new UrlPreviewCommand.HistoryEntry(summary, m.msg().channel().identifier());
+			UrlPreviewListener.HistoryEntry historyLookup = new UrlPreviewListener.HistoryEntry(summary, m.msg().channel().identifier());
 			if (titleHistory.contains(historyLookup)) {
 				// output has been posted, don't repeat
 				log.debug("not posting summary of {} in {} since it's identical with a recently posted summary",

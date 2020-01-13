@@ -22,7 +22,7 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 @Slf4j
-public class UrlPreviewCommand implements ChrislieListener {
+public class UrlPreviewListener implements ChrislieListener {
 	
 	private static final String FLEX_LOGSIZE = "urlpreview.logsize";
 	private static final String FLEX_EXPIRE_TIME = "urlpreview.expireTime";
@@ -60,6 +60,9 @@ public class UrlPreviewCommand implements ChrislieListener {
 	
 	@Override
 	public void onMessage(ListenerMessage msg, boolean isCommand) throws ListenerException {
+		if (msg.msg().message().startsWith(" ")) // TODO: is this good?
+			return;
+		
 		// don't reuse since not thread safe
 		var extractor = LinkExtractor.builder()
 				.linkTypes(EnumSet.of(LinkType.WWW, LinkType.URL))
