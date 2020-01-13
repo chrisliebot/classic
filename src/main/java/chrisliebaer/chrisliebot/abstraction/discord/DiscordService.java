@@ -6,7 +6,7 @@ import chrisliebaer.chrisliebot.abstraction.ServiceAttached;
 import lombok.Getter;
 import lombok.Setter;
 import net.dv8tion.jda.api.JDA;
-import net.dv8tion.jda.api.entities.TextChannel;
+import net.dv8tion.jda.api.entities.MessageChannel;
 import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.events.ShutdownEvent;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
@@ -38,7 +38,10 @@ public class DiscordService implements ChrislieService {
 	
 	@Override
 	public Optional<DiscordChannel> channel(String identifier) {
-		TextChannel channel = jda.getTextChannelById(identifier);
+		MessageChannel channel = jda.getTextChannelById(identifier);
+		
+		if (channel == null)
+			channel = jda.getPrivateChannelById(identifier);
 		
 		return channel == null ? Optional.empty() : Optional.of(new DiscordChannel(this, channel));
 	}
