@@ -11,7 +11,6 @@ import chrisliebaer.chrisliebot.config.flex.FlexConf;
 import chrisliebaer.chrisliebot.config.scope.Selector;
 import chrisliebaer.chrisliebot.util.ErrorOutputBuilder;
 import chrisliebaer.chrisliebot.util.GsonValidator;
-import com.google.common.io.BaseEncoding;
 import com.google.gson.JsonElement;
 import com.joestelmach.natty.DateGroup;
 import com.joestelmach.natty.Parser;
@@ -23,8 +22,6 @@ import org.apache.commons.lang3.tuple.Pair;
 
 import javax.sql.DataSource;
 import javax.validation.constraints.Positive;
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 import java.sql.*;
 import java.time.Duration;
 import java.time.Instant;
@@ -42,7 +39,10 @@ import java.util.stream.Collectors;
 @Slf4j
 public class TimerCommand implements ChrislieListener.Command {
 	
-	private static final BaseEncoding TIMER_CODEC = BaseEncoding.base64Url().omitPadding();
+	private static final String ENCODER_ALPHABET = "abcdefghkmnopqrstuvwxyz123456789";
+	private static final int ENCODER_ALPHABET_LOG = 5; // log_2(alphabet.length)
+	private static final long ENCODER_BITMASK = 0b00011111;
+	
 	private static final long PURGE_INTERVAL = 60 * 60 * 1000;
 	
 	private static final ErrorOutputBuilder ERROR_DATE_IN_PAST = ErrorOutputBuilder.generic("Dieser Zeitpunkt liegt in der Vergangenheit.");
@@ -614,27 +614,6 @@ public class TimerCommand implements ChrislieListener.Command {
 		timers.put(timerInfo.id, new ScheduledTimer(timerInfo, task));
 	}
 	
-	private static String encodeTimer(long l) {
-		byte[] bytes = new byte[Long.BYTES];
-		var bb = ByteBuffer.wrap(bytes);
-		bb.order(ByteOrder.LITTLE_ENDIAN);
-		bb.asLongBuffer().put(l);
-		return TIMER_CODEC.encode(bytes);
-	}
-	
-	private static long decodeTimer(String s) throws IdParseException {
-		try {
-			var bytes = TIMER_CODEC.decode(s);
-			if (bytes.length != Long.BYTES)
-				throw new IdParseException();
-			var bb = ByteBuffer.wrap(bytes);
-			bb.order(ByteOrder.LITTLE_ENDIAN);
-			return bb.asLongBuffer().get();
-		} catch (IllegalArgumentException ignored) {
-			throw new IdParseException();
-		}
-	}
-	
 	private TimerInfo createTimerInfo(ResultSet rs) throws SQLException {
 		TimerInfo timerInfo = new TimerInfo();
 		timerInfo.id = rs.getLong("id");
@@ -688,6 +667,37 @@ public class TimerCommand implements ChrislieListener.Command {
 			// absolutely don't care about bugs in this library
 			return Optional.empty();
 		}
+	}
+	
+	private static String encodeTimer(long l) {
+		StringBuilder out = new StringBuilder((Long.SIZE / ENCODER_ALPHABET_LOG) + 1);
+		while (l != 0) {
+			int idx = (int) (l & ENCODER_BITMASK);
+			l >>= ENCODER_ALPHABET_LOG;
+			out.append(ENCODER_ALPHABET.charAt(idx));
+		}
+		return out.toString();
+	}
+	
+	private static long decodeTimer(String s) throws IdParseException {
+		s = s.toLowerCase();
+		
+		int out = 0;
+		
+		// max amount of steps until long is full or input is empty
+		var limit = Math.min((Long.SIZE / ENCODER_ALPHABET_LOG) + 1, s.length());
+		for (int i = 0; i < limit; i++) {
+			char c = s.charAt(i);
+			
+			// look up index or fail if invalid
+			long idx = ENCODER_ALPHABET.indexOf(c);
+			if (idx < 0)
+				throw new IdParseException();
+			
+			// move idx at correct position
+			out |= (idx << (ENCODER_ALPHABET_LOG * i));
+		}
+		return out;
 	}
 	
 	@ToString
