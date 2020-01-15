@@ -16,6 +16,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 
 import static chrisliebaer.chrisliebot.C.escapeStrSubstitution;
@@ -71,20 +72,20 @@ public class GeneratorCommand implements ChrislieListener.Command {
 		// TODO: rewrite this shit with our own substitutor since the apache one does not allow for proper exception handling and the cache also sucks donkey dicks, also check if we can ditch the apache string lib
 		@SuppressWarnings("ThisEscapedInObjectConstruction")
 		private final StrSubstitutor substitutor = new StrSubstitutor(this);
-		private final LoadingCache<String, Map<String, String>> cache;
+		private final LoadingCache<String, Optional<Map<String, String>>> cache;
 		
 		public CachingSubstitutor(Invocation invocation) {
 			// instances a loading cache that will use the parents generators with the given invocation to create inputs
 			cache = CacheBuilder.newBuilder()
 					.build(new CacheLoader<>() {
 						@Override
-						public Map<String, String> load(String key) throws ListenerException {
+						public Optional<Map<String, String>> load(String key) throws ListenerException {
 							var generator = generators.get(key);
 							
 							if (generator == null)
-								return null;
+								return Optional.empty();
 							
-							return generator.generate(invocation, GeneratorCommand.this);
+							return Optional.ofNullable(generator.generate(invocation, GeneratorCommand.this));
 						}
 					});
 			
@@ -97,7 +98,7 @@ public class GeneratorCommand implements ChrislieListener.Command {
 			map.put("mention", escapeStrSubstitution(user.mention()));
 			map.put("guild.displayName", escapeStrSubstitution(msg.channel().guild().map(ChrislieGuild::displayName).orElse(msg.channel().displayName())));
 			
-			cache.put("message", map);
+			cache.put("message", Optional.of(map));
 		}
 		
 		public String substitute(String s) {
@@ -114,11 +115,14 @@ public class GeneratorCommand implements ChrislieListener.Command {
 				field = args[1];
 			
 			try {
-				Map<String, String> outMap = cache.get(gen);
-				if (outMap == null)
-					return "UNKOWN_LOOKUP(" + key + ")";
+				Optional<Map<String, String>> outMap = cache.get(gen);
+				if (outMap.isEmpty()) {
+					generatorEmpty = true;
+					return null;
+				}
 				
-				return outMap.get(field);
+				var value =  outMap.get().get(field);
+				return value == null ? "UNKOWN_LOOKUP(" + key + ")" : value;
 			} catch (ExecutionException e) {
 				return null;
 			}
