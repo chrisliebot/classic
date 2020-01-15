@@ -33,7 +33,7 @@ public class FileGenerator implements Generator {
 			var lines = FileUtils.readLines(file, Charsets.UTF_8);
 			
 			if (search && !arg.isEmpty()) {
-				var pred = Pattern.compile(arg).asPredicate().negate();
+				var pred = Pattern.compile(arg, Pattern.CASE_INSENSITIVE).asPredicate().negate();
 				lines.removeIf(pred);
 			}
 			
