@@ -1,5 +1,6 @@
 package chrisliebaer.chrisliebot.command.timer;
 
+import chrisliebaer.chrisliebot.C;
 import chrisliebaer.chrisliebot.Chrisliebot;
 import chrisliebaer.chrisliebot.abstraction.*;
 import chrisliebaer.chrisliebot.command.ChrislieListener;
@@ -272,7 +273,7 @@ public class TimerCommand implements ChrislieListener.Command {
 			queueTimer(timerInfo);
 			
 			var reply = invc.reply();
-			reply.title("Timer wiederhergestellt.");
+			reply.title("Timer wiederhergestellt");
 			formatTimerOutput(reply, timerInfo, invc.ref().flexConf(), false);
 			reply.send();
 			
@@ -320,6 +321,7 @@ public class TimerCommand implements ChrislieListener.Command {
 		var when = timerInfo.nextDue().atZone(zoneId).format(formater);
 		var creation = timerInfo.creation.atZone(zoneId).format(formater);
 		var id = encodeTimer(timerInfo.id);
+		var duration = C.format(Duration.between(Instant.now(), timerInfo.nextDue()));
 		
 		Optional<ChrislieService> service = bot.service(timerInfo.service);
 		Optional<ChrislieUser> user = service.flatMap(s -> s.user(timerInfo.user));
@@ -333,23 +335,29 @@ public class TimerCommand implements ChrislieListener.Command {
 		guild.ifPresent(g -> out.field("Gilde", g.displayName()));
 		out.field("Fällig", when);
 		
+		if (!due)
+			out.field("Dauer", duration);
+		
 		var convert = out.convert();
 		if (due && user.isPresent()) {
-			convert.append(user.orElseThrow().mention()).appendEscape(": ");
+			convert.append(user.get().mention()).appendEscape(": ");
 		}
 		
 		convert.appendEscapeSub("${title} - ")
 				.appendEscape("Id: ").appendEscape(id)
+				.appendEscape(", Text: ")
+				.appendEscape(timerInfo.text)
 				.appendEscape(", Besitzer: ")
 				.appendEscape(user.map(ChrislieUser::mention).orElse("Unbekannt"), ChrislieFormat.HIGHLIGHT)
 				.appendEscape(", Fällig: ").appendEscape(when, ChrislieFormat.HIGHLIGHT);
+		
+		if (!due)
+			convert.appendEscape(", Dauer: ").appendEscape(duration, ChrislieFormat.HIGHLIGHT);
 		
 		if (timerInfo.snoozeCount > 0) {
 			out.field("Snoozezähler", String.valueOf(timerInfo.snoozeCount));
 			convert.appendEscape(", Snoozezähler: ").appendEscape(String.valueOf(timerInfo.snoozeCount));
 		}
-		
-		convert.appendEscape(", Text: ").appendEscape(timerInfo.text);
 	}
 	
 	private synchronized void snoozeCommand(Invocation invc) throws ListenerException, IdParseException {
@@ -386,7 +394,7 @@ public class TimerCommand implements ChrislieListener.Command {
 		}
 		
 		var reply = invc.reply();
-		reply.title("Der Timer wurde erfolgreich verschoben.");
+		reply.title("Der Timer wurde erfolgreich verschoben");
 		formatTimerOutput(reply, timerInfo, invc.ref().flexConf(), false);
 		reply.send();
 	}
@@ -582,7 +590,7 @@ public class TimerCommand implements ChrislieListener.Command {
 	}
 	
 	private synchronized Collection<TimerInfo> getAllTimers() throws SQLException {
-		String sql = "SELECT * from timer WHERE deleted IS FALSE";
+		String sql = "SELECT * FROM timer WHERE deleted IS FALSE";
 		List<TimerInfo> timers = new ArrayList<>();
 		
 		try (var conn = dataSource.getConnection(); var stmt = conn.prepareStatement(sql)) {
@@ -628,6 +636,8 @@ public class TimerCommand implements ChrislieListener.Command {
 		var timestamp = rs.getTimestamp("snooze");
 		if (timestamp != null)
 			timerInfo.snooze = timestamp.toInstant();
+		
+		timerInfo.snoozeCount = rs.getInt("snoozeCount");
 		
 		timerInfo.text = rs.getString("text");
 		timerInfo.deleted = rs.getBoolean("deleted");

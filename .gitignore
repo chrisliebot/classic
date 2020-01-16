@@ -15,3 +15,9 @@
 
 # binaries
 *.jar
+
+# kinda chaotic and possibly private list of ideas
+/ideas.txt
+/todo.txt
+/ideas.md
+/todo.md

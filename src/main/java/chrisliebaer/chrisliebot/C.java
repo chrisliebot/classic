@@ -5,11 +5,9 @@ import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.jsoup.Jsoup;
-import org.kitteh.irc.client.library.element.Channel;
-import org.kitteh.irc.client.library.util.CtcpUtil;
-import org.kitteh.irc.client.library.util.Format;
 
 import java.time.DayOfWeek;
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.Optional;
 import java.util.regex.Pattern;
@@ -18,15 +16,7 @@ import java.util.stream.Collectors;
 @Slf4j
 @UtilityClass
 public final class C {
-	
-	public static final int EXIT_CODE_RESTART = 10;
-	public static final int EXIT_CODE_UPGRADE = 20;
-	
 	public static final Pattern NEWLINE_PATTERN = Pattern.compile("\\R");
-	
-	private static final int MAX_LENGHT_PER_MULTILINE = 1000;
-	
-	public static final char[] EMPTY_CHAR_ARRAY = new char[0];
 	
 	public static final String MIME_TYPE_JSON = "application/json; charset=utf-8";
 	
@@ -43,18 +33,29 @@ public final class C {
 		return (T) value;
 	}
 	
-	public static void sendChannelMessage(Channel channel, String s) {
-		if (s == null || s.isEmpty())
-			return;
+	public static String format(Duration duration) {
+		String s = "";
 		
-		// strip formatting if channel doesn't support it
-		if (!C.channelSupportsFormatting(channel))
-			s = Format.stripAll(s);
+		var days = duration.toDaysPart();
+		if (days != 0)
+			s += days + "d";
 		
-		if (!CtcpUtil.isCtcp(s))
-			s = C.ZERO_WIDTH_NO_BREAK_SPACE + s;
+		var hours = duration.toHoursPart();
+		if (hours != 0)
+			s += hours + "h";
 		
-		channel.sendMultiLineMessage(C.sanitizeForSend(C.escapeNickname(channel, s)));
+		var minutes = duration.toMinutesPart();
+		if (minutes != 0)
+			s += minutes + "m";
+		
+		var seconds = duration.toSecondsPart();
+		if (seconds != 0)
+			s += seconds + "s";
+		
+		if (s.isBlank())
+			s = "jetzt";
+		
+		return s;
 	}
 	
 	public static String squashFormatting(String s) {
@@ -74,37 +75,11 @@ public final class C {
 		}
 	}
 	
-	public static String sanitizeForSend(String msg) {
-		msg = msg.replaceAll("[\n\r\u0000]", " ");
-		if (msg.length() > MAX_LENGHT_PER_MULTILINE) {
-			msg = msg.substring(0, MAX_LENGHT_PER_MULTILINE);
-			msg += "[...]";
-		}
-		return msg;
-	}
-	
-	public static boolean channelSupportsFormatting(@NonNull Channel channel) {
-		return channel.getModes().getByMode('c').isEmpty();
-	}
-	
 	public static String stripHtml(String html) {
 		return Jsoup.parse(html).text();
 	}
 	
-	public static String escapeNickname(Channel channel, String s) {
-		Pattern nickPattern = Pattern.compile(
-				channel.getNicknames().stream().map(Pattern::quote).collect(Collectors.joining("|")),
-				Pattern.CASE_INSENSITIVE);
-		return nickPattern.matcher(s).replaceAll(m -> C.escapeNickname(m.group()));
-	}
-	
-	public static String escapeNickname(@NonNull String nickname) {
-		if (nickname.length() <= 1)
-			return nickname;
-		
-		return inject(nickname, 1, ZERO_WIDTH_NO_BREAK_SPACE);
-	}
-	
+	// TODO: remove after until command has been ported to java 8 Duration
 	@SuppressWarnings("MagicNumber")
 	public static String durationToString(long s) {
 		s = Math.abs(s);
@@ -144,10 +119,6 @@ public final class C {
 		
 		String[] strs = {daysStr, hoursStr, minutesStr, secondsStr};
 		return Arrays.stream(strs).filter(StringUtils::isNoneBlank).collect(Collectors.joining(" "));
-	}
-	
-	private static String inject(String in, int pos, char c) {
-		return in.substring(0, pos) + c + in.substring(pos);
 	}
 	
 	public static Optional<DayOfWeek> stringToDay(@NonNull String day) {

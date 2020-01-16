@@ -78,6 +78,8 @@ public class LimiterConfig {
 		
 		if (stripIrcFormatting)
 			message = Format.stripAll(message);
+		else
+			message = C.squashFormatting(message);
 		
 		// regular messages are prefixed with special byte to prevent accidental triggering of other automated services
 		String prefix = "";
