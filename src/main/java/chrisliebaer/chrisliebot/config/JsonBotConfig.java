@@ -261,7 +261,7 @@ public class JsonBotConfig { // TODO: replace code validation with java bean val
 			if (includeList.contains(name))
 				throw new ConfigInitializeException("group inheritance cycle found: " + includeList);
 			
-			log.debug("instancing group: {}", group);
+			log.trace("instancing group: {}", group);
 			
 			try {
 				includeList.add(name);
