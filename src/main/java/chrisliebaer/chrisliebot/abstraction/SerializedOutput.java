@@ -70,6 +70,8 @@ public class SerializedOutput {
 		Optional.ofNullable(description).ifPresent(list -> applyCalls(list, output.description(), fn));
 		Optional.ofNullable(replace).ifPresent(list -> applyCalls(list, output.replace(), fn));
 		
+		fields.forEach(field -> output.field(field.name, field.value, field.inline));
+		
 		return output;
 	}
 	
