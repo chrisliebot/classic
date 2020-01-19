@@ -464,6 +464,12 @@ public class TimerCommand implements ChrislieListener.Command {
 				
 				// refetch updated timer
 				timer = fetchFromDb(id, conn).orElseThrow();
+				
+				// hotfix: remove possibly active timer
+				var pendingTimer = timers.get(id);
+				if (pendingTimer != null)
+					pendingTimer.timerTask.cancel();
+				
 				queueTimer(timer); // requeue
 				return Optional.of(timer);
 			}
