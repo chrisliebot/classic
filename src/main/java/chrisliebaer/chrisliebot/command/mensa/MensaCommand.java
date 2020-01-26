@@ -251,6 +251,8 @@ public class MensaCommand implements ChrislieListener.Command {
 			}
 		}
 		
+		// TODO: verify that at least one line is preset
+		
 		reply.send();
 	}
 	

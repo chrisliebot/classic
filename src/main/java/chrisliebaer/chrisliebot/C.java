@@ -16,6 +16,7 @@ import java.util.stream.Collectors;
 @Slf4j
 @UtilityClass
 public final class C {
+	
 	public static final Pattern NEWLINE_PATTERN = Pattern.compile("\\R");
 	
 	public static final String MIME_TYPE_JSON = "application/json; charset=utf-8";
@@ -28,6 +29,13 @@ public final class C {
 		return s.replaceAll("\\$\\{", "\\$\\${");
 	}
 	
+	/**
+	 * Casts whatever you have into whatever you want. It's like magic but like the really dark kind of magic that usually backfires pretty hard.
+	 *
+	 * @param value The value to cast, duh.
+	 * @param <T>   The target type to cast into.
+	 * @return The same as value, but casted into whatever type you wanted.
+	 */
 	@SuppressWarnings("unchecked")
 	public static <T> T unsafeCast(Object value) {
 		return (T) value;

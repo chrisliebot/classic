@@ -2,7 +2,14 @@ package chrisliebaer.chrisliebot.command.timer;
 
 import chrisliebaer.chrisliebot.C;
 import chrisliebaer.chrisliebot.Chrisliebot;
-import chrisliebaer.chrisliebot.abstraction.*;
+import chrisliebaer.chrisliebot.abstraction.ChrislieChannel;
+import chrisliebaer.chrisliebot.abstraction.ChrislieFormat;
+import chrisliebaer.chrisliebot.abstraction.ChrislieGuild;
+import chrisliebaer.chrisliebot.abstraction.ChrislieMessage;
+import chrisliebaer.chrisliebot.abstraction.ChrislieOutput;
+import chrisliebaer.chrisliebot.abstraction.ChrislieService;
+import chrisliebaer.chrisliebot.abstraction.ChrislieUser;
+import chrisliebaer.chrisliebot.abstraction.LimiterConfig;
 import chrisliebaer.chrisliebot.command.ChrislieListener;
 import chrisliebaer.chrisliebot.command.ListenerReference;
 import chrisliebaer.chrisliebot.config.ChrislieContext;
@@ -12,6 +19,7 @@ import chrisliebaer.chrisliebot.config.flex.FlexConf;
 import chrisliebaer.chrisliebot.config.scope.Selector;
 import chrisliebaer.chrisliebot.util.ErrorOutputBuilder;
 import chrisliebaer.chrisliebot.util.GsonValidator;
+import chrisliebaer.chrisliebot.util.TimerTaskMaster;
 import com.google.gson.JsonElement;
 import com.joestelmach.natty.DateGroup;
 import com.joestelmach.natty.Parser;
@@ -23,11 +31,25 @@ import org.apache.commons.lang3.tuple.Pair;
 
 import javax.sql.DataSource;
 import javax.validation.constraints.Positive;
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.sql.Timestamp;
+import java.sql.Types;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneId;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.TimeZone;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -37,8 +59,21 @@ import java.util.stream.Collectors;
  * order timer output by expiration time
  * implement ^ selector for last expired timer
  */
+
+/**
+ * In order to simplify documentation of this class we introduce a few concepts first.
+ * <ul>
+ *     <li>Runtime Timer: A timer that has been converted into a TimerTask and is currently active in main memory.</li>
+ *     <li>Prefetch Duration: The amount of duration a timer must have left before it is converted into a Runtime Timer on the next database cycle.</li>
+ *     <li>Hot Timer: All pending timers that will be due during the current Prefetch Duration.</li>
+ * </ul>
+ * <p>
+ * In order to keep the memory footprint low and the logic in this class simple, most operations are perfomed on the database only. A peridic task is polling a list of Hot Timers from the database, converting them into Runtime Timer. All operations are still performed on the database, while any potential Runtime Timer is removed from main memory and refetched to stay synchronized with the database representation of it's timer.
+ */
 @Slf4j
 public class TimerCommand implements ChrislieListener.Command {
+	
+	private static final String ERROR_TIMER_UNKOWN_OR_RESTRICTED = "Diesen Timer kenne ich nicht oder du darfst ihn nicht bearbeiten.";
 	
 	private static final String ENCODER_ALPHABET = "abcdefghkmnopqrstuvwxyz123456789";
 	private static final int ENCODER_ALPHABET_LOG = 5; // log_2(alphabet.length)
@@ -46,6 +81,12 @@ public class TimerCommand implements ChrislieListener.Command {
 	
 	private static final long PURGE_INTERVAL = 60 * 60 * 1000;
 	
+	private static final String SHORTHAND_LAST_EXPIRED = "^";
+	private static final String SHORTHAND_LAST_CREATED = ".";
+	private static final String SHORTHAND_UPCOMING = "-";
+	
+	
+	// TODO: put these in code and replace with exception based error messages later
 	private static final ErrorOutputBuilder ERROR_DATE_IN_PAST = ErrorOutputBuilder.generic("Dieser Zeitpunkt liegt in der Vergangenheit.");
 	private static final ErrorOutputBuilder ERROR_INVALID_DATE = ErrorOutputBuilder.generic("Dieses Datum habe ich leider nicht verstanden.");
 	private static final ErrorOutputBuilder ERROR_TIMER_NOT_DELETED = ErrorOutputBuilder.generic("Dieser Timer existiert noch.");
@@ -59,12 +100,23 @@ public class TimerCommand implements ChrislieListener.Command {
 	@SuppressWarnings("FieldAccessedSynchronizedAndUnsynchronized") // usage inside lambda is still within synchronisation
 	private ContextResolver resolver;
 	
-	private TimerTask purgeTask;
-	private Map<Long, ScheduledTimer> timers = new HashMap<>();
+	
+	private final TimerTaskMaster timerMaster = new TimerTaskMaster();
+	private final Map<Long, ScheduledTimer> runtimeTimer = new HashMap<>();
+	
+	// both timers will utilize timer master infrastructure since they share the same requirements
+	private final TimerTask purgeTask = timerMaster.createTimer(this::purgeExpired);
+	private final TimerTask refreshTask = timerMaster.createTimer(() -> {
+		try {
+			refreshRuntimeTimer();
+		} catch (SQLException e) {
+			log.warn("failed to refresh timers from database", e);
+		}
+	});
 	
 	@Override
 	public Optional<String> help(ChrislieContext ctx, ListenerReference ref) throws ListenerException {
-		return Optional.of("10 min Pizza|list, info|delete|restore <id>, snooze <id> 2 days");
+		return Optional.of("10 min Pizza|list, info|delete|restore <id>, snooze <id> 2 days. Zusätzlich gibt es folgende Kürzel für <id>: ^ letzter abgelaufener Timer, . letzter angelegter Timer, - nächster fälliger Timer.");
 	}
 	
 	@Override
@@ -83,27 +135,21 @@ public class TimerCommand implements ChrislieListener.Command {
 	@Override
 	public synchronized void start(Chrisliebot bot, ContextResolver resolver) throws ListenerException {
 		
+		// while refresh timer could take care of that, we do it here to provide exception handling to chrisliebot framework
 		try {
-			var timers = getAllTimers();
-			timers.forEach(this::queueTimer);
-			log.debug("loaded {} timers", timers.size());
+			refreshRuntimeTimer();
 		} catch (SQLException e) {
 			throw new ListenerException("failed to load timers from database", e);
 		}
 		
-		purgeTask = new TimerTask() {
-			@Override
-			public void run() {
-				purgeExpired();
-			}
-		};
+		timer.scheduleAtFixedRate(refreshTask, cfg.prefetchInterval, cfg.prefetchInterval);
 		timer.scheduleAtFixedRate(purgeTask, 0, PURGE_INTERVAL);
 	}
 	
 	@Override
 	public synchronized void stop(Chrisliebot bot, ContextResolver resolver) throws ListenerException {
-		timers.values().forEach(t -> t.timerTask.cancel());
-		purgeTask.cancel();
+		timerMaster.cancel();
+		runtimeTimer.clear(); // timers will be stopped by master, we just clean it up to not get confused in future debugging sessions
 	}
 	
 	@Override
@@ -146,7 +192,6 @@ public class TimerCommand implements ChrislieListener.Command {
 			return;
 		}
 		
-		
 		var message = invc.msg();
 		var channel = message.channel();
 		
@@ -161,11 +206,12 @@ public class TimerCommand implements ChrislieListener.Command {
 		
 		try {
 			createTimer(timerInfo);
+			
+			// pulling in case timer is already hot
+			refreshRuntimeTimer();
 		} catch (SQLException e) {
 			throw new ListenerException("failed to store new timer in database", e);
 		}
-		
-		queueTimer(timerInfo);
 		
 		var reply = invc.reply();
 		reply.title("Neuer Timer angelegt");
@@ -174,21 +220,38 @@ public class TimerCommand implements ChrislieListener.Command {
 	}
 	
 	private synchronized void listCommand(Invocation invc) throws ListenerException {
-		var timers = this.timers.values().stream()
-				.map(t -> t.timerInfo)
-				.filter(projectTimerList(invc.msg()))
-				.collect(Collectors.toList());
+		String sql = "SELECT * FROM timer WHERE service = ? AND user = ? AND deleted = FALSE";
 		
-		if (timers.isEmpty()) {
+		// while we are only requesting a users tasks, we also need to make sure they are safe to be displayed in the current context
+		Predicate<TimerInfo> pred = accessPredicate(invc.msg());
+		
+		List<TimerInfo> timerList = new ArrayList<>();
+		try (var conn = dataSource.getConnection(); var stmt = conn.prepareStatement(sql)) {
+			stmt.setString(1, invc.service().identifier());
+			stmt.setString(2, invc.msg().user().identifier());
+			
+			try (var rs = stmt.executeQuery()) {
+				while (rs.next()) {
+					var timerInfo = createTimerInfo(rs);
+					if (pred.test(timerInfo)) // reject if private in current context
+						timerList.add(timerInfo);
+				}
+			}
+		} catch (SQLException e) {
+			throw new ListenerException("failed to access users timer", e);
+		}
+		
+		if (timerList.isEmpty()) {
 			ErrorOutputBuilder.generic("Du hast keine Timer, die ich dir hier anzeigen darf.").write(invc).send();
 			return;
 		}
 		
+		// TODO: sort list
 		var reply = invc.reply();
-		reply.title("Du hast hier zur Zeit " + timers.size() + " Timer");
+		reply.title("Du hast hier zur Zeit " + timerList.size() + " Timer");
 		var joiner = reply.description().joiner(", ");
 		
-		for (var timer : timers) {
+		for (var timer : timerList) {
 			var id = encodeTimer(timer.id);
 			var abbrev = StringUtils.abbreviate(timer.text, cfg.abbrevLength);
 			
@@ -198,40 +261,76 @@ public class TimerCommand implements ChrislieListener.Command {
 	}
 	
 	private synchronized void deleteCommand(Invocation invc) throws ListenerException, IdParseException {
-		var arg = getSubCommandArg(invc.arg());
+		var arg = getSubCommandArg(invc.arg()); // TODO: rework all methods to throw exception if argument is empty, part of error handling rework
+		long id = decodeTimer(arg);
 		
-		var maybeTimer = getScheduleTimerFromArg(arg, invc);
-		if (maybeTimer.isEmpty())
-			return;
-		var timer = maybeTimer.get();
-		timer.timerTask.cancel();
-		
-		String sql = "UPDATE timer SET deleted = TRUE WHERE id = ?";
-		try (var conn = dataSource.getConnection(); var stmt = conn.prepareStatement(sql)) {
-			stmt.setLong(1, timer.timerInfo.id);
-			stmt.execute();
+		try (var conn = dataSource.getConnection()) {
+			// we just fetch the timer and check if the user is allowed to change it, easier then checking inside the query
+			var maybeTimerInfo = getTimerFromDb(conn, id).filter(accessPredicate(invc.msg()));
+			if (maybeTimerInfo.isEmpty() || maybeTimerInfo.get().deleted) {
+				ErrorOutputBuilder.generic(ERROR_TIMER_UNKOWN_OR_RESTRICTED).write(invc).send();
+				return;
+			}
+			var timerInfo = maybeTimerInfo.get();
+			
+			// we know the user is allowed to modify the timer and we know it exists, so we simply update it without further checks
+			String sql = "UPDATE timer SET deleted = TRUE WHERE id = ?";
+			try (var stmt = conn.prepareStatement(sql)) {
+				stmt.setLong(1, id);
+				stmt.execute();
+			}
+			
+			// just assume it was a runtime timer, does nothing if assumption is wrong
+			removeRuntime(id);
+			
+			var reply = invc.reply();
+			reply.title("Timer gelöscht");
+			formatTimerOutput(reply, timerInfo, invc.ref().flexConf(), false);
+			reply.send();
 		} catch (SQLException e) {
-			throw new ListenerException("failed to mark timer as deleted", e);
+			throw new ListenerException("failed to delete timer", e);
 		}
-		
-		var reply = invc.reply();
-		reply.title("Timer gelöscht");
-		formatTimerOutput(reply, timer.timerInfo, invc.ref().flexConf(), false);
-		reply.send();
+	}
+	
+	/**
+	 * @param conn The connection to use. Since this method is often part of more complex interactions.
+	 * @param id   The timer id to fetch from the database.
+	 * @return An optional TimerInfo if the id resolved to a valid timer.
+	 * @throws SQLException If a database error occurs.
+	 */
+	private synchronized Optional<TimerInfo> getTimerFromDb(Connection conn, long id) throws SQLException {
+		String sql = "SELECT * FROM timer WHERE id = ?";
+		try (var stmt = conn.prepareStatement(sql)) {
+			stmt.setLong(1, id);
+			
+			try (var rs = stmt.executeQuery()) {
+				if (!rs.next())
+					return Optional.empty();
+				
+				var timerInfo = createTimerInfo(rs);
+				return Optional.of(timerInfo);
+			}
+		}
 	}
 	
 	private synchronized void infoCommand(Invocation invc) throws ListenerException, IdParseException {
 		var arg = getSubCommandArg(invc.arg());
+		long id = decodeTimer(arg);
 		
-		var maybeTimer = getScheduleTimerFromArg(arg, invc);
-		if (maybeTimer.isEmpty())
-			return;
-		var timer = maybeTimer.get();
-		
-		var reply = invc.reply();
-		reply.title("Timerinformationen");
-		formatTimerOutput(reply, timer.timerInfo, invc.ref().flexConf(), false);
-		reply.send();
+		try (var conn = dataSource.getConnection()) {
+			var maybeTimerInfo = getTimerFromDb(conn, id).filter(accessPredicate(invc.msg()));
+			if (maybeTimerInfo.isEmpty() || maybeTimerInfo.get().deleted) {
+				ErrorOutputBuilder.generic(ERROR_TIMER_UNKOWN_OR_RESTRICTED).write(invc).send();
+				return;
+			}
+			
+			var reply = invc.reply();
+			reply.title("Timerinformationen");
+			formatTimerOutput(reply, maybeTimerInfo.get(), invc.ref().flexConf(), false);
+			reply.send();
+		} catch (SQLException e) {
+			throw new ListenerException("failed to fetch timer from database", e);
+		}
 	}
 	
 	private synchronized void restoreCommand(Invocation invc) throws ListenerException, IdParseException {
@@ -239,20 +338,15 @@ public class TimerCommand implements ChrislieListener.Command {
 		var id = decodeTimer(arg);
 		
 		try (var conn = dataSource.getConnection()) {
-			var maybeTimerInfo = fetchFromDb(id, conn);
+			var maybeTimerInfo = getTimerFromDb(conn, id).filter(accessPredicate(invc.msg()));
 			if (maybeTimerInfo.isEmpty()) {
-				ErrorOutputBuilder.generic("Diesen Timer gibt es nicht.").write(invc).send();
+				ErrorOutputBuilder.generic(ERROR_TIMER_UNKOWN_OR_RESTRICTED).write(invc).send();
 				return;
 			}
 			var timerInfo = maybeTimerInfo.get();
 			
 			if (!timerInfo.deleted) {
-				ERROR_TIMER_NOT_DELETED.write(invc).send();
-				return;
-			}
-			
-			if (!projectTimerList(invc.msg()).test(timerInfo)) {
-				ErrorOutputBuilder.generic("Du bist nicht berechtigt diesen Timer hier zu modifizieren.").write(invc).send();
+				ErrorOutputBuilder.generic("Dieser Timer wurde gar nicht gelöscht.").write(invc).send();
 				return;
 			}
 			
@@ -261,16 +355,14 @@ public class TimerCommand implements ChrislieListener.Command {
 				return;
 			}
 			
-			// update database record and requeue timer
-			String sql = "UPDATE timer SET deleted = 1 WHERE id = ?";
+			String sql = "UPDATE timer SET deleted = FALSE WHERE id = ?";
 			try (var stmt = conn.prepareStatement(sql)) {
 				stmt.setLong(1, id);
-				stmt.executeUpdate();
+				stmt.execute();
 			}
 			
-			// refetch and requeue
-			timerInfo = fetchFromDb(id, conn).orElseThrow();
-			queueTimer(timerInfo);
+			// the restored timer could be hot, so we pull from database
+			refreshRuntimeTimer();
 			
 			var reply = invc.reply();
 			reply.title("Timer wiederhergestellt");
@@ -282,36 +374,61 @@ public class TimerCommand implements ChrislieListener.Command {
 		}
 	}
 	
-	/**
-	 * Takes a user provided timer identifier and attempts to return the matching timer. For the sake of simplicity, this method will take care of error messages.
-	 *
-	 * @param arg  The user provided timer id.
-	 * @param invc The invocation that triggered this retrival operation. Required to perform permission checks.
-	 * @return The requested timer or nothing of the user or context does not allow for retrival.
-	 */
-	private synchronized Optional<ScheduledTimer> getScheduleTimerFromArg(String arg, Invocation invc) throws ListenerException, IdParseException {
-		if (arg.isBlank()) {
-			ErrorOutputBuilder.generic("Du hast vergessen die Id des Timers anzugeben.").write(invc).send();
-			return Optional.empty();
+	private synchronized void snoozeCommand(Invocation invc) throws ListenerException, IdParseException {
+		var arg = getSubCommandArg(invc.arg());
+		var args = arg.split(" ", 2);
+		if (args.length != 2) {
+			// TODO: merge with other parsing errors in info, delete, restore
+			ErrorOutputBuilder.generic("Du hast nicht angegeben, auf welchen Zeitpunkt ich den Timer verschieben soll.").write(invc).send();
+			return;
+		}
+		var id = decodeTimer(args[0]);
+		
+		// parse and validate new instant
+		var maybeWhen = parse(args[1], CommonFlex.ZONE_ID().getOrFail(invc));
+		if (maybeWhen.isEmpty()) {
+			ERROR_INVALID_DATE.write(invc).send();
+			return;
+		}
+		var when = maybeWhen.get();
+		
+		if (when.isBefore(Instant.now())) {
+			ERROR_DATE_IN_PAST.write(invc).send();
+			return;
 		}
 		
-		// attempt to convert encoded id to long
-		var id = decodeTimer(arg);
-		
-		// check if timer exists
-		var timer = timers.get(id);
-		if (timer == null) {
-			ErrorOutputBuilder.generic("Einen Timer mit dieser Id gibt es nicht.").write(invc).send();
-			return Optional.empty();
+		try (var conn = dataSource.getConnection()) {
+			var maybeTimerInfo = getTimerFromDb(conn, id).filter(accessPredicate(invc.msg()));
+			if (maybeTimerInfo.isEmpty()) {
+				ErrorOutputBuilder.generic(ERROR_TIMER_UNKOWN_OR_RESTRICTED).write(invc).send();
+				return;
+			}
+			var timerInfo = maybeTimerInfo.get();
+			
+			String sql = "UPDATE timer SET snooze = ?, deleted = FALSE, snoozecount = snoozecount + 1 WHERE id = ?";
+			try (var stmt = conn.prepareStatement(sql)) {
+				stmt.setTimestamp(1, Timestamp.from(when));
+				stmt.setLong(2, id);
+				
+				stmt.execute();
+			}
+			
+			// snooze may move timer from hot to cold, so we potentially remove it
+			removeRuntime(id);
+			
+			// snooze may also move timer into hot state, so we need to pull after that, it's important to remove the timer first
+			refreshRuntimeTimer();
+			
+			// timer got updated, so we need to fetch new data from database
+			timerInfo = getTimerFromDb(conn, id).orElseThrow(); // we just updated it, we know it exists
+			
+			var reply = invc.reply();
+			reply.title("Der Timer wurde erfolgreich verschoben");
+			formatTimerOutput(reply, timerInfo, invc.ref().flexConf(), false);
+			reply.send();
+		} catch (SQLException e) {
+			throw new ListenerException("failed to snooze timer", e);
 		}
-		
-		// check if user and context is permitted to see timer
-		if (!projectTimerList(invc.msg()).test(timer.timerInfo)) {
-			ErrorOutputBuilder.generic("Diesen Timer darf ich hier nicht anzeigen").write(invc).send();
-			return Optional.empty();
-		}
-		
-		return Optional.of(timer);
 	}
 	
 	private void formatTimerOutput(ChrislieOutput out, TimerInfo timerInfo, FlexConf flex, boolean due) throws ListenerException {
@@ -321,7 +438,10 @@ public class TimerCommand implements ChrislieListener.Command {
 		var when = timerInfo.nextDue().atZone(zoneId).format(formater);
 		var creation = timerInfo.creation.atZone(zoneId).format(formater);
 		var id = encodeTimer(timerInfo.id);
-		var duration = C.format(Duration.between(Instant.now(), timerInfo.nextDue()));
+		
+		var wtf = Duration.between(Instant.now(), timerInfo.nextDue());
+		
+		var duration = C.format(wtf);
 		
 		Optional<ChrislieService> service = bot.service(timerInfo.service);
 		Optional<ChrislieUser> user = service.flatMap(s -> s.user(timerInfo.user));
@@ -360,64 +480,32 @@ public class TimerCommand implements ChrislieListener.Command {
 		}
 	}
 	
-	private synchronized void snoozeCommand(Invocation invc) throws ListenerException, IdParseException {
-		var arg = getSubCommandArg(invc.arg());
-		
-		var args = arg.split(" ", 2);
-		if (args.length != 2) {
-			ErrorOutputBuilder.generic("Du hast nicht angegeben, auf welchen Zeitpunkt ich den Timer verschieben soll.").write(invc).send();
-			return;
-		}
-		var id = decodeTimer(args[0]);
-		var maybeWhen = parse(args[1], CommonFlex.ZONE_ID().getOrFail(invc));
-		if (maybeWhen.isEmpty()) {
-			ERROR_INVALID_DATE.write(invc).send();
-			return;
-		}
-		var when = maybeWhen.get();
-		
-		if (when.isBefore(Instant.now())) {
-			ERROR_DATE_IN_PAST.write(invc).send();
-			return;
-		}
-		
-		TimerInfo timerInfo;
-		try {
-			var maybeTimerInfo = snoozeTimer(id, when, projectTimerList(invc.msg()));
-			if (maybeTimerInfo.isEmpty()) {
-				ErrorOutputBuilder.generic("Diesen Timer gibt es nicht oder du bist nicht berechtigt ihn zu modifizieren.").write(invc).send();
-				return;
-			}
-			timerInfo = maybeTimerInfo.get();
-		} catch (SQLException e) {
-			throw new ListenerException("failed to snooze timer", e);
-		}
-		
-		var reply = invc.reply();
-		reply.title("Der Timer wurde erfolgreich verschoben");
-		formatTimerOutput(reply, timerInfo, invc.ref().flexConf(), false);
-		reply.send();
-	}
-	
 	/**
 	 * Removes the first word of the given string including any following space and returns whats left (if anything).
 	 *
 	 * @param arg The string to truncate.
 	 * @return The remaining string. Never null.
 	 */
-	private static String getSubCommandArg(String arg) {
+	private static String getSubCommandArg(String arg) { // TODO move this into it's own command parser
 		var args = arg.split(" ", 2);
 		if (args.length > 1)
 			return args[1];
 		return "";
 	}
 	
-	private static Predicate<TimerInfo> projectTimerList(ChrislieMessage msg) {
+	/**
+	 * Creates a Predicate from a ChrislieMessage. The rules of this predicate are hardcoded and intented to prevent users from accesing not only other users timers but
+	 * also leaking their own timers on guilds or channels by accident.
+	 *
+	 * @param msg The message that should be used for the accessibility check.
+	 * @return A predicate that matches on all timers that are allowed to be displayed in the context of the given message.
+	 */
+	private static Predicate<TimerInfo> accessPredicate(ChrislieMessage msg) {
 		var user = msg.user();
 		var channel = msg.channel();
 		var guild = channel.guild();
 		
-		Predicate<TimerInfo> pred = timer -> timer.user.equals(user.identifier());
+		Predicate<TimerInfo> pred = timer -> timer.service.equals(user.service().identifier()) && timer.user.equals(user.identifier());
 		
 		if (guild.isPresent()) { // if guild is present, we filter by channel guilds
 			
@@ -433,99 +521,63 @@ public class TimerCommand implements ChrislieListener.Command {
 		return pred;
 	}
 	
-	/**
-	 * Fetches the timer with the given id from the database and requeues it for the given instant.
-	 *
-	 * @param id        The id of the timer in the database.
-	 * @param instant   The new instant at which the timer should be triggered.
-	 * @param predicate An predicate that will be used to verify that the requested action is actually allowed on the timer.
-	 * @return The updated TimerInfo or nothing, if the id does not belong to a known timer or the timer failed the predicate.
-	 */
-	private synchronized Optional<TimerInfo> snoozeTimer(long id, Instant instant, Predicate<TimerInfo> predicate) throws SQLException {
-		
-		try (var conn = dataSource.getConnection()) {
-			var maybeTimer = fetchFromDb(id, conn);
-			if (maybeTimer.isEmpty())
-				return Optional.empty();
-			var timer = maybeTimer.get();
-			
-			// verify permission to modify timer
-			if (!predicate.test(timer))
-				return Optional.empty();
-			
-			// update timer record in database
-			String sql = "UPDATE timer SET snooze = ?, deleted = FALSE, snoozecount = snoozecount + 1 WHERE id = ?";
-			
-			try (var stmt = conn.prepareStatement(sql)) {
-				stmt.setTimestamp(1, Timestamp.from(instant));
-				stmt.setLong(2, id);
-				
-				stmt.executeUpdate();
-				
-				// refetch updated timer
-				timer = fetchFromDb(id, conn).orElseThrow();
-				
-				// hotfix: remove possibly active timer
-				var pendingTimer = timers.get(id);
-				if (pendingTimer != null)
-					pendingTimer.timerTask.cancel();
-				
-				queueTimer(timer); // requeue
-				return Optional.of(timer);
-			}
-		}
-	}
-	
-	private synchronized Optional<TimerInfo> fetchFromDb(long id, Connection conn) throws SQLException {
-		String sql = "SELECT * FROM timer WHERE id = ?";
-		try (var stmt2 = conn.prepareStatement(sql)) {
-			stmt2.setLong(1, id);
-			
-			try (var rs = stmt2.executeQuery()) {
-				if (!rs.next())
-					return Optional.empty();
-				
-				var timerInfo = createTimerInfo(rs);
-				return Optional.of(timerInfo);
-			}
-		}
-	}
 	
 	/**
-	 * Called from timer thread to trigger timer output.
+	 * Called from timer thread to trigger timer output when timer is due.
 	 *
 	 * @param timerInfo The stored timer information for information retrieval.
 	 * @throws ListenerException If the bot framework is unable to initialize the output.
 	 */
 	private synchronized void timerDue(TimerInfo timerInfo) throws ListenerException {
-		// remove timer instance from map, even if unsuccessfull, it needs to be removed
-		timers.remove(timerInfo.id);
+		// remove timer from runtime timers, if it fails, the timer was canceled while aquiring synchronisation lock
+		if (!removeRuntime(timerInfo.id))
+			return;
 		
-		var maybeChannel = bot.service(timerInfo.service)
-				.flatMap(service -> service.channel(timerInfo.channel));
-		var maybeUser = maybeChannel.flatMap(c -> c.user(timerInfo.user));
-		var maybeRef = maybeChannel.flatMap(c -> resolver.resolve(Selector::check, c).listener(this));
-		
-		if (maybeChannel.isEmpty() || maybeUser.isEmpty() || maybeRef.isEmpty()) {
-			log.warn("unable to open channel or user not in channel for timer {} snoozing by {}", timerInfo, cfg.snoozeOnExpire);
-			try {
-				snoozeTimer(timerInfo.id, Instant.now().plusMillis(cfg.snoozeOnExpire), t -> true);
-			} catch (SQLException e) {
-				log.error("failed to snooze failed timer: {}", timerInfo, e);
-			}
+		var maybeService = bot.service(timerInfo.service);
+		if (maybeService.isEmpty()) {
+			log.debug("service unknown, failed to deliver timer {}", timerInfo);
 			return;
 		}
+		var service = maybeService.get();
+		var maybeUser = service.user(timerInfo.user);
 		
+		if (maybeUser.isEmpty()) {
+			log.debug("user unknown, failed to deliver timer {}", timerInfo);
+			return;
+		}
+		var user = maybeUser.get();
+		
+		// if the original channel is not available, the message will be delivered via dm
+		boolean dmRedirected = false;
+		var maybeChannel = service.channel(timerInfo.channel);
+		if (maybeChannel.isEmpty() || maybeChannel.get().user(user.identifier()).isEmpty()) { // channel doesn't exist or user is not in channel
+			dmRedirected = true;
+			maybeChannel = user.directMessage();
+			if (maybeChannel.isEmpty()) {
+				log.debug("failed to open dm channel");
+				return;
+			}
+		}
 		var channel = maybeChannel.get();
+		var maybeRef = resolver.resolve(Selector::check, channel).listener(this);
+		
+		if (maybeRef.isEmpty()) {
+			log.warn("missing ref in channel {} for delivery of timer {}", channel.displayName(), timerInfo);
+			return;
+		}
 		var ref = maybeRef.get();
 		var out = channel.output(LimiterConfig.of(ref.flexConf()));
 		
 		out.title("Es ist soweit");
-		out.plain().append(maybeUser.get().mention());
+		var plain = out.plain().append(maybeUser.get().mention());
+		
+		// let user know that this timer might be out of context
+		if (dmRedirected)
+			plain.appendEscape(" (Ich konnte leider den Originalchannel nicht mehr finden und hab dir deinen Timer daher privat geschickt.)");
+		
 		formatTimerOutput(out, timerInfo, ref.flexConf(), true);
 		out.send();
 		
-		// it might be possible that the task got deleted right before we entered this method, so we need to account for that when deleting from database
 		String sql = "UPDATE timer SET deleted = TRUE WHERE id = ?";
 		try (var conn = dataSource.getConnection(); var stmt = conn.prepareStatement(sql)) {
 			stmt.setLong(1, timerInfo.id);
@@ -535,9 +587,12 @@ public class TimerCommand implements ChrislieListener.Command {
 		}
 	}
 	
+	/**
+	 * Calling this method will purge all timers that fullfil this instances purge requirement permanently from the database, making it impossible to restore them.
+	 */
 	private synchronized void purgeExpired() {
-		String sql = "DELETE FROM timer " +
-				"WHERE NOW() - COALESCE(snooze, due) > ?"; // we even delete non deleted ones after they reach out deadline, user might be gone
+		
+		String sql = "DELETE FROM timer WHERE NOW() - COALESCE(snooze, due) > ?"; // will also delete non expired timers if user was unreachable
 		
 		try (var conn = dataSource.getConnection(); var stmt = conn.prepareStatement(sql)) {
 			stmt.setLong(1, cfg.expire);
@@ -556,10 +611,9 @@ public class TimerCommand implements ChrislieListener.Command {
 	 * Stores the given timer in the database and associates it with an id.
 	 *
 	 * @param timerInfo The timer to store.
-	 * @return A TimerInfo instance with it's database id set.
 	 * @throws SQLException If an database error occurs.
 	 */
-	private synchronized TimerInfo createTimer(TimerInfo timerInfo) throws SQLException {
+	private synchronized void createTimer(TimerInfo timerInfo) throws SQLException {
 		String sql = "INSERT INTO timer (service, user, channel, text, creation, due, snooze, snoozeCount, deleted)" +
 				"VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
 		
@@ -587,7 +641,6 @@ public class TimerCommand implements ChrislieListener.Command {
 			try (var gen = stmt.getGeneratedKeys()) {
 				if (gen.next()) {
 					timerInfo.id = gen.getLong(1);
-					return timerInfo;
 				} else {
 					throw new SQLException("failed to retrieve timer insert id");
 				}
@@ -595,37 +648,66 @@ public class TimerCommand implements ChrislieListener.Command {
 		}
 	}
 	
-	private synchronized Collection<TimerInfo> getAllTimers() throws SQLException {
-		String sql = "SELECT * FROM timer WHERE deleted IS FALSE";
+	/**
+	 * Potentially invalidates the timer with the given id, purging it from main memory and ending it's Runtime Timer. If the timer is not a Runtime Timer, this method
+	 * call will do nothing.
+	 *
+	 * @param id The id of the timer to invalidate.
+	 * @return {@code true} if the timer was a Runtime Timer in which case most callers should call {@link #refreshRuntimeTimer()}.
+	 */
+	private synchronized boolean removeRuntime(long id) {
+		var rt = runtimeTimer.remove(id);
+		if (rt != null) {
+			rt.timerTask.cancel();
+			return true;
+		}
+		return false;
+	}
+	
+	/**
+	 * Fetches all Hot Timers from the database and adds them to the current list of Runtime Timers if they are absent.
+	 *
+	 * @throws SQLException If a database operation fails.
+	 */
+	private synchronized void refreshRuntimeTimer() throws SQLException {
+		String sql = "SELECT * FROM timer WHERE deleted = FALSE AND COALESCE(snooze, due) - NOW() < ?";
 		List<TimerInfo> timers = new ArrayList<>();
 		
 		try (var conn = dataSource.getConnection(); var stmt = conn.prepareStatement(sql)) {
+			stmt.setLong(1, cfg.prefetchWindow);
+			
 			try (var rs = stmt.executeQuery()) {
 				while (rs.next()) {
 					timers.add(createTimerInfo(rs));
 				}
 			}
 		}
-		return timers;
+		
+		// convert new timers into runtime timers
+		timers.removeIf(timerInfo -> runtimeTimer.containsKey(timerInfo.id));
+		timers.forEach(this::queueTimer);
 	}
 	
+	/**
+	 * Instances the given TimerInfo into a Runtime Timer. Note that this method will not prevent queueing of already existing runtime timers.
+	 *
+	 * @param timerInfo The timer to instance.
+	 */
 	private synchronized void queueTimer(TimerInfo timerInfo) {
 		var diff = Duration.between(Instant.now(), timerInfo.nextDue());
 		var delay = Math.max(0, diff.toMillis());
 		
-		var task = new TimerTask() {
-			@Override
-			public void run() {
-				try {
-					timerDue(timerInfo);
-				} catch (ListenerException e) {
-					log.error("error during timer expiration of timer: {}", timerInfo, e);
-				}
+		var task = timerMaster.createTimer(() -> {
+			try {
+				timerDue(timerInfo);
+			} catch (ListenerException e) {
+				log.error("error during finishing of timer: {}", timerInfo, e);
 			}
-		};
-		timer.schedule(task, delay);
+		});
 		
-		timers.put(timerInfo.id, new ScheduledTimer(timerInfo, task));
+		// order doesn't matter, timer runnable is synchronized anyway
+		timer.schedule(task, delay);
+		runtimeTimer.put(timerInfo.id, new ScheduledTimer(timerInfo, task));
 	}
 	
 	private TimerInfo createTimerInfo(ResultSet rs) throws SQLException {
@@ -685,6 +767,18 @@ public class TimerCommand implements ChrislieListener.Command {
 		}
 	}
 	
+	/**
+	 * This method resolves a given timer string by either calling {@link #encodeTimer(long)} or looking up alias keywords.
+	 *
+	 * @param msg
+	 * @return
+	 * @throws SQLException
+	 */
+	private static String resolveTimerString(ListenerMessage msg) throws SQLException {
+		// TODO: check constants for symbols
+		throw new RuntimeException("implement me");
+	}
+	
 	private static String encodeTimer(long l) {
 		StringBuilder out = new StringBuilder((Long.SIZE / ENCODER_ALPHABET_LOG) + 1);
 		while (l != 0) {
@@ -740,14 +834,15 @@ public class TimerCommand implements ChrislieListener.Command {
 	@AllArgsConstructor
 	private static class ScheduledTimer {
 		
-		private TimerInfo timerInfo;
-		private TimerTask timerTask;
+		private final TimerInfo timerInfo;
+		private final TimerTask timerTask;
 	}
 	
 	private static class Config {
 		
 		private @Positive long expire;
-		private @Positive long snoozeOnExpire;
+		private @Positive long prefetchWindow;
+		private @Positive long prefetchInterval;
 		private @Positive int abbrevLength;
 	}
 	

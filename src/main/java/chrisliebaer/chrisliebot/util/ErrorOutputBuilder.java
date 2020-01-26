@@ -13,6 +13,7 @@ import java.awt.*;
 import java.util.function.Consumer;
 
 
+// TODO: should we make this thing throwable? or even better: allow to create exception from message because otherwise the stacktrace won't fit, should be own exception, requireing to be also used for user and not being actually logged
 public final class ErrorOutputBuilder {
 	
 	private static final Color ERROR_COLOR = Color.RED;

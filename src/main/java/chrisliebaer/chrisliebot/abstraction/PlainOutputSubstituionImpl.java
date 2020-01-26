@@ -32,25 +32,25 @@ public class PlainOutputSubstituionImpl extends PlainOutputImpl implements Plain
 	}
 	
 	@Override
-	public PlainOutputSubstituionImpl append(String s, Object... format) {
+	public PlainOutputSubstituion append(String s, Object... format) {
 		super.append(s, format);
 		return this;
 	}
 	
 	@Override
-	public PlainOutputSubstituionImpl appendEscape(String s, Object... format) {
+	public PlainOutputSubstituion appendEscape(String s, Object... format) {
 		super.appendEscape(s, format);
 		return this;
 	}
 	
 	@Override
-	public PlainOutputSubstituionImpl newLine() {
+	public PlainOutputSubstituion newLine() {
 		super.newLine();
 		return this;
 	}
 	
 	@Override
-	public PlainOutputSubstituionImpl clear() {
+	public PlainOutputSubstituion clear() {
 		super.clear();
 		return this;
 	}

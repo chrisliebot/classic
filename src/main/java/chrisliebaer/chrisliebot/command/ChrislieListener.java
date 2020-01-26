@@ -25,7 +25,8 @@ import java.util.Optional;
  * <p>
  * It's important that the configuration process requires each listener to have an empty default contructor. Listeners must not perform ANY actions in their default
  * constructor. The default constructor is called during setup to create an instance of this listener. Listeners must be able to be instanced multiple times and may be
- * called from various threads concurrently. If a listener wishes to be called sequentially it must deploy proper synchronisation.
+ * called from various threads concurrently. If a listener wishes to be called sequentially it must deploy proper synchronisation. A listener may assume to have it's
+ * lifecycle methods called synchronously.
  * </p>
  *
  * <p>
@@ -88,7 +89,7 @@ public interface ChrislieListener {
 	 * part of a reload, accessing the bots listener and command system is not allowed and every action has to be performed on the given ContextResolver. It is possible
 	 * that a listeners will be asked to stop directly after receiving a call to {@link #start(Chrisliebot, ContextResolver)}. A listener that has thrown a {@link
 	 * ListenerException} or any other exception during it's start will not have it's stop method called. The listener is expected to perform cleanup itself after
-	 * creating a boo boo.
+	 * creating a boo boo. After returning from this method, the listener and all it's services must not access any parts of Chrisliebots framework.
 	 *
 	 * @param bot      Reference to bot instance.
 	 * @param resolver The resolver that is managing this listener. Note that this will be different from the bots current resolver as this listener is not yet part of *
@@ -206,7 +207,7 @@ public interface ChrislieListener {
 		
 		/**
 		 * A lot of listeners rely on asynchronous operations to complete their task. While synchronous code can simply throw a {@link ListenerException} to rais an
-		 * error, asynchronous code can not. In order to still maintain relationship between an invocation an the potential error raised, listeners can use this exception
+		 * error, asynchronous code can not. In order to still maintain relationship between an invocation and the potential error raised, listeners can use this exception
 		 * handler to feed back their errors into the dispatcher.
 		 */
 		@Getter private final @NonNull ExceptionHandler exceptionHandler;
