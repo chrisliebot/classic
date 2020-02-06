@@ -3,13 +3,13 @@
 # we might be in "config" subdir (if called from loop.sh) so cd back to root
 cd "$(dirname "$0")"
 
-# stop on first error, dont do earlier or change to script dir could fail
+# delete old jar files from build directory
+rm build/libs/*.jar
+
+# stop on first error, note that the commands above this line need could fail without meaning an actual error
 set -e
 
 git pull
-
-# delete old jar files from build directory
-rm build/libs/*.jar
 
 gradle :shadowJar
 
