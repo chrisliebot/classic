@@ -50,11 +50,11 @@ public class DiscordUser implements ChrislieUser {
 	}
 	
 	@Override
-	public Optional<DiscordChannel> directMessage() {
+	public Optional<DiscordPrivateChannel> directMessage() {
 		var future = user.openPrivateChannel().submit();
 		try {
 			var channel = future.get();
-			return Optional.of(new DiscordChannel(service, channel));
+			return Optional.of(new DiscordPrivateChannel(service, channel));
 		} catch (InterruptedException ignore) {
 			Thread.currentThread().interrupt();
 			return Optional.empty();

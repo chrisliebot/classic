@@ -1,22 +1,30 @@
 package chrisliebaer.chrisliebot.abstraction.discord;
 
+import chrisliebaer.chrisliebot.abstraction.ChrislieChannel;
 import chrisliebaer.chrisliebot.abstraction.ChrislieMessage;
 import chrisliebaer.chrisliebot.abstraction.ChrislieService;
 import chrisliebaer.chrisliebot.abstraction.ServiceAttached;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
 import net.dv8tion.jda.api.JDA;
-import net.dv8tion.jda.api.entities.MessageChannel;
+import net.dv8tion.jda.api.entities.TextChannel;
 import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.events.ShutdownEvent;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.hooks.SubscribeEvent;
 
 import java.util.Optional;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
 
+@Slf4j
 public class DiscordService implements ChrislieService {
+	
+	public static final String PREFIX_GUILD_CHANNEL = "G:";
+	public static final String PREFIX_PRIVATE_CHANNEL = "P:";
 	
 	@Getter private JDA jda;
 	@Getter private String identifier;
@@ -37,13 +45,28 @@ public class DiscordService implements ChrislieService {
 	}
 	
 	@Override
-	public Optional<DiscordChannel> channel(String identifier) {
-		MessageChannel channel = jda.getTextChannelById(identifier);
+	public Optional<ChrislieChannel> channel(String identifier) {
+		if (identifier.startsWith(PREFIX_GUILD_CHANNEL)) {
+			var channel = jda.getGuildChannelById(identifier.substring(PREFIX_GUILD_CHANNEL.length()));
+			return channel == null ? Optional.empty() : Optional.of(new DiscordGuildChannel(this, (TextChannel) channel));
+		}
+		if (identifier.startsWith(PREFIX_PRIVATE_CHANNEL)) {
+			var user = jda.getUserById(identifier.substring(PREFIX_PRIVATE_CHANNEL.length()));
+			if (user == null)
+				return Optional.empty();
+			var future = user.openPrivateChannel().submit();
+			try {
+				var channel = future.get();
+				return Optional.of(new DiscordPrivateChannel(this, channel));
+			} catch (InterruptedException ignore) {
+				Thread.currentThread().interrupt();
+				return Optional.empty();
+			} catch (ExecutionException | CancellationException ignore) {
+				return Optional.empty();
+			}
+		}
 		
-		if (channel == null)
-			channel = jda.getPrivateChannelById(identifier);
-		
-		return channel == null ? Optional.empty() : Optional.of(new DiscordChannel(this, channel));
+		return Optional.empty();
 	}
 	
 	@Override

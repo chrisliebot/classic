@@ -25,9 +25,9 @@ public class DiscordGuild implements ChrislieGuild {
 	}
 	
 	@Override
-	public Collection<DiscordChannel> channels() {
+	public Collection<DiscordGuildChannel> channels() {
 		return guild.getTextChannels().stream()
-				.map(channel -> new DiscordChannel(service, channel))
+				.map(channel -> new DiscordGuildChannel(service, channel))
 				.collect(Collectors.toList());
 	}
 }
