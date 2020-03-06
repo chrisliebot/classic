@@ -74,6 +74,6 @@ public class IrcUser implements ChrislieUser {
 	}
 	
 	private static String createIdFromNickIgnoreAccount(IrcUser ircUser) {
-		return ircUser.user.getNick();
+		return IrcService.PREFIX_USER_BY_NICKNAME + ircUser.user.getNick();
 	}
 }
