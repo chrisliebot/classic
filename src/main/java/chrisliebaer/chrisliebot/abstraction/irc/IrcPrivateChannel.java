@@ -9,6 +9,7 @@ import org.kitteh.irc.client.library.element.User;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
+import java.util.stream.Stream;
 
 public class IrcPrivateChannel implements ChrislieChannel {
 	
@@ -58,9 +59,7 @@ public class IrcPrivateChannel implements ChrislieChannel {
 	
 	@Override
 	public Optional<IrcUser> user(String identifier) {
-		if (user.identifier().equals(identifier))
-			return Optional.of(user);
-		return Optional.empty();
+		return service.userByPrefixedIdentifier(identifier, Stream.of(user.user())). map(u -> new IrcUser(service, u));
 	}
 	
 	@Override

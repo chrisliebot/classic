@@ -157,11 +157,11 @@ public class IrcService implements ChrislieService {
 				.findFirst();
 	}
 	
-	private Predicate<User> userByAccount(String account) {
+	private static Predicate<User> userByAccount(String account) {
 		return user -> user.getAccount().filter(s -> s.equals(account)).isPresent();
 	}
 	
-	private Predicate<User> userByNickname(String nickname) {
+	private static Predicate<User> userByNickname(String nickname) {
 		return user -> user.getNick().equals(nickname);
 	}
 	
