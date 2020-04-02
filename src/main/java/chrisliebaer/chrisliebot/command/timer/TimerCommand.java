@@ -344,9 +344,9 @@ public class TimerCommand implements ChrislieListener.Command {
 		}
 		
 		convert.appendEscapeSub("${title} - ")
-				.appendEscape("Id: ").appendEscape(id)
-				.appendEscape(", Text: ")
+				.appendEscape("Text: ")
 				.appendEscape(timerInfo.text)
+				.appendEscape(", Id: ").appendEscape(id)
 				.appendEscape(", Besitzer: ")
 				.appendEscape(user.map(ChrislieUser::mention).orElse("Unbekannt"), ChrislieFormat.HIGHLIGHT)
 				.appendEscape(", Fällig: ").appendEscape(when, ChrislieFormat.HIGHLIGHT);
