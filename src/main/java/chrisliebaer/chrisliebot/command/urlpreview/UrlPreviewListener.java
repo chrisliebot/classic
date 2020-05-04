@@ -60,7 +60,7 @@ public class UrlPreviewListener implements ChrislieListener {
 	
 	@Override
 	public void onMessage(ListenerMessage msg, boolean isCommand) throws ListenerException {
-		if (msg.msg().message().startsWith(" ")) // TODO: is this good?
+		if (msg.msg().message().startsWith(" ") || isCommand) // TODO: is this good?
 			return;
 		
 		// don't reuse since not thread safe
