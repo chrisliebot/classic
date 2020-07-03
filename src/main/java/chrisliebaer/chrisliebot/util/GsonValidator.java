@@ -6,6 +6,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonIOException;
 import com.google.gson.JsonSyntaxException;
 import com.google.gson.stream.JsonReader;
+import com.google.gson.stream.JsonWriter;
 import lombok.Getter;
 import lombok.NonNull;
 import okhttp3.RequestBody;
@@ -16,7 +17,6 @@ import retrofit2.converter.gson.GsonConverterFactory;
 
 import javax.annotation.Nullable;
 import javax.validation.Validator;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.Reader;
 import java.lang.annotation.Annotation;
@@ -69,8 +69,32 @@ public class GsonValidator {
 		return validate(gson.fromJson(json, typeOfT));
 	}
 	
-	public void toJson(Object description, FileWriter fw) throws JsonSyntaxException {
-		gson.toJson(validate(description), fw);
+	public String toJson(Object src) {
+		return gson.toJson(src);
+	}
+	
+	public String toJson(Object src, Type typeOfSrc) {
+		return gson.toJson(validate(src), typeOfSrc);
+	}
+	
+	public void toJson(Object src, Appendable writer) throws JsonIOException {
+		gson.toJson(validate(src), writer);
+	}
+	
+	public void toJson(Object src, Type typeOfSrc, Appendable writer) throws JsonIOException {
+		gson.toJson(validate(src), typeOfSrc, writer);
+	}
+	
+	public void toJson(Object src, Type typeOfSrc, JsonWriter writer) throws JsonIOException {
+		gson.toJson(validate(src), typeOfSrc, writer);
+	}
+	
+	public String toJson(JsonElement jsonElement) {
+		return gson.toJson(jsonElement);
+	}
+	
+	public void toJson(JsonElement jsonElement, Appendable writer) throws JsonIOException {
+		gson.toJson(jsonElement, writer);
 	}
 	
 	private <T> T validate(T t) throws JsonSyntaxException {

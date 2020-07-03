@@ -14,8 +14,8 @@ apply plugin: 'java'
 apply plugin: 'application'
 apply plugin: 'idea'
 
-sourceCompatibility = 12
-targetCompatibility = 12
+sourceCompatibility = 14
+targetCompatibility = 14
 compileJava.options.encoding = 'UTF-8'
 
 group = "chrisliebaer"

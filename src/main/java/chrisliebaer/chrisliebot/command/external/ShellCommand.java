@@ -9,6 +9,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonSyntaxException;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.io.IOUtils;
 import org.zeroturnaround.exec.InvalidExitValueException;
 import org.zeroturnaround.exec.ProcessExecutor;
 import org.zeroturnaround.exec.ProcessResult;
@@ -19,9 +20,15 @@ import javax.validation.constraints.NotNull;
 import javax.validation.constraints.PositiveOrZero;
 import java.io.File;
 import java.io.IOException;
-import java.util.*;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.function.Consumer;
 
 @Slf4j
 public class ShellCommand extends ExternalCommandListener {
@@ -84,36 +91,49 @@ public class ShellCommand extends ExternalCommandListener {
 	
 	@Override
 	protected void handleCommand(Invocation invc) throws ListenerException {
-		dispatch(translator.toFlatMap(invc), invc.reply(), invc.exceptionHandler());
+		var fn = switch(cfg.passing) {
+			case ENV -> passEnv(translator.toFlatMap(invc));
+			case STDIN -> passStdin(translator.toObject(invc));
+		};
+		dispatch(fn, invc.reply(), invc.exceptionHandler());
 	}
 	
 	@Override
 	protected void externalMessage(ListenerMessage msg) throws ListenerException {
-		dispatch(translator.toFlatMap(msg), msg.reply(), msg.exceptionHandler());
+		var fn = switch(cfg.passing) {
+			case ENV -> passEnv(translator.toFlatMap(msg));
+			case STDIN -> passStdin(translator.toObject(msg));
+		};
+		dispatch(fn, msg.reply(), msg.exceptionHandler());
 	}
 	
-	private void dispatch(Map<String, String> flatMap, ChrislieOutput out, ExceptionHandler exceptionHandler) throws ListenerException {
+	private Consumer<ProcessExecutor> passEnv(Map<String, String> flatMap) {
+		return executor -> executor.environment(flatMap);
+	}
+	
+	private Consumer<ProcessExecutor> passStdin(ExternalMessageTranslator.ExternalInvocation inv) {
+		return executor -> executor.redirectInput(IOUtils.toInputStream(gson.toJson(inv), StandardCharsets.UTF_8));
+	}
+	
+	private void dispatch(Consumer<ProcessExecutor> fnPass, ChrislieOutput out, ExceptionHandler exceptionHandler) throws ListenerException {
 		var procExec = new ProcessExecutor()
-				.command(cfg.cmd)
+				.command(cfg.cmd) // TODO: check if arguments are passed via env or stdin json
 				.redirectErrorStream(cfg.stderrToSdtOut)
-				.environment(flatMap)
+				.environment(cfg.envMap) // note that this map only contains static values
 				.readOutput(true)
 				.redirectOutputAlsoTo(Slf4jStream.of(log).asTrace())
 				.redirectErrorAlsoTo(Slf4jStream.of(log).asTrace());
+		
+		// let fnPass take care of passing arguments into process
+		fnPass.accept(procExec);
 		
 		if (cfg.dir != null)
 			procExec.directory(new File(cfg.dir));
 		
 		switch (cfg.exitMethod) {
-			case ANY:
-				procExec.exitValueAny();
-				break;
-			case NORMAL:
-				procExec.exitValueNormal();
-				break;
-			case LIST:
-				procExec.exitValues(cfg.exitCodes);
-				break;
+			case ANY -> procExec.exitValueAny();
+			case NORMAL -> procExec.exitValueNormal();
+			case LIST -> procExec.exitValues(cfg.exitCodes);
 		}
 		
 		if (cfg.timeout > 0)
@@ -153,6 +173,7 @@ public class ShellCommand extends ExternalCommandListener {
 		} catch (TimeoutException e) {
 			exceptionHandler.escalateException(new ListenerException("process timed out", e));
 		} catch (InvalidExitValueException e) {
+			// TODO: check if process wrote error object
 			exceptionHandler.escalateException(new ListenerException("process exited with invalid exit code"));
 		} finally {
 			synchronized (processes) {
@@ -163,8 +184,8 @@ public class ShellCommand extends ExternalCommandListener {
 	}
 	
 	private void doOutput(ProcessResult result, ChrislieOutput out, ExceptionHandler exceptionHandler) {
-		if (cfg.out != null) {
-			cfg.out.apply(out, s -> s.replace("${out}", result.outputUTF8())).send();
+		if (cfg.output != null) {
+			cfg.output.apply(out, s -> s.replace("${out}", result.outputUTF8())).send();
 		} else {
 			try {
 				gson.fromJson(result.outputUTF8(), SerializedOutput.class).apply(out).send();
@@ -211,7 +232,12 @@ public class ShellCommand extends ExternalCommandListener {
 		/**
 		 * The method that's used to determine if an exit code should be considered valid.
 		 */
-		private @NonNull ExitCodeMethod exitMethod = ExitCodeMethod.NORMAL;
+		private @NotNull ExitCodeMethod exitMethod = ExitCodeMethod.NORMAL;
+		
+		/**
+		 * The method that's to pass invocation arguments to process.
+		 */
+		private @NotNull ArgumentPassing passing = ArgumentPassing.ENV;
 		
 		/**
 		 * A list of valid exit codes.
@@ -222,7 +248,7 @@ public class ShellCommand extends ExternalCommandListener {
 		 * If set process output will be fed into this serialized output. Otherwise the process output will be treated as a {@link SerializedOutput} JSON, resulting in a
 		 * {@link ListenerException} if the output is not a valid JSON representation of a {@link SerializedOutput}.
 		 */
-		private SerializedOutput out;
+		private SerializedOutput output;
 		
 		private enum ExitCodeMethod {
 			/**
@@ -239,6 +265,18 @@ public class ShellCommand extends ExternalCommandListener {
 			 * Consider any exit code listed as {@link #exitCodes} valid.
 			 */
 			LIST
+		}
+		
+		private enum ArgumentPassing {
+			/**
+			 * Passes arguments as environment variables to process.
+			 */
+			ENV,
+			
+			/**
+			 * Converts arguments into JSON objects and passes them via stdin to process.
+			 */
+			STDIN
 		}
 	}
 }

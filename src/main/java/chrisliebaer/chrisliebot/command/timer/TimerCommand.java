@@ -744,7 +744,7 @@ public class TimerCommand implements ChrislieListener.Command {
 		return Optional.empty();
 	}
 	
-	private static synchronized Optional<Pair<Instant, String>> shrinkingParse(String arg, ZoneId zoneId) {
+	private static Optional<Pair<Instant, String>> shrinkingParse(String arg, ZoneId zoneId) {
 		try {
 			var parser = new Parser(TimeZone.getTimeZone(zoneId));
 			

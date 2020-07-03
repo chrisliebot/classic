@@ -8,8 +8,11 @@ import com.google.gson.JsonElement;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 
-import java.util.*;
-import java.util.stream.Collectors;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * This class translates Chrisliebots listener structures into various serializeable representations.
@@ -163,7 +166,8 @@ public final class ExternalMessageTranslator{
 			r.identifier = c.identifier();
 			r.displayName = c.displayName();
 			r.isDirectMessage = c.isDirectMessage();
-			r.users = c.users().stream().map(ExternalUser::of).collect(Collectors.toList());
+			// TODO: decide if we really need that
+			//r.users = c.users().stream().map(ExternalUser::of).collect(Collectors.toList());
 			r.isNSFW = c.isNSFW();
 			r.guild = c.guild().map(ExternalGuild::of).orElse(null);
 			return r;
