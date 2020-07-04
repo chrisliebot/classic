@@ -98,14 +98,18 @@ public class GsonValidator {
 	}
 	
 	private <T> T validate(T t) throws JsonSyntaxException {
-		var result = validator.validate(t);
-		if (!result.isEmpty()) {
-			var reason = result.stream().map(v -> String.format("%s value `%s`: %s",
-					v.getPropertyPath(), v.getInvalidValue(), v.getMessage()))
-					.collect(Collectors.joining("\n"));
-			throw new JsonSyntaxException("The given JSON object is invalid: \n" + reason);
+		try {
+			var result = validator.validate(t);
+			if (!result.isEmpty()) {
+				var reason = result.stream().map(v -> String.format("%s value `%s`: %s",
+						v.getPropertyPath(), v.getInvalidValue(), v.getMessage()))
+						.collect(Collectors.joining("\n"));
+				throw new JsonSyntaxException("The given JSON object is invalid: \n" + reason);
+			}
+			return t;
+		} catch (IllegalArgumentException e) {
+			throw new JsonSyntaxException("The given JSON object is null", e);
 		}
-		return t;
 	}
 	
 	private class ValidatingRetrofitFactory extends Converter.Factory {
