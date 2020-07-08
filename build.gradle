@@ -16,7 +16,12 @@ apply plugin: 'idea'
 
 sourceCompatibility = 14
 targetCompatibility = 14
-compileJava.options.encoding = 'UTF-8'
+
+compileJava {
+	options.encoding = 'UTF-8'
+	options.compilerArgs << '-parameters'
+	options.compilerArgs << '--enable-preview'
+}
 
 group = "chrisliebaer"
 version gitVersion()
@@ -53,6 +58,8 @@ repositories {
 }
 
 dependencies {
+	compileOnly 'org.jetbrains:annotations:19.0.0'
+
 	compileOnly "org.projectlombok:lombok:1.18.12"
 	annotationProcessor "org.projectlombok:lombok:1.18.12"
 

@@ -52,7 +52,7 @@ public interface ChrislieService {
 	public default void reconnect() {}
 	
 	/**
-	 * Called by Chrisliebot to shutdown this service. The implementation should block until it has completly shut down. After returning from this method, the service is
+	 * Called by Chrisliebot to shutdown this service. The implementation should block until it has completly shut down. After returning from this method, the service
 	 * must no longer interact with the Chrisliebot framework.
 	 *
 	 * @throws ServiceException If a proper shutdown is not possible.
