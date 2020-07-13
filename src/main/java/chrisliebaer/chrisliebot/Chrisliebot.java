@@ -194,6 +194,7 @@ public class Chrisliebot extends AbstractIdleService {
 		log.debug("calling init() on listeners");
 		for (var envelope : resolver.envelopes()) {
 			try {
+				log.trace("calling init() on {}", envelope);
 				envelope.listener().init(this, resolver);
 			} catch (ChrislieListener.ListenerException e) {
 				throw new ChrisliebotException(String.format("error in init() of listener with source `%s`", envelope.source()), e);
@@ -204,6 +205,7 @@ public class Chrisliebot extends AbstractIdleService {
 		log.debug("calling start() on listeners");
 		for (var envelope : resolver.envelopes()) {
 			try {
+				log.trace("calling start() on {}", envelope);
 				envelope.listener().start(this, resolver);
 			} catch (ChrislieListener.ListenerException e) {
 				throw new ChrisliebotException(String.format("error in start() of listener with source `%s`", envelope.source()), e);
@@ -234,10 +236,11 @@ public class Chrisliebot extends AbstractIdleService {
 		 * so the next step is to tell listeners to shut down while services are still operational
 		 */
 		
+		log.debug("calling stop() on listeners");
 		for (var envelope : resolver.envelopes()) {
 			var listener = envelope.listener();
 			try {
-				log.trace("shutting down listener: {}", envelope.source());
+				log.trace("calling stop() on {}", envelope);
 				listener.stop(this, resolver);
 			} catch (ChrislieListener.ListenerException e) {
 				throw new ChrisliebotException("failed to shut down listener: " + envelope.source(), e);
