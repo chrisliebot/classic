@@ -11,6 +11,7 @@ while true; do
 			-Dchrisliebot.core=prod-core.json \
 			-Xmx200m \
 			-XX:+UseStringDeduplication \
+			--enable-preview \
 			-jar ../chrisliebot-*.jar
 	code=$?
 
