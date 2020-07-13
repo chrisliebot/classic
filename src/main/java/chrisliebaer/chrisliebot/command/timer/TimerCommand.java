@@ -101,7 +101,7 @@ public class TimerCommand implements ChrislieListener.Command {
 	private ContextResolver resolver;
 	
 	
-	private final TimerTaskMaster timerMaster = new TimerTaskMaster();
+	@SuppressWarnings("ThisEscapedInObjectConstruction") private final TimerTaskMaster timerMaster = new TimerTaskMaster(this);
 	private final Map<Long, ScheduledTimer> runtimeTimer = new HashMap<>();
 	
 	// both timers will utilize timer master infrastructure since they share the same requirements

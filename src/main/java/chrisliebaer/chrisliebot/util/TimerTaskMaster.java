@@ -19,12 +19,21 @@ import static chrisliebaer.chrisliebot.C.unsafeCast;
  * executing. This approach allows the class owning the {@link TimerTaskMaster} to not only cancel all inactive timers, but also ensuring that no timer is currently
  * scheduled for executing.
  */
-public class TimerTaskMaster {
+public class TimerTaskMaster { // TODO: this class might have fundamental flaws within it's synchronisation, maybe trash it
 	
-	private final Object lock = new Object();
+	private final Object lock;
 	private volatile boolean shutdown;
 	
 	private final Set<TimerTaskSlave> timers = unsafeCast(Collections.newSetFromMap(new IdentityHashMap<>()));
+	
+	/**
+	 * Creates a new timer task master. Due to how the tasks in this class work, it is vital to provide an acurate lock object.
+	 *
+	 * @param lock The lock object that will be used to synchronize state changes to this class.
+	 */
+	public TimerTaskMaster(@NonNull final Object lock) {
+		this.lock = lock;
+	}
 	
 	/**
 	 * Creates a new timer that will be controlled with this master instance.
