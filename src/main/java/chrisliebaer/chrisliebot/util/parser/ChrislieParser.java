@@ -105,27 +105,28 @@ public class ChrislieParser {
 	/**
 	 * Note that this selector will not care about quotation. It is therefore advisable to use {@link #quoted()} unless reading only a single word is strictly required.
 	 *
+	 * @param skipWhitespace If set, leading whitespaces will be skipped.
 	 * @return A selector that will match on the next sequence of non-whitespace characters.
 	 */
 	@CheckReturnValue
-	public TokenSelector word() {
-		return TokenSelector.singleWord(this);
+	public TokenSelector word(boolean skipWhitespace) {
+		return TokenSelector.singleWord(this, skipWhitespace);
 	}
 	
 	/**
 	 * The quoted selector behaves different, depending on various circumstances.
 	 * <ul>
-	 *     <li>If the current symbol is not considered a quote, the selector will behave like {@link #word()}.</li>
+	 *     <li>If the current symbol is not considered a quote, the selector will behave like {@link #word(boolean)}.</li>
 	 *     <li>If the current symbol is a quote, the selector will match until the same quote appears once more in unescaped form. The quote itself will be consumed.</li>
 	 *     <li>While seeking for the matching quote, any escape character followed by a non quote character will be treated as a regular character and have no effect.</li>
-	 *     <li>If no matching quote can be found, the parse will behave like {@link #word()}.</li>
+	 *     <li>If no matching quote can be found, the parse will behave like {@link #word(boolean)}.</li>
 	 * </ul>
-	 *
+	 * @param skipWhitespace If set, leading whitespaces will be skipped.
 	 * @return A selector that will match on the next world or quoted string.
 	 */
 	@CheckReturnValue
-	public TokenSelector quoted() {
-		return TokenSelector.maybeQuotedString(this);
+	public TokenSelector quoted(boolean skipWhitespace) {
+		return TokenSelector.maybeQuotedString(this, skipWhitespace);
 	}
 	
 	/**

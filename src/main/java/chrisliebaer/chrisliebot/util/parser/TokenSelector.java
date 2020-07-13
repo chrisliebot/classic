@@ -59,8 +59,11 @@ public class TokenSelector {
 		return new TokenSelector(parser, p -> Character.toString(p.consumeCodepoint()));
 	}
 	
-	protected static TokenSelector singleWord(ChrislieParser parser) {
+	protected static TokenSelector singleWord(ChrislieParser parser, boolean skipWhitespace) {
 		return new TokenSelector(parser, p -> {
+			if (skipWhitespace)
+				p.skipWhitespaces();
+			
 			if (!p.canRead())
 				throw new ChrislieParser.ParserException(p, "unexpected EOF");
 			
@@ -76,9 +79,13 @@ public class TokenSelector {
 		});
 	}
 	
-	protected static TokenSelector maybeQuotedString(ChrislieParser parser) {
+	protected static TokenSelector maybeQuotedString(ChrislieParser parser, boolean skipWhitespace) {
 		return new TokenSelector(parser, choicepoint -> {
 			var p = choicepoint.fork(); // fork in case we never match the first quote character
+			
+			if (skipWhitespace)
+				p.skipWhitespaces();
+			
 			if (!p.canRead())
 				throw new ChrislieParser.ParserException(p, "unexpected EOF");
 			
@@ -120,7 +127,7 @@ public class TokenSelector {
 			}
 			
 			// since we reached this point, we were unable to find matching quote character, so we use single word parser and exit
-			return choicepoint.word().consume().expect();
+			return choicepoint.word(skipWhitespace).consume().expect();
 		});
 	}
 	

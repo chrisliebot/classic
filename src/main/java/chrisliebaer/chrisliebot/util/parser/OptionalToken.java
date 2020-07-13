@@ -101,7 +101,7 @@ public interface OptionalToken {
 		
 		@Override
 		public String expect(String msg) throws ParserException {
-			throw new ParserException(parser, msg, throwable);
+			throw new ParserException(parser, "expected `%s` but %s".formatted(msg, throwable.getMessage()), throwable);
 		}
 	}
 	
