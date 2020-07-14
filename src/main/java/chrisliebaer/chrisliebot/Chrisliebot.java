@@ -7,7 +7,7 @@ import chrisliebaer.chrisliebot.config.ContextResolver;
 import chrisliebaer.chrisliebot.config.CoreConfig;
 import chrisliebaer.chrisliebot.config.JsonBotConfig;
 import chrisliebaer.chrisliebot.config.scope.ScopeMapping;
-import chrisliebaer.chrisliebot.protocol.ServiceBootstrap;
+import chrisliebaer.chrisliebot.abstraction.ServiceBootstrap;
 import chrisliebaer.chrisliebot.util.GsonValidator;
 import chrisliebaer.chrisliebot.util.SystemProperty;
 import com.google.common.util.concurrent.AbstractIdleService;

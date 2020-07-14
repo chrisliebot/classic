@@ -1,7 +1,7 @@
 package chrisliebaer.chrisliebot.abstraction.discord;
 
 import chrisliebaer.chrisliebot.Chrisliebot;
-import chrisliebaer.chrisliebot.protocol.ServiceBootstrap;
+import chrisliebaer.chrisliebot.abstraction.ServiceBootstrap;
 import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.hooks.AnnotatedEventManager;
 

@@ -1,7 +1,6 @@
-package chrisliebaer.chrisliebot.protocol;
+package chrisliebaer.chrisliebot.abstraction;
 
 import chrisliebaer.chrisliebot.Chrisliebot;
-import chrisliebaer.chrisliebot.abstraction.ChrislieService;
 
 public interface ServiceBootstrap {
 	

@@ -1,7 +1,7 @@
 package chrisliebaer.chrisliebot.abstraction.irc;
 
 import chrisliebaer.chrisliebot.Chrisliebot;
-import chrisliebaer.chrisliebot.protocol.ServiceBootstrap;
+import chrisliebaer.chrisliebot.abstraction.ServiceBootstrap;
 import chrisliebaer.chrisliebot.util.ClientLogic;
 import chrisliebaer.chrisliebot.util.IrcToSqlLogger;
 import com.google.common.collect.HashMultimap;
@@ -26,7 +26,6 @@ import java.util.regex.Pattern;
 @Slf4j
 public class IrcBootstrap implements ServiceBootstrap {
 	
-	private boolean verbose; // enable logging of raw lines
 	private boolean chatlog; // enable logging of all messages to database
 	
 	private String host;
@@ -51,8 +50,7 @@ public class IrcBootstrap implements ServiceBootstrap {
 		configureConnection(builder);
 		
 		// protocol level logging
-		if (verbose)
-			verboseLogging(builder);
+		IrcLogger.attach(identifier, builder);
 		
 		Client client = builder.build();
 		
