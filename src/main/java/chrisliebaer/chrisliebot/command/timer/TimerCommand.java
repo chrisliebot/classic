@@ -73,6 +73,8 @@ import java.util.stream.Collectors;
 @Slf4j
 public class TimerCommand implements ChrislieListener.Command {
 	
+	private static final Timestamp UNIX_EPOCH_SECOND_1 = Timestamp.from(Instant.ofEpochSecond(1));
+	
 	private static final String ERROR_TIMER_UNKOWN_OR_RESTRICTED = "Diesen Timer kenne ich nicht oder du darfst ihn nicht bearbeiten.";
 	
 	private static final String ENCODER_ALPHABET = "abcdefghkmnopqrstuvwxyz123456789";
@@ -718,8 +720,9 @@ public class TimerCommand implements ChrislieListener.Command {
 		timerInfo.user = rs.getString("user");
 		timerInfo.channel = rs.getString("channel");
 		
+		// janky overflow shit can lead to unix epoch of 0 in DB which will cause jdbc to read "NULL" and lead to NPE, so we use unix_epoch of 1 instead
 		timerInfo.creation = rs.getTimestamp("creation").toInstant();
-		timerInfo.due = rs.getTimestamp("due").toInstant();
+		timerInfo.due = Objects.requireNonNullElse(rs.getTimestamp("due"), UNIX_EPOCH_SECOND_1).toInstant();
 		
 		var timestamp = rs.getTimestamp("snooze");
 		if (timestamp != null)
