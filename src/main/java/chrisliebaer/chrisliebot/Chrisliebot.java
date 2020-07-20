@@ -77,6 +77,9 @@ public class Chrisliebot extends AbstractIdleService {
 	public static void main(String[] args) {
 		log.debug("default charset is: {}", Charset.defaultCharset());
 		
+		// hook uncaugth exceptions and redirect to logger
+		Thread.setDefaultUncaughtExceptionHandler((t, e) -> log.error("uncaugth exception in thread {}", t, e));
+		
 		var bot = new Chrisliebot();
 		bot.addListener(new Listener() {
 			@Override
