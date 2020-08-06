@@ -54,7 +54,7 @@ public class PlainOutputImpl implements PlainOutput {
 	}
 	
 	protected void appendEscape(Supplier<String> supplier, Object... formats) {
-		calls.add(() -> escaper.apply(applyFormats(supplier.get(), formats)));
+		calls.add(() -> applyFormats(escaper.apply(supplier.get()), formats));
 	}
 	
 	protected void append(Supplier<String> supplier, Object... formats) {

@@ -1,6 +1,7 @@
 package chrisliebaer.chrisliebot.abstraction.irc;
 
 import chrisliebaer.chrisliebot.abstraction.ChrislieFormat;
+import chrisliebaer.chrisliebot.abstraction.discord.DiscordFormatter;
 import lombok.experimental.UtilityClass;
 import net.dv8tion.jda.api.MessageBuilder.Formatting;
 import org.kitteh.irc.client.library.util.Format;
@@ -11,17 +12,17 @@ public class IrcFormatter {
 	
 	public static String format(Object format, String s) {
 		
-		// handle chrisliebot formattings
-		if (format instanceof ChrislieFormat)
-			return format((ChrislieFormat) format, s);
+		// convert discord->chrisliebot
+		if (format instanceof Formatting)
+			format = DiscordFormatter.discord2ChrislieFormat((Formatting) format);
 		
-		// handle native irc formats
+		// handle irc directly
 		if (format instanceof Format)
 			return format((Format) format, s);
 		
-		// handle discord formats and convert to irc
-		if (format instanceof Formatting)
-			return format((Formatting) format, s);
+		// handle chrisliebot formattings
+		if (format instanceof ChrislieFormat)
+			return format((ChrislieFormat) format, s);
 		
 		// just assume it's some format code
 		if (format instanceof String)
@@ -37,6 +38,9 @@ public class IrcFormatter {
 			case ITALIC -> format(Format.ITALIC, s);
 			case UNDERLINE -> format(Format.UNDERLINE, s);
 			case CODE -> "`" + s + "`";
+			case QUOTE -> "\"" + s + "\"";
+			case STRIKETHROUGH -> "~~" + s + "~~";
+			case NONE, BLOCK, SPOILER -> s;
 		};
 	}
 	
@@ -44,13 +48,12 @@ public class IrcFormatter {
 		return format.toString() + s + Format.RESET;
 	}
 	
-	public static String format(Formatting format, String s) {
+	public static ChrislieFormat irc2ChrislieFormat(Format format) {
 		return switch (format) {
-			case ITALICS -> format(Format.ITALIC, s);
-			case BOLD -> format(Format.BOLD, s);
-			case UNDERLINE -> format(Format.UNDERLINE, s);
-			case STRIKETHROUGH -> "~~" + s + "~~";
-			case BLOCK -> "`" + s + "`";
+			case BOLD -> ChrislieFormat.BOLD;
+			case ITALIC -> ChrislieFormat.ITALIC;
+			case UNDERLINE -> ChrislieFormat.UNDERLINE;
+			default -> ChrislieFormat.NONE;
 		};
 	}
 }

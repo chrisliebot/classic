@@ -18,8 +18,8 @@ public class DiscordOutput implements ChrislieOutput {
 	
 	private MessageChannel channel;
 	private EmbedBuilder embedBuilder = new EmbedBuilder();
-	private DiscordPlainOutput plain = new DiscordPlainOutput(DiscordOutput::escape4Discord, (a, b) -> b); // TODO: replace identity?
-	private PlainOutputImpl descrption = new PlainOutputImpl(DiscordOutput::escape4Discord, (a, b) -> b);
+	private DiscordPlainOutput plain = new DiscordPlainOutput(DiscordOutput::escape4Discord, DiscordFormatter::format);
+	private PlainOutputImpl descrption = new PlainOutputImpl(DiscordOutput::escape4Discord, DiscordFormatter::format);
 	
 	private String authorName, authorUrl, authorIcon;
 	
