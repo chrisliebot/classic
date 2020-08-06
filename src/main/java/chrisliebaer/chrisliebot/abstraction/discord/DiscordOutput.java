@@ -27,11 +27,18 @@ public class DiscordOutput implements ChrislieOutput {
 	
 	private String authorName, authorUrl, authorIcon;
 	
+	
+	/* jda will consider an embed with only a color to be valid, so setting the color based on the stack trace in the
+	 * constructor will always create an embed, which is not what we want, so instead we track the color and only
+	 * apply it during the final build operation if the color hasn't been set up until this point
+	 *
+	 * since we need the proper call stack for this, we have to store the color in the constructor
+	 */
+	private boolean colorSet = false;
+	private final Optional<Color> stackTraceColor = colorFromCallstack();
+	
 	public DiscordOutput(@NonNull MessageChannel channel) {
 		this.channel = channel;
-		
-		// derive color from calling command listener, if any
-		colorFromCallstack().ifPresent(this::color);
 	}
 	
 	@Override
@@ -59,12 +66,14 @@ public class DiscordOutput implements ChrislieOutput {
 	
 	@Override
 	public DiscordOutput color(Color color) {
+		colorSet = true;
 		embedBuilder.setColor(color);
 		return this;
 	}
 	
 	@Override
 	public DiscordOutput color(int color) {
+		colorSet = true;
 		embedBuilder.setColor(color);
 		return this;
 	}
@@ -126,8 +135,14 @@ public class DiscordOutput implements ChrislieOutput {
 		mb.setAllowedMentions(List.of());
 		plain.applyMentionRules(mb);
 		
-		if (!embedBuilder.isEmpty())
+		if (!embedBuilder.isEmpty()) {
+			
+			// jda considers embed non-empty if color has been set
+			if (!colorSet)
+				stackTraceColor.ifPresent(embedBuilder::setColor);
+			
 			mb.setEmbed(embedBuilder.build());
+		}
 		
 		try {
 			mb.append(plain.string());
