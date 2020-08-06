@@ -1,8 +1,10 @@
 package chrisliebaer.chrisliebot.abstraction.discord;
 
+import chrisliebaer.chrisliebot.C;
 import chrisliebaer.chrisliebot.abstraction.ChrislieOutput;
 import chrisliebaer.chrisliebot.abstraction.PlainOutput;
 import chrisliebaer.chrisliebot.abstraction.PlainOutputImpl;
+import chrisliebaer.chrisliebot.command.ChrislieListener;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import net.dv8tion.jda.api.EmbedBuilder;
@@ -11,7 +13,9 @@ import net.dv8tion.jda.api.entities.MessageChannel;
 import net.dv8tion.jda.api.utils.MarkdownSanitizer;
 
 import java.awt.Color;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Optional;
 
 @Slf4j
 public class DiscordOutput implements ChrislieOutput {
@@ -25,6 +29,9 @@ public class DiscordOutput implements ChrislieOutput {
 	
 	public DiscordOutput(@NonNull MessageChannel channel) {
 		this.channel = channel;
+		
+		// derive color from calling command listener, if any
+		colorFromCallstack().ifPresent(this::color);
 	}
 	
 	@Override
@@ -132,5 +139,29 @@ public class DiscordOutput implements ChrislieOutput {
 	
 	private static String escape4Discord(String s) {
 		return MarkdownSanitizer.escape(s);
+	}
+	
+	// highly illegal method of creating command dependant colors (please don't tell anyone)
+	private static Optional<Color> colorFromCallstack() {
+		var st = Thread.currentThread().getStackTrace();
+		
+		// now we walk up the stacktrace until we find something that implements ChrislieListener interface
+		try {
+			for (var e : st) {
+				var clazz = Class.forName(e.getClassName());
+				while (clazz != null) {
+					
+					// ChrislieListener is of part of invocation, so we need to exclude it
+					if (clazz != ChrislieListener.class && ChrislieListener.class.isAssignableFrom(clazz))
+						return Optional.of(C.hashColor(clazz.getSimpleName().getBytes(StandardCharsets.UTF_8)));
+					
+					// walk up to outer class
+					clazz = clazz.getEnclosingClass();
+				}
+			}
+		} catch (ClassNotFoundException e) {
+			log.warn("you won't believe it but we can't even find the class that called us", e);
+		}
+		return Optional.empty();
 	}
 }

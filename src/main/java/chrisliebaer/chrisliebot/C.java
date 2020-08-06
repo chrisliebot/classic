@@ -6,12 +6,14 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.jsoup.Jsoup;
 
+import java.awt.Color;
 import java.time.DayOfWeek;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.Optional;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.zip.CRC32C;
 
 @Slf4j
 @UtilityClass
@@ -144,5 +146,21 @@ public final class C {
 			default -> Optional.empty();
 		};
 		
+	}
+	
+	/**
+	 * Generates visually pleasing colors by hasing the given input und deriving a deterministic color value.
+	 *
+	 * @param bytes An array of data that will be fed into the hash function.
+	 * @return Deterministic color based on the input value.
+	 */
+	public Color hashColor(byte[] bytes) {
+		CRC32C crc = new CRC32C();
+		crc.update(bytes);
+		
+		// convert hash value into fraction [0,1)
+		double f = Math.abs((int) crc.getValue());
+		f /= Integer.MAX_VALUE;
+		return new Color(Color.HSBtoRGB((float) f, 1f, 1f));
 	}
 }
