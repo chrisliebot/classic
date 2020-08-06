@@ -223,7 +223,8 @@ public class TimerCommand implements ChrislieListener.Command {
 	}
 	
 	private synchronized void listCommand(Invocation invc) throws ListenerException {
-		String sql = "SELECT * FROM timer WHERE service = ? AND user = ? AND deleted = FALSE";
+		String sql = "SELECT * FROM timer WHERE service = ? AND user = ? AND deleted = FALSE " +
+				"ORDER BY COALESCE(snooze, due)";
 		
 		// while we are only requesting a users tasks, we also need to make sure they are safe to be displayed in the current context
 		Predicate<TimerInfo> pred = accessPredicate(invc.msg());
