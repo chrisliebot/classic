@@ -23,8 +23,8 @@ public interface ChrislieUser extends ServiceAttached {
 	public String mention();
 	
 	/**
-	 * @return An instance of a ChrislieChannel that can be used to directly contact the user. Can fail it the user has blocked us or we are otherwise unable to contact
-	 * user.
+	 * @return An instance of a ChrislieChannel that can be used to directly contact the user. Can fail it the user has
+	 * blocked us or we are otherwise unable to contact user.
 	 */
 	public Optional<? extends ChrislieChannel> directMessage();
 }

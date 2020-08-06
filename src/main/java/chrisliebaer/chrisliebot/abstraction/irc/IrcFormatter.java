@@ -31,21 +31,13 @@ public class IrcFormatter {
 	}
 	
 	public static String format(ChrislieFormat format, String s) {
-		switch (format) {
-			
-			case HIGHLIGHT:
-				return format(Format.TEAL, s);
-			case BOLD:
-				return format(Format.BOLD, s);
-			case ITALIC:
-				return format(Format.ITALIC, s);
-			case UNDERLINE:
-				return format(Format.UNDERLINE, s);
-			case CODE:
-				return "`" + s + "`";
-			default:
-				throw new UnsupportedOperationException("unkown format: " + format);
-		}
+		return switch (format) {
+			case HIGHLIGHT -> format(Format.TEAL, s);
+			case BOLD -> format(Format.BOLD, s);
+			case ITALIC -> format(Format.ITALIC, s);
+			case UNDERLINE -> format(Format.UNDERLINE, s);
+			case CODE -> "`" + s + "`";
+		};
 	}
 	
 	public static String format(Format format, String s) {
@@ -53,19 +45,12 @@ public class IrcFormatter {
 	}
 	
 	public static String format(Formatting format, String s) {
-		switch (format) {
-			case ITALICS:
-				return format(Format.ITALIC, s);
-			case BOLD:
-				return format(Format.BOLD, s);
-			case UNDERLINE:
-				return format(Format.UNDERLINE, s);
-			case STRIKETHROUGH:
-				return "~~" + s + "~~";
-			case BLOCK:
-				return "`" + s + "`";
-			default:
-				throw new UnsupportedOperationException("unkown format: " + format);
-		}
+		return switch (format) {
+			case ITALICS -> format(Format.ITALIC, s);
+			case BOLD -> format(Format.BOLD, s);
+			case UNDERLINE -> format(Format.UNDERLINE, s);
+			case STRIKETHROUGH -> "~~" + s + "~~";
+			case BLOCK -> "`" + s + "`";
+		};
 	}
 }

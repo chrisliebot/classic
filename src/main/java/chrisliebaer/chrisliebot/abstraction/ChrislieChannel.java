@@ -46,7 +46,8 @@ public interface ChrislieChannel extends ServiceAttached {
 	}
 	
 	/**
-	 * This method attempts to resolve the given call name to a user. This method is expected to be used in commands where users might refer to other users.
+	 * This method attempts to resolve the given call name to a user. This method is expected to be used in commands
+	 * where users might refer to other users.
 	 *
 	 * @param callName A string that users of this service would normaly use to refer to another user.
 	 * @return A potential user that this call name might refer to.
@@ -54,8 +55,9 @@ public interface ChrislieChannel extends ServiceAttached {
 	public Optional<? extends ChrislieUser> resolve(String callName);
 	
 	/**
-	 * Some services allow channels to be grouped in guilds. A guild is a collection of channels that usually resemble a somewhat connected community. You must not make
-	 * assumptions on the existance of a guild because of the value returned by {@link #isDirectMessage()}.
+	 * Some services allow channels to be grouped in guilds. A guild is a collection of channels that usually resemble a
+	 * somewhat connected community. You must not make assumptions on the existance of a guild because of the value
+	 * returned by {@link #isDirectMessage()}.
 	 *
 	 * @return An optional guild, if this channel is part of a guild.
 	 */
@@ -64,7 +66,8 @@ public interface ChrislieChannel extends ServiceAttached {
 	/**
 	 * Creates a new output instance for this channel.
 	 *
-	 * @param limiterConfig The LimiterConfig that will be used to limit the posted message by the returned ChrislieOutput.
+	 * @param limiterConfig The LimiterConfig that will be used to limit the posted message by the returned
+	 *                      ChrislieOutput.
 	 * @return A ChrislieOutput instance that can be used to post to this channel.
 	 */
 	public ChrislieOutput output(LimiterConfig limiterConfig);

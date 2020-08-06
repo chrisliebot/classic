@@ -10,8 +10,9 @@ import java.util.Optional;
 import java.util.function.Function;
 
 /**
- * This class represents a serialized and service independent {@link ChrislieOutput} state. If this instance is given a {@link ChrislieOutput} it will replicate the state
- * that was caught in this instance. The main use case for this class is to specify complex outputs in config languages without being able to call actual code.
+ * This class represents a serialized and service independent {@link ChrislieOutput} state. If this instance is given a
+ * {@link ChrislieOutput} it will replicate the state that was caught in this instance. The main use case for this class
+ * is to specify complex outputs in config languages without being able to call actual code.
  */
 public class SerializedOutput {
 	
@@ -48,11 +49,13 @@ public class SerializedOutput {
 	}
 	
 	/**
-	 * Works like {@link #apply(ChrislieOutput)} but allows the caller to register a transform that is applied to every string. The main purpose of this method is to
-	 * allow parameter substitution by registering a search and replace function.
+	 * Works like {@link #apply(ChrislieOutput)} but allows the caller to register a transform that is applied to every
+	 * string. The main purpose of this method is to allow parameter substitution by registering a search and replace
+	 * function.
 	 *
 	 * @param output    The output to apply this recorded state to.
-	 * @param transform A function that may or may not transform every string that's passed to the output. The function will not be called on null values.
+	 * @param transform A function that may or may not transform every string that's passed to the output. The function
+	 *                  will not be called on null values.
 	 * @return The given ChrislieOutput for method chaining.
 	 */
 	public ChrislieOutput apply(ChrislieOutput output, Function<String, String> transform) {

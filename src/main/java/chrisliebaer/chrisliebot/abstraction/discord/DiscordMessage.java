@@ -18,14 +18,9 @@ public class DiscordMessage implements ChrislieMessage {
 		this.ev = ev;
 		
 		switch (ev.getChannelType()) {
-			case TEXT:
-				channel = new DiscordGuildChannel(service, ev.getTextChannel());
-				break;
-			case PRIVATE:
-				channel = new DiscordPrivateChannel(service, ev.getPrivateChannel());
-				break;
-			default:
-				throw new RuntimeException("message was sent in unkown channel type");
+			case TEXT -> channel = new DiscordGuildChannel(service, ev.getTextChannel());
+			case PRIVATE -> channel = new DiscordPrivateChannel(service, ev.getPrivateChannel());
+			default -> throw new RuntimeException("message was sent in unkown channel type");
 		}
 	}
 	

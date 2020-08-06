@@ -5,7 +5,15 @@ import chrisliebaer.chrisliebot.command.ListenerReference;
 import chrisliebaer.chrisliebot.config.flex.FlexConf;
 import chrisliebaer.chrisliebot.config.scope.ScopeMapping;
 import chrisliebaer.chrisliebot.config.scope.Selector;
-import chrisliebaer.chrisliebot.config.scope.selector.*;
+import chrisliebaer.chrisliebot.config.scope.selector.AcceptAllSelector;
+import chrisliebaer.chrisliebot.config.scope.selector.CombinationSelector;
+import chrisliebaer.chrisliebot.config.scope.selector.IrcChannelFlagSelector;
+import chrisliebaer.chrisliebot.config.scope.selector.NSFWSelector;
+import chrisliebaer.chrisliebot.config.scope.selector.RegExpSelector;
+import chrisliebaer.chrisliebot.config.scope.selector.ServiceIdentifierSelector;
+import chrisliebaer.chrisliebot.config.scope.selector.ServiceSelector;
+import chrisliebaer.chrisliebot.config.scope.selector.UserExistsInChannel;
+import chrisliebaer.chrisliebot.config.scope.selector.UserIsPartOfGuild;
 import chrisliebaer.chrisliebot.util.GsonValidator;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonSyntaxException;
@@ -15,7 +23,14 @@ import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 
 import java.lang.reflect.Type;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 
 import static java.lang.String.format;
 
@@ -70,11 +85,12 @@ public class JsonBotConfig { // TODO: replace code validation with java bean val
 		private Map<String, JsonElement> flex; // flex conf, configures behavior and can be redefined, valid in def and ref
 		
 		/**
-		 * Only valid for listeners with command handler. Defines set of strings that are mapped into command space. Set to empty set to a set with no mappings. Keep
-		 * null
+		 * Only valid for listeners with command handler. Defines set of strings that are mapped into command space. Set
+		 * to empty set to a set with no mappings. Keep null
 		 * <p>
-		 * Prefixing with - or + will modify the existing alias map from parent scopes. Otherwise, any existing map will be overriden. An alias with the suffix ? will be
-		 * hidden and not publically exposed. This is usefull if you want to include misspelled versions of the command.
+		 * Prefixing with - or + will modify the existing alias map from parent scopes. Otherwise, any existing map will
+		 * be overriden. An alias with the suffix ? will be hidden and not publically exposed. This is usefull if you
+		 * want to include misspelled versions of the command.
 		 */
 		private Set<String> alias;
 		
@@ -214,44 +230,20 @@ public class JsonBotConfig { // TODO: replace code validation with java bean val
 		}
 		
 		private Selector instanceSelector(JsonSelector json) throws Selector.SelectorException {
-			Selector selector;
-			switch (json.type) {
-				case "all":
-					selector = new AcceptAllSelector();
-					break;
-				case "or":
-					selector = CombinationSelector.or(instanceSelectors(json.json));
-					break;
-				case "and":
-					selector = CombinationSelector.and(instanceSelectors(json.json));
-					break;
-				case "nsfw":
-					selector = new NSFWSelector();
-					break;
-				case "regex":
-					selector = new RegExpSelector();
-					break;
-				case "userExistsInChannel":
-					selector = new UserExistsInChannel();
-					break;
-				case "userIsPartOfGuild":
-					selector = new UserIsPartOfGuild();
-					break;
-				case "service":
-					selector = new ServiceIdentifierSelector();
-					break;
-				case "irc":
-					selector = new ServiceSelector.IrcSelector();
-					break;
-				case "discord":
-					selector = new ServiceSelector.DiscordSelector();
-					break;
-				case "ircChannelFlag":
-					selector = new IrcChannelFlagSelector();
-					break;
-				default:
-					throw new Selector.SelectorException(format("there is no selector of type `%s`", json.type));
-			}
+			Selector selector = switch (json.type) {
+				case "all" -> new AcceptAllSelector();
+				case "or" -> CombinationSelector.or(instanceSelectors(json.json));
+				case "and" -> CombinationSelector.and(instanceSelectors(json.json));
+				case "nsfw" -> new NSFWSelector();
+				case "regex" -> new RegExpSelector();
+				case "userExistsInChannel" -> new UserExistsInChannel();
+				case "userIsPartOfGuild" -> new UserIsPartOfGuild();
+				case "service" -> new ServiceIdentifierSelector();
+				case "irc" -> new ServiceSelector.IrcSelector();
+				case "discord" -> new ServiceSelector.DiscordSelector();
+				case "ircChannelFlag" -> new IrcChannelFlagSelector();
+				default -> throw new Selector.SelectorException(format("there is no selector of type `%s`", json.type));
+			};
 			selector.fromJson(gson, json.json);
 			return selector;
 		}
@@ -369,8 +361,8 @@ public class JsonBotConfig { // TODO: replace code validation with java bean val
 	
 	
 	/**
-	 * Indicates failure to load the provided configuration. This does not indicate a dirty state, since all instance objects are not permitted to perform startup action
-	 * up until this point.
+	 * Indicates failure to load the provided configuration. This does not indicate a dirty state, since all instance
+	 * objects are not permitted to perform startup action up until this point.
 	 */
 	public static class ConfigInitializeException extends Exception {
 		

@@ -12,17 +12,20 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 /**
- * This is a POSIX style command line argument parser. An attempt was made to distinguish between options without an argument (here called flags) and regular options that
- * require an argument. Additionally, each option or flag may only appear exactly once as this is still a chat bot that doesn't require ffmpeg like levels of command line
- * fuckery.
+ * This is a POSIX style command line argument parser. An attempt was made to distinguish between options without an
+ * argument (here called flags) and regular options that require an argument. Additionally, each option or flag may only
+ * appear exactly once as this is still a chat bot that doesn't require ffmpeg like levels of command line fuckery.
  * <p>
- * Most command line parsers operate in two phases: first you define your flags and option, then you execute the parser. After that you have to access a returned object
- * with the parsed values. This requires you to specificy your options at least two times and makes the code clunky to use. This interface first collects all possible
- * flags and options and gives you a {@link Supplier} that acts as a reference to the value, once the parser has been triggered. After that the parser can be started and
- * the suppliers be accessed. Accessing any returned Supplier before calling {@link #parse()} will cause a {@link NoSuchElementException} to be thrown.
+ * Most command line parsers operate in two phases: first you define your flags and option, then you execute the parser.
+ * After that you have to access a returned object with the parsed values. This requires you to specificy your options
+ * at least two times and makes the code clunky to use. This interface first collects all possible flags and options and
+ * gives you a {@link Supplier} that acts as a reference to the value, once the parser has been triggered. After that
+ * the parser can be started and the suppliers be accessed. Accessing any returned Supplier before calling {@link
+ * #parse()} will cause a {@link NoSuchElementException} to be thrown.
  * <p>
- * Flags and options are created by calling the {@link #flag(String...)} method for flags, or the {@link #option(Function, String...)} for options. Short versions are
- * automatically recognized by their single character string and handled appropriately.
+ * Flags and options are created by calling the {@link #flag(String...)} method for flags, or the {@link
+ * #option(Function, String...)} for options. Short versions are automatically recognized by their single character
+ * string and handled appropriately.
  */
 @SuppressWarnings("ReturnOfInnerClass") // caller is expected to throw values away after command call finished
 public class OptionsMap {
@@ -35,8 +38,8 @@ public class OptionsMap {
 	
 	
 	/**
-	 * Creates a new OptionsMap from the given {@link ChrislieParser}. The OptionsMap will start consuming tokens whatever position the given {@link ChrislieParser} is
-	 * currently at, when {@link #parse()} is called.
+	 * Creates a new OptionsMap from the given {@link ChrislieParser}. The OptionsMap will start consuming tokens
+	 * whatever position the given {@link ChrislieParser} is currently at, when {@link #parse()} is called.
 	 *
 	 * @param parser The parser that this OptionsMap will operate on.
 	 */
@@ -45,9 +48,11 @@ public class OptionsMap {
 	}
 	
 	/**
-	 * Registers a new boolean flag. This is an on/off toggle. A boolean flag is either present or absent and can carry no value.
+	 * Registers a new boolean flag. This is an on/off toggle. A boolean flag is either present or absent and can carry
+	 * no value.
 	 *
-	 * @param flags A list of short and long names for this flag. None of the names must overlap with other flags or options.
+	 * @param flags A list of short and long names for this flag. None of the names must overlap with other flags or
+	 *              options.
 	 * @return A {@link BooleanSupplier} that can be access after the {@link #parse()} method has been called.
 	 * @throws IllegalArgumentException If the given flags collide with existing flags or options.
 	 */
@@ -69,8 +74,10 @@ public class OptionsMap {
 	 * Registers a new option. An option always specifies a value that is following the option itself.
 	 *
 	 * @param selector The selector to use for parsing this options values.
-	 * @param options  A list of short and long names for this option. None of the names must overlap with other flags or options.
-	 * @return A {@link Supplier} that can be used to access the parsed value after the {@link #parse()} method has been called.
+	 * @param options  A list of short and long names for this option. None of the names must overlap with other flags
+	 *                 or options.
+	 * @return A {@link Supplier} that can be used to access the parsed value after the {@link #parse()} method has been
+	 * called.
 	 * @throws IllegalArgumentException If the given options collide with existing flags or options.
 	 */
 	public Supplier<Optional<String>> option(Function<ChrislieParser, TokenSelector> selector, String... options) throws IllegalArgumentException {
@@ -137,11 +144,13 @@ public class OptionsMap {
 	}
 	
 	/**
-	 * In posix command line arguments, flags can be group together like in {@code tar -czvf archive.tar.gz}. Note how the last option, namely {@code f} is actually an
-	 * option with a value. This is permitted as long as no other short codes follow.
+	 * In posix command line arguments, flags can be group together like in {@code tar -czvf archive.tar.gz}. Note how
+	 * the last option, namely {@code f} is actually an option with a value. This is permitted as long as no other short
+	 * codes follow.
 	 *
 	 * @param parser The parser instance to use for parsing the short code.
-	 * @return {@code true} if the parsed short code is part of a flag that carries no value. If the parsed option has a value attached {@code false} is returned.
+	 * @return {@code true} if the parsed short code is part of a flag that carries no value. If the parsed option has a
+	 * value attached {@code false} is returned.
 	 * @throws ChrislieParser.ParserException If the short code is unkown or EOF is reached.
 	 */
 	private boolean parseShort(ChrislieParser parser) throws ChrislieParser.ParserException {
@@ -166,8 +175,7 @@ public class OptionsMap {
 			// if v is not option, we effectively roll back the consume whitespaces
 			fork.commit();
 			return false;
-		}
-		else {
+		} else {
 			return true;
 		}
 	}

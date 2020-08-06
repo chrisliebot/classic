@@ -34,7 +34,18 @@ import java.time.DayOfWeek;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.temporal.TemporalAdjusters;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Calendar;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.StringJoiner;
+import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
 
 @Slf4j
@@ -267,7 +278,8 @@ public class MensaCommand implements ChrislieListener.Command {
 	}
 	
 	/**
-	 * Converts the given timestamp into a timestamp of the same day but at 0 o'clock. That is exactle when the day began.
+	 * Converts the given timestamp into a timestamp of the same day but at 0 o'clock. That is exactle when the day
+	 * began.
 	 *
 	 * @param timestamp Timestamp of arbitrary day.
 	 * @return Timestamp of beginning of same day.

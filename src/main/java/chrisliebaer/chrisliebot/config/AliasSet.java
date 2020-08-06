@@ -77,8 +77,9 @@ public final class AliasSet implements Supplier<Map<String, AliasSet.Alias>> {
 	}
 	
 	/**
-	 * Applies the given AliasSet to this one. The will modify the current AliasSet to reflect the changes proposed in the given AliasSet. If the given AliasSet is a
-	 * replacement set, it will effectively copy it's content into this one.
+	 * Applies the given AliasSet to this one. The will modify the current AliasSet to reflect the changes proposed in
+	 * the given AliasSet. If the given AliasSet is a replacement set, it will effectively copy it's content into this
+	 * one.
 	 *
 	 * @param o The other AliasSet.
 	 */

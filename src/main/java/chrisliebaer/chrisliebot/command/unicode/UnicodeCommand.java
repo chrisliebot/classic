@@ -54,7 +54,7 @@ public class UnicodeCommand implements ChrislieListener.Command {
 		
 		var reply = invc.reply();
 		var maxCodepoints = invc.ref().flexConf().getIntegerOrFail("unicode.limit");
-				reply.title("Codepointanalyse (limitiert auf " + maxCodepoints + ")");
+		reply.title("Codepointanalyse (limitiert auf " + maxCodepoints + ")");
 		reply.field("Eingabe", input);
 		reply.field("Anzahl Codepoints", String.valueOf(cps.size()));
 		

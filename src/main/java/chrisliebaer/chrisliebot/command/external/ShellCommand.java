@@ -91,7 +91,7 @@ public class ShellCommand extends ExternalCommandListener {
 	
 	@Override
 	protected void handleCommand(Invocation invc) throws ListenerException {
-		var fn = switch(cfg.passing) {
+		var fn = switch (cfg.passing) {
 			case ENV -> passEnv(translator.toFlatMap(invc));
 			case STDIN -> passStdin(translator.toObject(invc));
 		};
@@ -100,7 +100,7 @@ public class ShellCommand extends ExternalCommandListener {
 	
 	@Override
 	protected void externalMessage(ListenerMessage msg) throws ListenerException {
-		var fn = switch(cfg.passing) {
+		var fn = switch (cfg.passing) {
 			case ENV -> passEnv(translator.toFlatMap(msg));
 			case STDIN -> passStdin(translator.toObject(msg));
 		};
@@ -220,12 +220,14 @@ public class ShellCommand extends ExternalCommandListener {
 		private @NotNull Map<@NotNull String, @NotNull String> envMap = Map.of();
 		
 		/**
-		 * List of all flex values that are passed to external listener. For security reasons it is impossible to specify wildcards.
+		 * List of all flex values that are passed to external listener. For security reasons it is impossible to
+		 * specify wildcards.
 		 */
 		private @NotNull Set<@NotNull String> flex = Set.of();
 		
 		/**
-		 * Numer of milliseconds after which process will forcefully be terminated. Set to 0 to disable (not recommended).
+		 * Numer of milliseconds after which process will forcefully be terminated. Set to 0 to disable (not
+		 * recommended).
 		 */
 		private @PositiveOrZero long timeout;
 		
@@ -245,8 +247,9 @@ public class ShellCommand extends ExternalCommandListener {
 		private @NotNull int[] exitCodes = new int[0];
 		
 		/**
-		 * If set process output will be fed into this serialized output. Otherwise the process output will be treated as a {@link SerializedOutput} JSON, resulting in a
-		 * {@link ListenerException} if the output is not a valid JSON representation of a {@link SerializedOutput}.
+		 * If set process output will be fed into this serialized output. Otherwise the process output will be treated
+		 * as a {@link SerializedOutput} JSON, resulting in a {@link ListenerException} if the output is not a valid
+		 * JSON representation of a {@link SerializedOutput}.
 		 */
 		private SerializedOutput output;
 		

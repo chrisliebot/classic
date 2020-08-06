@@ -7,10 +7,18 @@ import lombok.Getter;
 import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 
-import java.util.*;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.IdentityHashMap;
+import java.util.Map;
+import java.util.NoSuchElementException;
+import java.util.Optional;
+import java.util.Set;
 
 /**
- * A context contains the resulting set of commands, listeners and flex config values after checking an entity against all scopes.
+ * A context contains the resulting set of commands, listeners and flex config values after checking an entity against
+ * all scopes.
  */
 @Slf4j
 public class ChrislieContext {
@@ -108,7 +116,8 @@ public class ChrislieContext {
 		}
 		
 		/**
-		 * Squashes the given ListenerReference into this one, overriding it if the given listener differs from the current one or merging it, if it doesn't.
+		 * Squashes the given ListenerReference into this one, overriding it if the given listener differs from the
+		 * current one or merging it, if it doesn't.
 		 *
 		 * @param o Another ListenerContext that will override the current context.
 		 */

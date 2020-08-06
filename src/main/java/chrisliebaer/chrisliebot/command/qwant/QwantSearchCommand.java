@@ -33,7 +33,8 @@ import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
 @Slf4j
-@SuppressWarnings({"SynchronizeOnNonFinalField", "FieldAccessedSynchronizedAndUnsynchronized"}) // resultStorage never changes but can't be final
+@SuppressWarnings({"SynchronizeOnNonFinalField", "FieldAccessedSynchronizedAndUnsynchronized"})
+// resultStorage never changes but can't be final
 public class QwantSearchCommand implements ChrislieListener.Command {
 	
 	private static final ErrorOutputBuilder ERROR_NO_QUERY = ErrorOutputBuilder.generic("Du hast keine Suchanfrage eingegeben.");
@@ -166,19 +167,12 @@ public class QwantSearchCommand implements ChrislieListener.Command {
 	}
 	
 	private void printResultItem(ChrislieOutput reply, QwantResponse.QwantItem item) {
-		StringSubstitutor strSub = new StringSubstitutor(key -> {
-			switch (key) {
-				case "title":
-					return C.stripHtml(item.title());
-				case "media":
-					return item.media();
-				case "desc":
-					return C.stripHtml(item.desc());
-				case "url":
-					return item.url();
-				default:
-					return key.toUpperCase();
-			}
+		StringSubstitutor strSub = new StringSubstitutor(key -> switch (key) {
+			case "title" -> C.stripHtml(item.title());
+			case "media" -> item.media();
+			case "desc" -> C.stripHtml(item.desc());
+			case "url" -> item.url();
+			default -> key.toUpperCase();
 		});
 		
 		cfg.output.apply(reply, strSub::replace);

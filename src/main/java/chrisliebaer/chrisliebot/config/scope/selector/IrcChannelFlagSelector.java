@@ -20,7 +20,7 @@ public class IrcChannelFlagSelector implements Selector {
 	@SuppressWarnings("EmptyClass")
 	@Override
 	public void fromJson(GsonValidator gson, JsonElement json) throws SelectorException {
-		chars = gson.fromJson(json, new TypeToken<List<Character>>(){}.getType());
+		chars = gson.fromJson(json, new TypeToken<List<Character>>() {}.getType());
 		if (chars == null)
 			throw new SelectorException("char list must not be null");
 	}
@@ -37,11 +37,10 @@ public class IrcChannelFlagSelector implements Selector {
 	
 	@Override
 	public boolean check(ChrislieChannel channel) {
-		if (!(channel instanceof IrcChannel))
+		if (!(channel instanceof IrcChannel chan))
 			return false;
 		
-		IrcChannel chan = (IrcChannel) channel;
-		Channel c =  chan.channel();
+		Channel c = chan.channel();
 		
 		for (char ch : chars) {
 			if (c.getModes().containsMode(ch))

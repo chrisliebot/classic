@@ -59,7 +59,7 @@ public class IrcPrivateChannel implements ChrislieChannel {
 	
 	@Override
 	public Optional<IrcUser> user(String identifier) {
-		return service.userByPrefixedIdentifier(identifier, Stream.of(user.user())). map(u -> new IrcUser(service, u));
+		return service.userByPrefixedIdentifier(identifier, Stream.of(user.user())).map(u -> new IrcUser(service, u));
 	}
 	
 	@Override

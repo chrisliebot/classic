@@ -24,7 +24,8 @@ public class TokenSelector {
 	}
 	
 	/**
-	 * @return Attempts to read the token while consuming the input stream. Will not change state of parser if token can't be read.
+	 * @return Attempts to read the token while consuming the input stream. Will not change state of parser if token
+	 * can't be read.
 	 */
 	@NotNull
 	public OptionalToken consume() {

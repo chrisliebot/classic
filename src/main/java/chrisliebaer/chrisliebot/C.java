@@ -30,7 +30,8 @@ public final class C {
 	}
 	
 	/**
-	 * Casts whatever you have into whatever you want. It's like magic but like the really dark kind of magic that usually backfires pretty hard.
+	 * Casts whatever you have into whatever you want. It's like magic but like the really dark kind of magic that
+	 * usually backfires pretty hard.
 	 *
 	 * @param value The value to cast, duh.
 	 * @param <T>   The target type to cast into.
@@ -132,58 +133,16 @@ public final class C {
 	public static Optional<DayOfWeek> stringToDay(@NonNull String day) {
 		day = day.trim().toLowerCase();
 		
-		switch (day) {
-			case "montag":
-			case "mon":
-			case "mo":
-			case "monday":
-				return Optional.of(DayOfWeek.MONDAY);
-			case "dienstag":
-			case "di":
-			case "tuesday":
-			case "tue":
-			case "tues":
-			case "tu":
-				return Optional.of(DayOfWeek.TUESDAY);
-			case "mittwoch":
-			case "mi":
-			case "mit":
-			case "mitt":
-			case "mittw":
-			case "wednesday":
-			case "wed":
-				return Optional.of(DayOfWeek.WEDNESDAY);
-			case "donnerstag":
-			case "do":
-			case "donn":
-			case "thursday":
-			case "th":
-			case "thu":
-			case "thur":
-			case "thurs":
-				return Optional.of(DayOfWeek.THURSDAY);
-			case "freitag":
-			case "fr":
-			case "fri":
-			case "friday":
-				return Optional.of(DayOfWeek.FRIDAY);
-			case "samstag":
-			case "sonnabend":
-			case "sa":
-			case "sam":
-			case "sams":
-			case "saturday":
-			case "sat":
-				return Optional.of(DayOfWeek.SATURDAY);
-			case "sonntag":
-			case "so":
-			case "sonn":
-			case "sunday":
-			case "su":
-			case "sun":
-				return Optional.of(DayOfWeek.SUNDAY);
-		}
+		return switch (day) {
+			case "montag", "mon", "mo", "monday" -> Optional.of(DayOfWeek.MONDAY);
+			case "dienstag", "di", "tuesday", "tue", "tues", "tu" -> Optional.of(DayOfWeek.TUESDAY);
+			case "mittwoch", "mi", "mit", "mitt", "mittw", "wednesday", "wed" -> Optional.of(DayOfWeek.WEDNESDAY);
+			case "donnerstag", "do", "donn", "thursday", "th", "thu", "thur", "thurs" -> Optional.of(DayOfWeek.THURSDAY);
+			case "freitag", "fr", "fri", "friday" -> Optional.of(DayOfWeek.FRIDAY);
+			case "samstag", "sonnabend", "sa", "sam", "sams", "saturday", "sat" -> Optional.of(DayOfWeek.SATURDAY);
+			case "sonntag", "so", "sonn", "sunday", "su", "sun" -> Optional.of(DayOfWeek.SUNDAY);
+			default -> Optional.empty();
+		};
 		
-		return Optional.empty();
 	}
 }

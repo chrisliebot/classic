@@ -1,6 +1,9 @@
 package chrisliebaer.chrisliebot.config.scope.selector;
 
-import chrisliebaer.chrisliebot.abstraction.*;
+import chrisliebaer.chrisliebot.abstraction.ChrislieChannel;
+import chrisliebaer.chrisliebot.abstraction.ChrislieMessage;
+import chrisliebaer.chrisliebot.abstraction.ChrislieService;
+import chrisliebaer.chrisliebot.abstraction.ChrislieUser;
 import chrisliebaer.chrisliebot.config.scope.Selector;
 import chrisliebaer.chrisliebot.util.GsonValidator;
 import com.google.gson.JsonElement;

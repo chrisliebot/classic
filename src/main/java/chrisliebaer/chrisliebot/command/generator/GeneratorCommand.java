@@ -38,16 +38,12 @@ public class GeneratorCommand implements ChrislieListener.Command {
 	
 	private Generator loadGenerator(GsonValidator gson, GeneratorConfig cfg) throws ListenerException {
 		try {
-			switch (cfg.type) {
-				case "static":
-					return new StaticGenerator(cfg.cfg.getAsString());
-				case "staticfile":
-					return new StaticGenerator(new File(cfg.cfg.getAsString()));
-				case "file":
-					return new FileGenerator(gson.fromJson(cfg.cfg, FileGenerator.Config.class));
-				default:
-					throw new ListenerException("unkown generator type: " + cfg.type);
-			}
+			return switch (cfg.type) {
+				case "static" -> new StaticGenerator(cfg.cfg.getAsString());
+				case "staticfile" -> new StaticGenerator(new File(cfg.cfg.getAsString()));
+				case "file" -> new FileGenerator(gson.fromJson(cfg.cfg, FileGenerator.Config.class));
+				default -> throw new ListenerException("unkown generator type: " + cfg.type);
+			};
 		} catch (IOException e) {
 			throw new ListenerException("io error in generator", e);
 		}
@@ -121,7 +117,7 @@ public class GeneratorCommand implements ChrislieListener.Command {
 					return null;
 				}
 				
-				var value =  outMap.get().get(field);
+				var value = outMap.get().get(field);
 				return value == null ? "UNKOWN_LOOKUP(" + key + ")" : value;
 			} catch (ExecutionException e) {
 				return null;

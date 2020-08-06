@@ -5,7 +5,8 @@ import lombok.AllArgsConstructor;
 import lombok.NonNull;
 
 /**
- * Helper method that allows functionals to be used for {@link AbstractScheduledService} implementations instead of implementing a child class.
+ * Helper method that allows functionals to be used for {@link AbstractScheduledService} implementations instead of
+ * implementing a child class.
  */
 @AllArgsConstructor
 public class BetterScheduledService extends AbstractScheduledService {

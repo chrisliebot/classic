@@ -68,7 +68,7 @@ public class IrcDropAccountCommand implements ChrislieListener.Command {
 		}
 		
 		var ref = maybeRef.get();
-		var listener = (Command)ref.envelope().listener(); // since alias was resolved, we know it's a command
+		var listener = (Command) ref.envelope().listener(); // since alias was resolved, we know it's a command
 		
 		// prevent cyclic loops
 		if (this == listener) {

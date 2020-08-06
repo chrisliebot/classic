@@ -9,8 +9,8 @@ import chrisliebaer.chrisliebot.util.GsonValidator;
 import com.google.gson.JsonElement;
 
 /**
- * This selector matches if the given user is inside the current channel. In other words: The selector only matches if the
- * given user can observe the message.
+ * This selector matches if the given user is inside the current channel. In other words: The selector only matches if
+ * the given user can observe the message.
  */
 public class UserExistsInChannel implements Selector {
 	
@@ -25,7 +25,7 @@ public class UserExistsInChannel implements Selector {
 	
 	@Override
 	public boolean check(ChrislieMessage message) {
-		var user =  message.user();
+		var user = message.user();
 		var channel = message.channel();
 		return check(channel) || check(user);
 	}

@@ -9,7 +9,7 @@ import okhttp3.Request;
 import org.kitteh.irc.client.library.util.Format;
 
 import javax.annotation.CheckReturnValue;
-import java.awt.*;
+import java.awt.Color;
 import java.util.function.Consumer;
 
 

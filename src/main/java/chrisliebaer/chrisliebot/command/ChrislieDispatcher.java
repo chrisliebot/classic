@@ -47,7 +47,8 @@ public class ChrislieDispatcher {
 	}
 	
 	/**
-	 * Shuts down this dispatcher and blocks until all incoming messages have been processed. Any incoming messages after a shutdown will be discarded.
+	 * Shuts down this dispatcher and blocks until all incoming messages have been processed. Any incoming messages
+	 * after a shutdown will be discarded.
 	 */
 	public void shutdown() throws InterruptedException {
 		shutdown = true; // discard all new messages
@@ -60,8 +61,8 @@ public class ChrislieDispatcher {
 	}
 	
 	/**
-	 * Public sink method of this dispatcher. Once called, the dispatcher will build the context of the given message and dispatch it to all mapped listeners and
-	 * commands.
+	 * Public sink method of this dispatcher. Once called, the dispatcher will build the context of the given message
+	 * and dispatch it to all mapped listeners and commands.
 	 *
 	 * @param m The message that should be dispatched.
 	 */
@@ -123,13 +124,14 @@ public class ChrislieDispatcher {
 	}
 	
 	/**
-	 * This method attempts to execute the given message as a command. The success of this attempt depends on the pattern that is present in the resolved context and if
-	 * the command name can be resolved to an alias in the context.
+	 * This method attempts to execute the given message as a command. The success of this attempt depends on the
+	 * pattern that is present in the resolved context and if the command name can be resolved to an alias in the
+	 * context.
 	 *
 	 * @param m   The message that will be used for parsing.
 	 * @param ctx The context of this message.
-	 * @return The listener that was executed if this was a valid command invocation. This is required as listeners that were part of a command invocation will not be
-	 * called a second time as a regular listener.
+	 * @return The listener that was executed if this was a valid command invocation. This is required as listeners that
+	 * were part of a command invocation will not be called a second time as a regular listener.
 	 */
 	private Optional<ChrislieListener> handleCommandInvocation(ChrislieMessage m, ChrislieContext ctx) {
 		var flexConf = ctx.flexConf();

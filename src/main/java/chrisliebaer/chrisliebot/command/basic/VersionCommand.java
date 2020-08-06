@@ -22,15 +22,11 @@ public class VersionCommand implements ChrislieListener.Command {
 		reply.field("Version", VersionUtil.version());
 		reply.field("Branch", VersionUtil.branch());
 		
-		String clean = "\u2753";
-		switch (VersionUtil.clean()) {
-			case "true":
-				clean = "\u2705";
-				break;
-			case "false":
-				clean = "\u274C";
-				break;
-		}
+		String clean = switch (VersionUtil.clean()) {
+			case "true" -> "\u2705";
+			case "false" -> "\u274C";
+			default -> "\u2753";
+		};
 		
 		reply.field("Clean Build", clean);
 		reply.footer("Commit Id: " + VersionUtil.commit());

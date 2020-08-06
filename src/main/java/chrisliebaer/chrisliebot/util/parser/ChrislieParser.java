@@ -8,11 +8,13 @@ import java.util.function.IntPredicate;
 import java.util.stream.IntStream;
 
 /**
- * This class implements a solid but limited command line parser. If offers various options for peeking and consuming token streams. This parser internally operates on
- * codepoints and offers methods to access {@link TokenSelector} instances that will convert the matching codepoints back into strings.
+ * This class implements a solid but limited command line parser. If offers various options for peeking and consuming
+ * token streams. This parser internally operates on codepoints and offers methods to access {@link TokenSelector}
+ * instances that will convert the matching codepoints back into strings.
  * <p>
- * Great care must be taken when storing references to objects returned by this class since most calls invalidate existing objects and will lead to undefined behavior. It
- * is therefore advised to NEVER store any {@link TokenSelector} references.
+ * Great care must be taken when storing references to objects returned by this class since most calls invalidate
+ * existing objects and will lead to undefined behavior. It is therefore advised to NEVER store any {@link
+ * TokenSelector} references.
  */
 public class ChrislieParser {
 	
@@ -48,7 +50,8 @@ public class ChrislieParser {
 	}
 	
 	/**
-	 * Creates an identical copy of this parser and stores the current parser as it's parent, allowing the user to call {@link #commit()}.
+	 * Creates an identical copy of this parser and stores the current parser as it's parent, allowing the user to call
+	 * {@link #commit()}.
 	 *
 	 * @return Identical copy with it's parent set to the current instance.
 	 */
@@ -57,8 +60,9 @@ public class ChrislieParser {
 	}
 	
 	/**
-	 * Creates an {@link OptionsMap} at the current location in this parser. The option parser will not create a fork but rather work on this very instance. This is
-	 * required as the option map needs to consume all encountered option so the user can advanced after the options part.
+	 * Creates an {@link OptionsMap} at the current location in this parser. The option parser will not create a fork
+	 * but rather work on this very instance. This is required as the option map needs to consume all encountered option
+	 * so the user can advanced after the options part.
 	 *
 	 * @return OptionMap that will operate on this parser.
 	 */
@@ -67,7 +71,8 @@ public class ChrislieParser {
 	}
 	
 	/**
-	 * Copies the current state of this parser into it's parent. This call is only valid if this instance was created by calling {@link #fork()}.
+	 * Copies the current state of this parser into it's parent. This call is only valid if this instance was created by
+	 * calling {@link #fork()}.
 	 *
 	 * @throws IllegalArgumentException If the parser is not a fork of an existing parser.
 	 */
@@ -89,10 +94,11 @@ public class ChrislieParser {
 	}
 	
 	/**
-	 * The string returned by the selector will not contain the codepoint that the predicate matched on but will still consume it.
+	 * The string returned by the selector will not contain the codepoint that the predicate matched on but will still
+	 * consume it.
 	 *
-	 * @param pred      A predicate that will be given each codepoint in the input stream until it matches at which point the consumed codepoints will be turned into a
-	 *                  string and be returned to the caller.
+	 * @param pred      A predicate that will be given each codepoint in the input stream until it matches at which
+	 *                  point the consumed codepoints will be turned into a string and be returned to the caller.
 	 * @param acceptEOF Wether the selector will also accept the end of file marker.
 	 * @return A selector that will match until the given predicate is fulfilled.
 	 * @see TokenSelector
@@ -103,7 +109,8 @@ public class ChrislieParser {
 	}
 	
 	/**
-	 * Note that this selector will not care about quotation. It is therefore advisable to use {@link #quoted()} unless reading only a single word is strictly required.
+	 * Note that this selector will not care about quotation. It is therefore advisable to use {@link #quoted(boolean)}
+	 * unless reading only a single word is strictly required.
 	 *
 	 * @param skipWhitespace If set, leading whitespaces will be skipped.
 	 * @return A selector that will match on the next sequence of non-whitespace characters.
@@ -121,6 +128,7 @@ public class ChrislieParser {
 	 *     <li>While seeking for the matching quote, any escape character followed by a non quote character will be treated as a regular character and have no effect.</li>
 	 *     <li>If no matching quote can be found, the parse will behave like {@link #word(boolean)}.</li>
 	 * </ul>
+	 *
 	 * @param skipWhitespace If set, leading whitespaces will be skipped.
 	 * @return A selector that will match on the next world or quoted string.
 	 */
@@ -130,7 +138,8 @@ public class ChrislieParser {
 	}
 	
 	/**
-	 * Internal method that must be called before accessing the codepoint array to verify that there are still codepoints to read.
+	 * Internal method that must be called before accessing the codepoint array to verify that there are still
+	 * codepoints to read.
 	 *
 	 * @return {@code true} if there are still codepoints to be read.
 	 */
@@ -205,7 +214,8 @@ public class ChrislieParser {
 		}
 		
 		/**
-		 * @return Converts the internal code point array into a string and returns what the parser saw when the exception occured.
+		 * @return Converts the internal code point array into a string and returns what the parser saw when the
+		 * exception occured.
 		 */
 		public String current() {
 			return intStreamToString(IntStream.of(input).skip(index));

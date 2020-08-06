@@ -7,7 +7,13 @@ import chrisliebaer.chrisliebot.config.scope.Selector;
 import lombok.Getter;
 import lombok.NonNull;
 
-import java.util.*;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.IdentityHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.stream.Stream;
 

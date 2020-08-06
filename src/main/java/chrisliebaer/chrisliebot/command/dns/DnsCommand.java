@@ -13,6 +13,7 @@ import org.xbill.DNS.Record;
 import org.xbill.DNS.TextParseException;
 import org.xbill.DNS.Type;
 
+import java.time.Duration;
 import java.util.Optional;
 import java.util.concurrent.ForkJoinPool;
 import java.util.stream.Collectors;
@@ -23,7 +24,7 @@ public class DnsCommand implements ChrislieListener.Command {
 	private static final int TIMEOUT = 5000;
 	
 	static {
-		Lookup.getDefaultResolver().setTimeout(0, TIMEOUT);
+		Lookup.getDefaultResolver().setTimeout(Duration.ofMillis(TIMEOUT));
 	}
 	
 	@Override

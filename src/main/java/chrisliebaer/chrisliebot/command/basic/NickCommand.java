@@ -36,7 +36,7 @@ public class NickCommand implements ChrislieListener.Command {
 	}
 	
 	private void changeDiscordNick(Invocation invc) throws ListenerException {
-		var service = (DiscordService)invc.service();
+		var service = (DiscordService) invc.service();
 		var jda = service.jda();
 		var arg = invc.arg();
 		var args = arg.split(" ", 2);

@@ -10,7 +10,7 @@ import retrofit2.http.Query;
 import java.util.List;
 
 public interface UrbanDictionaryService {
-
+	
 	public static final String BASE_URL = "https://api.urbandictionary.com/";
 	
 	@GET("v0/define")
@@ -18,11 +18,13 @@ public interface UrbanDictionaryService {
 	
 	@Data
 	public static class DefinitionList {
+		
 		private List<Definition> list;
 	}
 	
 	@Data
 	public static class Definition {
+		
 		private String definition, example, word;
 		private String permalink;
 		private String author;

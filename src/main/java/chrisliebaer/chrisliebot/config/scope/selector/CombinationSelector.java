@@ -35,14 +35,10 @@ public class CombinationSelector implements Selector {
 	}
 	
 	public <T> boolean checkAll(BiFunction<Selector, T, Boolean> fn, T in) {
-		switch (operation) {
-			case OR:
-				return checkAllOr(fn, in);
-			case AND:
-				return checkAllAnd(fn, in);
-			default:
-				throw new Error("unkown operation: " + operation);
-		}
+		return switch (operation) {
+			case OR -> checkAllOr(fn, in);
+			case AND -> checkAllAnd(fn, in);
+		};
 	}
 	
 	public <T> boolean checkAllOr(BiFunction<Selector, T, Boolean> fn, T in) {

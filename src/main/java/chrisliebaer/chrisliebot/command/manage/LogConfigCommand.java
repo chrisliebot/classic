@@ -43,7 +43,7 @@ public class LogConfigCommand implements ChrislieListener.Command {
 		
 		// consume all loger names and collectively update their level
 		var names = new HashSet<String>();
-		while(parser.word(true).canRead())
+		while (parser.word(true).canRead())
 			names.add(parser.word(true).consume().expect());
 		
 		if (names.isEmpty()) {

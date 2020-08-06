@@ -9,7 +9,7 @@ import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.MessageBuilder;
 import net.dv8tion.jda.api.entities.MessageChannel;
 
-import java.awt.*;
+import java.awt.Color;
 import java.util.function.Function;
 
 @Slf4j
@@ -119,7 +119,7 @@ public class DiscordOutput implements ChrislieOutput {
 		
 		try {
 			mb.append(plain.string());
-			mb.sendTo(channel).queue(m -> {}, error -> log.error("failed to send message", error));
+			channel.sendMessage(mb.build()).queue(m -> {}, error -> log.error("failed to send message", error));
 		} catch (IllegalArgumentException e) { // if the message is too long or other undocumented shit inside jda
 			log.error("failed to queue message", e);
 		}

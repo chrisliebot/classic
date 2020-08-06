@@ -18,7 +18,7 @@ import java.util.Set;
  * This class translates Chrisliebots listener structures into various serializeable representations.
  */
 @Slf4j
-public final class ExternalMessageTranslator{
+public final class ExternalMessageTranslator {
 	
 	private static final String ENV_PREFIX = "CB_";
 	

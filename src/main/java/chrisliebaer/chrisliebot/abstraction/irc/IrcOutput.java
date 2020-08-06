@@ -10,7 +10,7 @@ import lombok.NonNull;
 import org.apache.commons.lang.text.StrLookup;
 import org.jetbrains.annotations.NotNull;
 
-import java.awt.*;
+import java.awt.Color;
 import java.util.HashMap;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -143,14 +143,9 @@ public class IrcOutput implements ChrislieOutput {
 			public String lookup(String key) {
 				String out = "MISSING_KEY(" + key + ")";
 				switch (key) {
-					case "plain":
-						out = plain.string();
-						break;
-					case "description":
-						out = description.string();
-						break;
-					default:
-						out = key.startsWith("f-") ? fields.getOrDefault(key.substring(2), out) : map.getOrDefault(key, out);
+					case "plain" -> out = plain.string();
+					case "description" -> out = description.string();
+					default -> out = key.startsWith("f-") ? fields.getOrDefault(key.substring(2), out) : map.getOrDefault(key, out);
 				}
 				return C.escapeStrSubstitution(out);
 			}

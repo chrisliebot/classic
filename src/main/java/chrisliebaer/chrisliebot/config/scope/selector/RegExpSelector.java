@@ -1,6 +1,10 @@
 package chrisliebaer.chrisliebot.config.scope.selector;
 
-import chrisliebaer.chrisliebot.abstraction.*;
+import chrisliebaer.chrisliebot.abstraction.ChrislieChannel;
+import chrisliebaer.chrisliebot.abstraction.ChrislieGuild;
+import chrisliebaer.chrisliebot.abstraction.ChrislieMessage;
+import chrisliebaer.chrisliebot.abstraction.ChrislieService;
+import chrisliebaer.chrisliebot.abstraction.ChrislieUser;
 import chrisliebaer.chrisliebot.config.scope.Selector;
 import chrisliebaer.chrisliebot.util.GsonValidator;
 import com.google.gson.JsonElement;
@@ -112,22 +116,15 @@ public class RegExpSelector implements Selector {
 			if (key == null)
 				return Optional.empty();
 			
-			switch (key) {
-				case "service":
-					return Optional.of(DataContainer::service);
-				case "guild":
-					return Optional.of(DataContainer::guild);
-				case "channel":
-					return Optional.of(DataContainer::channel);
-				case "user":
-					return Optional.of(DataContainer::user);
-				case "displayName":
-					return Optional.of(DataContainer::displayName);
-				case "message":
-					return Optional.of(DataContainer::message);
-				default:
-					return Optional.empty();
-			}
+			return switch (key) {
+				case "service" -> Optional.of(DataContainer::service);
+				case "guild" -> Optional.of(DataContainer::guild);
+				case "channel" -> Optional.of(DataContainer::channel);
+				case "user" -> Optional.of(DataContainer::user);
+				case "displayName" -> Optional.of(DataContainer::displayName);
+				case "message" -> Optional.of(DataContainer::message);
+				default -> Optional.empty();
+			};
 		}
 	}
 }

@@ -10,8 +10,8 @@ import lombok.experimental.UtilityClass;
 import java.util.Optional;
 
 /**
- * This class provides a collection of various classes that can be used to uniquely identify abstraction entities of Chrisliebot. All of these implementations can be used
- * as keys for map data structures.
+ * This class provides a collection of various classes that can be used to uniquely identify abstraction entities of
+ * Chrisliebot. All of these implementations can be used as keys for map data structures.
  */
 @UtilityClass
 public class ChrislieIdentifier {

@@ -1,13 +1,13 @@
 package chrisliebaer.chrisliebot;
 
 import chrisliebaer.chrisliebot.abstraction.ChrislieService;
+import chrisliebaer.chrisliebot.abstraction.ServiceBootstrap;
 import chrisliebaer.chrisliebot.command.ChrislieDispatcher;
 import chrisliebaer.chrisliebot.command.ChrislieListener;
 import chrisliebaer.chrisliebot.config.ContextResolver;
 import chrisliebaer.chrisliebot.config.CoreConfig;
 import chrisliebaer.chrisliebot.config.JsonBotConfig;
 import chrisliebaer.chrisliebot.config.scope.ScopeMapping;
-import chrisliebaer.chrisliebot.abstraction.ServiceBootstrap;
 import chrisliebaer.chrisliebot.util.GsonValidator;
 import chrisliebaer.chrisliebot.util.SystemProperty;
 import com.google.common.util.concurrent.AbstractIdleService;
@@ -20,7 +20,11 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.nio.charset.Charset;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 @Slf4j
 public class Chrisliebot extends AbstractIdleService {
@@ -40,7 +44,8 @@ public class Chrisliebot extends AbstractIdleService {
 	private final File botFile = SystemProperty.of("chrisliebot.bot", new File("bot.json"), f -> new File(cwd, f));
 	
 	/**
-	 * In order to maintain control over how we load and save json files, this instance is supposed to be shared by the entire application.
+	 * In order to maintain control over how we load and save json files, this instance is supposed to be shared by the
+	 * entire application.
 	 */
 	@SuppressWarnings("resource") private GsonValidator gson = new GsonValidator(new GsonBuilder()
 			.disableHtmlEscaping()
@@ -48,7 +53,8 @@ public class Chrisliebot extends AbstractIdleService {
 			.create(), Validation.buildDefaultValidatorFactory().getValidator());
 	
 	/**
-	 * Set up before even starting up services. Provides commonly shared ressources like http clients, database connections worker pools, etc.
+	 * Set up before even starting up services. Provides commonly shared ressources like http clients, database
+	 * connections worker pools, etc.
 	 */
 	@Getter private SharedResources sharedResources;
 	

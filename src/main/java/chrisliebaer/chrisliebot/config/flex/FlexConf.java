@@ -11,9 +11,9 @@ import java.util.OptionalInt;
 import java.util.OptionalLong;
 
 /**
- * This class provides a simple map-like data structure for looking up arbitrary values. Multiple instances of this class can be combined by calling {@link
- * #apply(FlexConf)} without modifying the underlining data structure, meaning that each instance that was merged into another instance will still operate the same way it
- * did before the merge.
+ * This class provides a simple map-like data structure for looking up arbitrary values. Multiple instances of this
+ * class can be combined by calling {@link #apply(FlexConf)} without modifying the underlining data structure, meaning
+ * that each instance that was merged into another instance will still operate the same way it did before the merge.
  */
 @SuppressWarnings("OverloadedMethodsWithSameNumberOfParameters")
 public class FlexConf {
@@ -25,8 +25,8 @@ public class FlexConf {
 	private Resolver resolver;
 	
 	/**
-	 * Creates a new FlexConf without any resolver, meaning that any lookup will fail unless other flex confs are merged into this one by calling {@link
-	 * #apply(FlexConf)}.
+	 * Creates a new FlexConf without any resolver, meaning that any lookup will fail unless other flex confs are merged
+	 * into this one by calling {@link #apply(FlexConf)}.
 	 */
 	public FlexConf() {
 		this.resolver = new Resolver() {};
@@ -42,8 +42,8 @@ public class FlexConf {
 	}
 	
 	/**
-	 * Creates a new FlexConf that will use the provided FlexConfg as a fallback including all changes that were performed on the given FlexConf after this method was
-	 * called.
+	 * Creates a new FlexConf that will use the provided FlexConfg as a fallback including all changes that were
+	 * performed on the given FlexConf after this method was called.
 	 *
 	 * @param o The FlexConfg that will act as a fallback.
 	 * @return A new FlexConf that can be modified without changing the state of the given FlexConf.
@@ -63,7 +63,8 @@ public class FlexConf {
 	}
 	
 	/**
-	 * Creates a new FlexConfg that is a snapshot of the provided one, meaning that changes in the given FlexConf will not be reflected by the returned instance.
+	 * Creates a new FlexConfg that is a snapshot of the provided one, meaning that changes in the given FlexConf will
+	 * not be reflected by the returned instance.
 	 *
 	 * @param o The FlexConf to snapshot.
 	 * @return A snapshot of the provided FlexConf.
@@ -74,8 +75,9 @@ public class FlexConf {
 	}
 	
 	/**
-	 * This method links the given FlexConf into this one, meaning that any lookup to this FlexConf will first check the given FlexConf before falling back to this one.
-	 * Note that this is opposite from what you might expect. The given FlexConf will NOT act as a fallback but instead this FlexConf will become the fallback.
+	 * This method links the given FlexConf into this one, meaning that any lookup to this FlexConf will first check the
+	 * given FlexConf before falling back to this one. Note that this is opposite from what you might expect. The given
+	 * FlexConf will NOT act as a fallback but instead this FlexConf will become the fallback.
 	 *
 	 * @param o The FlexConf that will prececde this FlexConf.
 	 * @return This flex conf for method chaining.
@@ -143,8 +145,8 @@ public class FlexConf {
 	}
 	
 	/**
-	 * The resolver is responsible for providing the lookup code. Note that resolvers are free to cache values, meaning that multiple lookups for the same key may or may
-	 * not return the same instance.
+	 * The resolver is responsible for providing the lookup code. Note that resolvers are free to cache values, meaning
+	 * that multiple lookups for the same key may or may not return the same instance.
 	 */
 	public static interface Resolver {
 		

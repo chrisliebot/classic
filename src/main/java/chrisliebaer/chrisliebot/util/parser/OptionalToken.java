@@ -38,12 +38,14 @@ public interface OptionalToken {
 	public String expect() throws ParserException;
 	
 	/**
-	 * Unwraps the value, throwing an exception with, if the value is absent. The message will be used to create a new exception, describing on a higher level what the
-	 * caller expects to parse in case the value is absent.
+	 * Unwraps the value, throwing an exception with, if the value is absent. The message will be used to create a new
+	 * exception, describing on a higher level what the caller expects to parse in case the value is absent.
 	 *
-	 * @param msg A message describing on an high level, what token the caller expect to receive. Such as "filepath", "username" or similar.
+	 * @param msg A message describing on an high level, what token the caller expect to receive. Such as "filepath",
+	 *            "username" or similar.
 	 * @return The parsed token.
-	 * @throws ParserException An exception, combining the parsing error with the expected value provided by the caller via the message parameter.
+	 * @throws ParserException An exception, combining the parsing error with the expected value provided by the caller
+	 *                         via the message parameter.
 	 */
 	public String expect(String msg) throws ParserException;
 	

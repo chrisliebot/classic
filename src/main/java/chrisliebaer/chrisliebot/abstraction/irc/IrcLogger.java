@@ -9,6 +9,7 @@ import org.slf4j.MDC;
 @Slf4j
 @AllArgsConstructor
 public final class IrcLogger {
+	
 	public final String name;
 	
 	public static void attach(@NonNull String name, @NonNull Client.Builder builder) {
