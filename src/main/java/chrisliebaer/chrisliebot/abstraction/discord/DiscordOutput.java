@@ -8,17 +8,18 @@ import lombok.extern.slf4j.Slf4j;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.MessageBuilder;
 import net.dv8tion.jda.api.entities.MessageChannel;
+import net.dv8tion.jda.api.utils.MarkdownSanitizer;
 
 import java.awt.Color;
-import java.util.function.Function;
+import java.util.List;
 
 @Slf4j
 public class DiscordOutput implements ChrislieOutput {
 	
 	private MessageChannel channel;
 	private EmbedBuilder embedBuilder = new EmbedBuilder();
-	private PlainOutputImpl plain = new PlainOutputImpl(Function.identity(), (a, b) -> b); // TODO: replace identity?
-	private PlainOutputImpl descrption = new PlainOutputImpl(Function.identity(), (a, b) -> b);
+	private DiscordPlainOutput plain = new DiscordPlainOutput(DiscordOutput::escape4Discord, (a, b) -> b); // TODO: replace identity?
+	private PlainOutputImpl descrption = new PlainOutputImpl(DiscordOutput::escape4Discord, (a, b) -> b);
 	
 	private String authorName, authorUrl, authorIcon;
 	
@@ -114,6 +115,10 @@ public class DiscordOutput implements ChrislieOutput {
 		embedBuilder.setDescription(descrption.string());
 		MessageBuilder mb = new MessageBuilder();
 		
+		// block all mentions by default and apply collected mention rules from output instance
+		mb.setAllowedMentions(List.of());
+		plain.applyMentionRules(mb);
+		
 		if (!embedBuilder.isEmpty())
 			mb.setEmbed(embedBuilder.build());
 		
@@ -123,5 +128,9 @@ public class DiscordOutput implements ChrislieOutput {
 		} catch (IllegalArgumentException e) { // if the message is too long or other undocumented shit inside jda
 			log.error("failed to queue message", e);
 		}
+	}
+	
+	private static String escape4Discord(String s) {
+		return MarkdownSanitizer.escape(s);
 	}
 }
