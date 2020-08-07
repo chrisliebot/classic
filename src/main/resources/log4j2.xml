@@ -27,6 +27,7 @@
 		<Logger name="com.joestelmach.natty" level="ERROR"/>
 		<Logger name="net.dv8tion.jda" level="INFO"/>
 		<Logger name="org.hibernate.validator" level="WARN"/>
+		<Logger name="twitter4j" level="WARN"/>
 		
 		
 		<Root level="TRACE">

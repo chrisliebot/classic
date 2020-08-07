@@ -160,7 +160,7 @@ public class ChrislieDispatcher {
 				alias = matcher.group(DISPATCHER_PATTERN_GROUP_ALIAS);
 				argument = matcher.group(DISPATCHER_PATTERN_GROUP_ARGUMENT);
 			} catch (IllegalArgumentException e) {
-				log.warn("dispatcher pattern `{}` does not contain `{}` and `{}}` group, message was: {}",
+				log.warn("dispatcher pattern `{}` does not contain `{}` and `{}` group, message was: {}",
 						DISPATCHER_PATTERN_GROUP_ALIAS, DISPATCHER_PATTERN_GROUP_ARGUMENT, pattern.pattern(), m);
 				return Optional.empty();
 			}

@@ -95,10 +95,12 @@ dependencies {
 	// webserver
 	//implementation 'io.undertow:undertow-core:2.0.29.Final'
 
-	// the only fuckling exec library that doesn't suck fucking donkey balls
+	// the only fucking exec library that doesn't suck fucking donkey balls
 	implementation 'org.zeroturnaround:zt-exec:1.11'
 
 	// features
+	implementation group: 'org.twitter4j', name: 'twitter4j-core', version: '4.0.7'
+
 	implementation 'com.joestelmach:natty:0.13'
 	implementation 'dnsjava:dnsjava:3.2.1'
 	implementation 'org.nibor.autolink:autolink:0.10.0'
