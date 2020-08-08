@@ -19,7 +19,6 @@ import chrisliebaer.chrisliebot.config.flex.FlexConf;
 import chrisliebaer.chrisliebot.config.scope.Selector;
 import chrisliebaer.chrisliebot.util.ErrorOutputBuilder;
 import chrisliebaer.chrisliebot.util.GsonValidator;
-import chrisliebaer.chrisliebot.util.TimerTaskMaster;
 import com.google.gson.JsonElement;
 import com.joestelmach.natty.DateGroup;
 import com.joestelmach.natty.Parser;
@@ -48,8 +47,9 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.TimeZone;
-import java.util.Timer;
-import java.util.TimerTask;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -87,35 +87,21 @@ public class TimerCommand implements ChrislieListener.Command {
 	private static final String SHORTHAND_LAST_CREATED = ".";
 	private static final String SHORTHAND_UPCOMING = "-";
 	
-	
 	// TODO: put these in code and replace with exception based error messages later
 	private static final ErrorOutputBuilder ERROR_DATE_IN_PAST = ErrorOutputBuilder.generic("Dieser Zeitpunkt liegt in der Vergangenheit.");
 	private static final ErrorOutputBuilder ERROR_INVALID_DATE = ErrorOutputBuilder.generic("Dieses Datum habe ich leider nicht verstanden.");
-	private static final ErrorOutputBuilder ERROR_TIMER_NOT_DELETED = ErrorOutputBuilder.generic("Dieser Timer existiert noch.");
+	
+	private boolean shutdown;
 	
 	private Config cfg;
 	
 	private Chrisliebot bot;
-	private Timer timer;
-	private DataSource dataSource;
-	
-	// usage inside lambda is still within synchronisation
 	private ContextResolver resolver;
 	
+	private ScheduledExecutorService timer;
+	private DataSource dataSource;
 	
-	@SuppressWarnings("ThisEscapedInObjectConstruction")
-	private final TimerTaskMaster timerMaster = new TimerTaskMaster(this);
 	private final Map<Long, ScheduledTimer> runtimeTimer = new HashMap<>();
-	
-	// both timers will utilize timer master infrastructure since they share the same requirements
-	private final TimerTask purgeTask = timerMaster.createTimer(this::purgeExpired);
-	private final TimerTask refreshTask = timerMaster.createTimer(() -> {
-		try {
-			refreshRuntimeTimer();
-		} catch (SQLException e) {
-			log.warn("failed to refresh timers from database", e);
-		}
-	});
 	
 	@Override
 	public Optional<String> help(ChrislieContext ctx, ListenerReference ref) throws ListenerException {
@@ -145,14 +131,22 @@ public class TimerCommand implements ChrislieListener.Command {
 			throw new ListenerException("failed to load timers from database", e);
 		}
 		
-		timer.scheduleAtFixedRate(refreshTask, cfg.prefetchInterval, cfg.prefetchInterval);
-		timer.scheduleAtFixedRate(purgeTask, 0, PURGE_INTERVAL);
+		timer.scheduleWithFixedDelay(() -> {
+			try {
+				refreshRuntimeTimer();
+			} catch (SQLException e) {
+				log.warn("failed to refresh timers from database", e);
+			}
+		}, 0, cfg.prefetchInterval, TimeUnit.MILLISECONDS);
+		timer.scheduleWithFixedDelay(this::purgeExpired, 0, PURGE_INTERVAL, TimeUnit.MILLISECONDS);
 	}
 	
 	@Override
 	public synchronized void stop(Chrisliebot bot, ContextResolver resolver) throws ListenerException {
-		timerMaster.cancel();
-		runtimeTimer.clear(); // timers will be stopped by master, we just clean it up to not get confused in future debugging sessions
+		shutdown = true;
+		
+		runtimeTimer.values().forEach(t -> t.future.cancel(false));
+		runtimeTimer.clear(); // clear map so we don't get confused in case we need to debug anything
 	}
 	
 	@Override
@@ -539,6 +533,10 @@ public class TimerCommand implements ChrislieListener.Command {
 		if (!removeRuntime(timerInfo.id))
 			return;
 		
+		// if shutdown, timer will survive until reboot
+		if (shutdown)
+			return;
+		
 		var maybeService = bot.service(timerInfo.service);
 		if (maybeService.isEmpty()) {
 			log.debug("service unknown, failed to deliver timer {}", timerInfo);
@@ -597,7 +595,7 @@ public class TimerCommand implements ChrislieListener.Command {
 	 * Calling this method will purge all timers that fullfil this instances purge requirement permanently from the
 	 * database, making it impossible to restore them.
 	 */
-	private synchronized void purgeExpired() {
+	private void purgeExpired() {
 		
 		String sql = "DELETE FROM timer WHERE NOW() - COALESCE(snooze, due) > ?"; // will also delete non expired timers if user was unreachable
 		
@@ -666,7 +664,7 @@ public class TimerCommand implements ChrislieListener.Command {
 	private synchronized boolean removeRuntime(long id) {
 		var rt = runtimeTimer.remove(id);
 		if (rt != null) {
-			rt.timerTask.cancel();
+			rt.future.cancel(false);
 			return true;
 		}
 		return false;
@@ -706,16 +704,15 @@ public class TimerCommand implements ChrislieListener.Command {
 		var diff = Duration.between(Instant.now(), timerInfo.nextDue());
 		var delay = Math.max(0, diff.toMillis());
 		
-		var task = timerMaster.createTimer(() -> {
+		var task = timer.schedule(() -> {
 			try {
 				timerDue(timerInfo);
 			} catch (ListenerException e) {
 				log.error("error during finishing of timer: {}", timerInfo, e);
 			}
-		});
+		}, delay, TimeUnit.MILLISECONDS);
 		
-		// order doesn't matter, timer runnable is synchronized anyway
-		timer.schedule(task, delay);
+		
 		runtimeTimer.put(timerInfo.id, new ScheduledTimer(timerInfo, task));
 	}
 	
@@ -846,7 +843,7 @@ public class TimerCommand implements ChrislieListener.Command {
 	private static class ScheduledTimer {
 		
 		private final TimerInfo timerInfo;
-		private final TimerTask timerTask;
+		private final ScheduledFuture<?> future;
 	}
 	
 	private static class Config {

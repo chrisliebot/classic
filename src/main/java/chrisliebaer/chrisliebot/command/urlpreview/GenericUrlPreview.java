@@ -20,8 +20,8 @@ import org.jsoup.select.Elements;
 import java.io.IOException;
 import java.net.URL;
 import java.util.Set;
-import java.util.Timer;
-import java.util.TimerTask;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 @Slf4j
 public class GenericUrlPreview implements Callback {
@@ -31,7 +31,7 @@ public class GenericUrlPreview implements Callback {
 	private static final long PREVIEW_TIMEOUT = 10000; // cancel connection after 10 seconds even if we are still receiving data
 	
 	private OkHttpClient client;
-	private Timer timer;
+	private ScheduledExecutorService timer;
 	
 	private URL url;
 	private ChrislieListener.ListenerMessage m;
@@ -57,15 +57,12 @@ public class GenericUrlPreview implements Callback {
 		call.enqueue(this);
 		
 		// queue timer for cancelation
-		timer.schedule(new TimerTask() {
-			@Override
-			public void run() {
-				call.cancel();
-				if (!call.isExecuted())
-					log.debug("canceled preview of {} since it took to long", url);
-			}
-		}, PREVIEW_TIMEOUT);
-		
+		timer.schedule(() -> {
+			
+			call.cancel();
+			if (!call.isExecuted())
+				log.debug("canceled preview of {} since it took to long", url);
+		}, PREVIEW_TIMEOUT, TimeUnit.MILLISECONDS);
 	}
 	
 	@Override

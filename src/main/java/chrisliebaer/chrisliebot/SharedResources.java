@@ -5,19 +5,22 @@ import chrisliebaer.chrisliebot.util.VersionUtil;
 import com.google.common.util.concurrent.AbstractIdleService;
 import lombok.Getter;
 import lombok.NonNull;
+import lombok.extern.slf4j.Slf4j;
 import okhttp3.OkHttpClient;
 import org.mariadb.jdbc.MariaDbPoolDataSource;
 
 import javax.sql.DataSource;
 import java.sql.SQLException;
-import java.util.Timer;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 
+@Slf4j
 public class SharedResources extends AbstractIdleService {
 	
 	private static final String DEFAULT_USER_AGENT = "Chrisliebot/" + VersionUtil.version() + " (+https://git.kd-tree.com/Chrisliebot/core)";
 	
 	@Getter private OkHttpClient httpClient;
-	@Getter private Timer timer;
+	@Getter private ScheduledExecutorService timer;
 	@Getter private GsonValidator gson;
 	
 	private MariaDbPoolDataSource dataSource;
@@ -44,13 +47,18 @@ public class SharedResources extends AbstractIdleService {
 		httpClient = new OkHttpClient.Builder()
 				.addNetworkInterceptor(c -> c.proceed(c.request().newBuilder().header("User-Agent", DEFAULT_USER_AGENT).build()))
 				.build();
-		timer = new Timer(true);
+		timer = new ScheduledThreadPoolExecutor(1, r -> {
+			var t = new Thread(r, "SharedTimerExecutor");
+			t.setDaemon(true);
+			t.setUncaughtExceptionHandler((t1, e) -> log.error("uncaught exception in shared timer", e));
+			return t;
+		});
 	}
 	
 	@Override
 	protected void shutDown() throws Chrisliebot.ChrisliebotException {
 		// remember: reverse order
-		timer.cancel();
+		timer.shutdown();
 		httpClient.dispatcher().executorService().shutdown(); // TODO: are the executors blocking? should we configure the pool by ourself?
 		httpClient.connectionPool().evictAll();
 		

@@ -21,7 +21,8 @@ import twitter4j.User;
 import twitter4j.conf.ConfigurationBuilder;
 
 import java.util.List;
-import java.util.TimerTask;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -33,7 +34,7 @@ public class TwitterTimelineNotifier implements ChrislieListener {
 	private Config cfg;
 	private Twitter twitter;
 	
-	private TimerTask pollTask;
+	private ScheduledFuture<?> pollTask;
 	private boolean shutdown;
 	
 	private Chrisliebot bot;
@@ -85,19 +86,13 @@ public class TwitterTimelineNotifier implements ChrislieListener {
 	
 	@Override
 	public void start(Chrisliebot bot, ContextResolver resolver) throws ListenerException {
-		pollTask = new TimerTask() {
-			@Override
-			public void run() {
-				poll();
-			}
-		};
-		
-		bot.sharedResources().timer().schedule(pollTask, 0, cfg.interval);
+		var timer = bot.sharedResources().timer();
+		pollTask = timer.scheduleWithFixedDelay(this::poll, 0, cfg.interval, TimeUnit.MILLISECONDS);
 	}
 	
 	@Override
 	public synchronized void stop(Chrisliebot bot, ContextResolver resolver) throws ListenerException {
-		pollTask.cancel();
+		pollTask.cancel(false);
 	}
 	
 	private synchronized void poll() {
