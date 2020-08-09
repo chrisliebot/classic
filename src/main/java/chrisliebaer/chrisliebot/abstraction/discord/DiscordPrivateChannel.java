@@ -1,18 +1,18 @@
 package chrisliebaer.chrisliebot.abstraction.discord;
 
-import chrisliebaer.chrisliebot.abstraction.ChrislieChannel;
 import chrisliebaer.chrisliebot.abstraction.ChrislieGuild;
 import chrisliebaer.chrisliebot.abstraction.ChrislieOutput;
 import chrisliebaer.chrisliebot.abstraction.LimiterConfig;
 import lombok.Getter;
 import lombok.NonNull;
+import net.dv8tion.jda.api.entities.MessageChannel;
 import net.dv8tion.jda.api.entities.PrivateChannel;
 import net.dv8tion.jda.api.entities.User;
 
 import java.util.List;
 import java.util.Optional;
 
-public class DiscordPrivateChannel implements ChrislieChannel {
+public class DiscordPrivateChannel implements DiscordChannel {
 	
 	@Getter private DiscordService service;
 	@Getter private PrivateChannel channel;
@@ -52,4 +52,9 @@ public class DiscordPrivateChannel implements ChrislieChannel {
 	
 	@Override
 	public ChrislieOutput output(LimiterConfig limiterConfig) {return new DiscordOutput(channel);}
+	
+	@Override
+	public MessageChannel messageChannel() {
+		return channel;
+	}
 }

@@ -1,6 +1,5 @@
 package chrisliebaer.chrisliebot.abstraction.discord;
 
-import chrisliebaer.chrisliebot.abstraction.ChrislieChannel;
 import chrisliebaer.chrisliebot.abstraction.ChrislieMessage;
 import lombok.Getter;
 import lombok.NonNull;
@@ -11,7 +10,7 @@ public class DiscordMessage implements ChrislieMessage {
 	@Getter private DiscordService service;
 	@Getter private MessageReceivedEvent ev;
 	
-	@Getter private ChrislieChannel channel;
+	@Getter private DiscordChannel channel;
 	
 	public DiscordMessage(@NonNull DiscordService service, @NonNull MessageReceivedEvent ev) {
 		this.service = service;
