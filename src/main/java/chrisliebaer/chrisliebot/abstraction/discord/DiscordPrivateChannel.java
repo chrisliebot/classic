@@ -1,6 +1,5 @@
 package chrisliebaer.chrisliebot.abstraction.discord;
 
-import chrisliebaer.chrisliebot.abstraction.ChrislieGuild;
 import chrisliebaer.chrisliebot.abstraction.ChrislieOutput;
 import chrisliebaer.chrisliebot.abstraction.LimiterConfig;
 import lombok.Getter;
@@ -37,7 +36,7 @@ public class DiscordPrivateChannel implements DiscordChannel {
 	}
 	
 	@Override
-	public Optional<? extends ChrislieGuild> guild() {return Optional.empty();}
+	public Optional<DiscordGuild> guild() {return Optional.empty();}
 	
 	@Override
 	public Optional<DiscordUser> resolve(String callName) {

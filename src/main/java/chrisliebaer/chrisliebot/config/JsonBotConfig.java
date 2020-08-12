@@ -7,6 +7,7 @@ import chrisliebaer.chrisliebot.config.scope.ScopeMapping;
 import chrisliebaer.chrisliebot.config.scope.Selector;
 import chrisliebaer.chrisliebot.config.scope.selector.AcceptAllSelector;
 import chrisliebaer.chrisliebot.config.scope.selector.CombinationSelector;
+import chrisliebaer.chrisliebot.config.scope.selector.DiscordPermissionSelector;
 import chrisliebaer.chrisliebot.config.scope.selector.IrcChannelFlagSelector;
 import chrisliebaer.chrisliebot.config.scope.selector.NSFWSelector;
 import chrisliebaer.chrisliebot.config.scope.selector.RegExpSelector;
@@ -242,6 +243,7 @@ public class JsonBotConfig { // TODO: replace code validation with java bean val
 				case "irc" -> new ServiceSelector.IrcSelector();
 				case "discord" -> new ServiceSelector.DiscordSelector();
 				case "ircChannelFlag" -> new IrcChannelFlagSelector();
+				case "discordPermission" -> new DiscordPermissionSelector();
 				default -> throw new Selector.SelectorException(format("there is no selector of type `%s`", json.type));
 			};
 			selector.fromJson(gson, json.json);
