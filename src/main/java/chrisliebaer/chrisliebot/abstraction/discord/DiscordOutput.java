@@ -9,7 +9,10 @@ import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.MessageBuilder;
+import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.MessageChannel;
+import net.dv8tion.jda.api.entities.TextChannel;
+import net.dv8tion.jda.api.requests.RestAction;
 import net.dv8tion.jda.api.utils.MarkdownSanitizer;
 
 import java.awt.Color;
@@ -144,9 +147,16 @@ public class DiscordOutput implements ChrislieOutput {
 			mb.setEmbed(embedBuilder.build());
 		}
 		
+		// TODO: properly catch and handle all sending errors via some way
 		try {
 			mb.append(plain.string());
-			channel.sendMessage(mb.build()).queue(m -> {}, error -> log.error("failed to send message", error));
+			RestAction<Message> restAction = channel.sendMessage(mb.build());
+			
+			// TODO: make this configurable via flex config
+			if (channel instanceof TextChannel textChannel && textChannel.isNews())
+				restAction = restAction.flatMap(Message::crosspost);
+			
+			restAction.queue(m -> {}, error -> log.error("failed to send message", error));
 		} catch (IllegalArgumentException e) { // if the message is too long or other undocumented shit inside jda
 			log.error("failed to queue message", e);
 		}
