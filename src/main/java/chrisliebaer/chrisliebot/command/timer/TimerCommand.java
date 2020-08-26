@@ -597,10 +597,11 @@ public class TimerCommand implements ChrislieListener.Command {
 	 */
 	private void purgeExpired() {
 		
-		String sql = "DELETE FROM timer WHERE NOW() - COALESCE(snooze, due) > ?"; // will also delete non expired timers if user was unreachable
+		// will also delete non expired timers if user was unreachable
+		String sql = "DELETE FROM timer WHERE TIMESTAMPDIFF(SECOND, COALESCE(snooze, due), NOW()) > ?";
 		
 		try (var conn = dataSource.getConnection(); var stmt = conn.prepareStatement(sql)) {
-			stmt.setLong(1, cfg.expire);
+			stmt.setLong(1, cfg.expire / 1000);
 			
 			var deleted = stmt.executeLargeUpdate();
 			
@@ -676,11 +677,11 @@ public class TimerCommand implements ChrislieListener.Command {
 	 * @throws SQLException If a database operation fails.
 	 */
 	private synchronized void refreshRuntimeTimer() throws SQLException {
-		String sql = "SELECT * FROM timer WHERE deleted = FALSE AND COALESCE(snooze, due) - NOW() < ?";
+		String sql = "SELECT * FROM timer WHERE deleted = FALSE AND TIMESTAMPDIFF(SECOND, NOW(), COALESCE(snooze, due)) < ?";
 		List<TimerInfo> timers = new ArrayList<>();
 		
 		try (var conn = dataSource.getConnection(); var stmt = conn.prepareStatement(sql)) {
-			stmt.setLong(1, cfg.prefetchWindow);
+			stmt.setLong(1, cfg.prefetchWindow / 1000);
 			
 			try (var rs = stmt.executeQuery()) {
 				while (rs.next()) {
