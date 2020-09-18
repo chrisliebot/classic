@@ -119,13 +119,10 @@ public class MemeDbCommand implements ChrislieListener.Command {
 	}
 	
 	private void printResult(ChrislieOutput reply, DatabaseEntry item) {
-		var url = cfg.baseUrl() + "hash/" + item.hash();
+		// until discord allows us to embed videos, we need to send the user directly to the video page
+		var url = cfg.baseUrl() + "hash/" + item.hash() + "?raw=1";
 		
-		reply.title("Ergebnis", url);
-		reply.image(url);
-		
-		reply.convert("${title}: ${titleUrl}");
-		
+		reply.plain().append(url);
 		reply.send();
 	}
 	
