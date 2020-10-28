@@ -407,6 +407,11 @@ public class MensaCommand implements ChrislieListener.Command {
 				for (String lineName : mensaMeta.linesSort()) {
 					
 					List<MensaApiMeal> line = lines.get(lineName);
+					
+					// line can actually be closed but still appears in meta
+					if (line == null)
+						continue;
+					
 					String lineDisplayName = mensaMeta.lines().get(lineName);
 					
 					// QUIRK: remove meals if invalid
