@@ -75,7 +75,7 @@ public class MensaCommand implements ChrislieListener.Command {
 	
 	@Override
 	public Optional<String> help(ChrislieContext ctx, ListenerReference ref) throws ListenerException {
-		return Optional.of("Stellt den aktuellen Speiseplan des Studierendenwerks bereit.");
+		return Optional.of("Stellt den aktuellen Speiseplan des Studierendenwerks bereit. mensa list, mensa <name> [<Wochentag|Zahl>], mensa [<Wochentag>]");
 	}
 	
 	@Override
