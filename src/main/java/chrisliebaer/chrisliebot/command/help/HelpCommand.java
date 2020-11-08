@@ -9,9 +9,9 @@ import chrisliebaer.chrisliebot.config.ChrislieContext;
 import chrisliebaer.chrisliebot.config.flex.FlexConf;
 import chrisliebaer.chrisliebot.util.ErrorOutputBuilder;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.TreeMap;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -31,7 +31,7 @@ public class HelpCommand implements ChrislieListener.Command {
 	private void enumerate(Invocation invc) throws ListenerException {
 		var ctx = invc.ctx();
 		
-		List<Consumer<PlainOutput.JoinPlainOutput>> actions = new ArrayList<>();
+		Map<String, Consumer<PlainOutput.JoinPlainOutput>> actions = new TreeMap<>();
 		for (var ref : ctx.listeners().values()) {
 			
 			// skip disabled listeners
@@ -48,7 +48,7 @@ public class HelpCommand implements ChrislieListener.Command {
 			if (exposed.isEmpty())
 				continue;
 			
-			actions.add(desc -> desc.seperator().appendEscape(String.join("|", exposed), ChrislieFormat.HIGHLIGHT));
+			actions.put(exposed.get(0), desc -> desc.seperator().appendEscape(String.join("|", exposed), ChrislieFormat.HIGHLIGHT));
 		}
 		
 		// now that we know how many (if any) commands we have, we can prepare the output
@@ -59,7 +59,7 @@ public class HelpCommand implements ChrislieListener.Command {
 			reply.description("Es sind keine Befehle vorhanden.");
 		} else {
 			var joiner = reply.description().joiner(", ");
-			actions.forEach(a -> a.accept(joiner));
+			actions.forEach((ignore, a) -> a.accept(joiner));
 			reply.footer(actions.size() + " Befehle gefunden.");
 		}
 		
