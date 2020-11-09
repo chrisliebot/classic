@@ -19,6 +19,7 @@ import java.awt.Color;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 
 @Slf4j
 public class DiscordOutput implements ChrislieOutput {
@@ -131,6 +132,10 @@ public class DiscordOutput implements ChrislieOutput {
 	
 	@Override
 	public void send() {
+		discordSend();
+	}
+	
+	public CompletableFuture<Message> discordSend() {
 		embedBuilder.setDescription(descrption.string());
 		MessageBuilder mb = new MessageBuilder();
 		
@@ -156,9 +161,14 @@ public class DiscordOutput implements ChrislieOutput {
 			if (channel instanceof TextChannel textChannel && textChannel.isNews())
 				restAction = restAction.flatMap(Message::crosspost);
 			
-			restAction.queue(m -> {}, error -> log.error("failed to send message", error));
+			var future = restAction.submit();
+			return future.whenComplete((message, throwable) -> {
+				if (throwable != null)
+					log.error("failed to send message", throwable);
+			});
 		} catch (IllegalArgumentException e) { // if the message is too long or other undocumented shit inside jda
 			log.error("failed to queue message", e);
+			return CompletableFuture.failedFuture(e);
 		}
 	}
 	

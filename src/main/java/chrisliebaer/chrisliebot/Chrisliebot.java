@@ -9,6 +9,7 @@ import chrisliebaer.chrisliebot.config.CoreConfig;
 import chrisliebaer.chrisliebot.config.JsonBotConfig;
 import chrisliebaer.chrisliebot.config.scope.ScopeMapping;
 import chrisliebaer.chrisliebot.util.GsonValidator;
+import chrisliebaer.chrisliebot.util.PatternTypeAdapter;
 import chrisliebaer.chrisliebot.util.SystemProperty;
 import com.google.common.util.concurrent.AbstractIdleService;
 import com.google.gson.GsonBuilder;
@@ -25,6 +26,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.regex.Pattern;
 
 @Slf4j
 public class Chrisliebot extends AbstractIdleService {
@@ -50,6 +52,7 @@ public class Chrisliebot extends AbstractIdleService {
 	@SuppressWarnings("resource") private GsonValidator gson = new GsonValidator(new GsonBuilder()
 			.disableHtmlEscaping()
 			.setPrettyPrinting()
+			.registerTypeAdapter(Pattern.class, new PatternTypeAdapter().nullSafe())
 			.create(), Validation.buildDefaultValidatorFactory().getValidator());
 	
 	/**

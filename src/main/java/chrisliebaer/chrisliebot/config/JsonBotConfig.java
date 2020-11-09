@@ -6,6 +6,7 @@ import chrisliebaer.chrisliebot.config.flex.FlexConf;
 import chrisliebaer.chrisliebot.config.scope.ScopeMapping;
 import chrisliebaer.chrisliebot.config.scope.Selector;
 import chrisliebaer.chrisliebot.config.scope.selector.AcceptAllSelector;
+import chrisliebaer.chrisliebot.config.scope.selector.ChannelSelector;
 import chrisliebaer.chrisliebot.config.scope.selector.CombinationSelector;
 import chrisliebaer.chrisliebot.config.scope.selector.DiscordPermissionSelector;
 import chrisliebaer.chrisliebot.config.scope.selector.IrcChannelFlagSelector;
@@ -236,6 +237,7 @@ public class JsonBotConfig { // TODO: replace code validation with java bean val
 				case "or" -> CombinationSelector.or(instanceSelectors(json.json));
 				case "and" -> CombinationSelector.and(instanceSelectors(json.json));
 				case "nsfw" -> new NSFWSelector();
+				case "channel" -> new ChannelSelector();
 				case "regex" -> new RegExpSelector();
 				case "userExistsInChannel" -> new UserExistsInChannel();
 				case "userIsPartOfGuild" -> new UserIsPartOfGuild();
