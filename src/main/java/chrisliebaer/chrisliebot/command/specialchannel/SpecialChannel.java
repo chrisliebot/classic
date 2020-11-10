@@ -105,6 +105,7 @@ public class SpecialChannel implements ChrislieListener {
 				case "mention" -> ev.getAuthor().getAsMention();
 				case "user" -> ev.getAuthor().getName();
 				case "channel" -> ev.getChannel().getName();
+				case "message" -> ev.getMessage().getContentDisplay();
 				default -> key;
 			});
 			DiscordOutput out = (DiscordOutput) cfg.output.apply(
