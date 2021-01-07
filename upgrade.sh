@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 # we might be in "config" subdir (if called from loop.sh) so cd back to root
 cd "$(dirname "$0")"

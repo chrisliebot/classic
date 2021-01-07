@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 # switch to config directory
 cd "config"
