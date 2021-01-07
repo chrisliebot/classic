@@ -25,7 +25,8 @@ public class DiscordPermissionSelector implements Selector {
 	
 	@Override
 	public boolean check(ChrislieMessage chrislieMessage) {
-		if (chrislieMessage instanceof DiscordMessage message) {
+		if (chrislieMessage instanceof DiscordMessage) {
+			var message = (DiscordMessage) chrislieMessage;
 			var maybeGuild = message.channel().guild();
 			if (maybeGuild.isEmpty())
 				return false;

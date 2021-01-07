@@ -158,8 +158,12 @@ public class DiscordOutput implements ChrislieOutput {
 			RestAction<Message> restAction = channel.sendMessage(mb.build());
 			
 			// TODO: make this configurable via flex config
-			if (channel instanceof TextChannel textChannel && textChannel.isNews())
-				restAction = restAction.flatMap(Message::crosspost);
+			if (channel instanceof TextChannel) {
+				var textChannel = (TextChannel) channel;
+				if (textChannel.isNews()) {
+					restAction = restAction.flatMap(Message::crosspost);
+				}
+			}
 			
 			var future = restAction.submit();
 			return future.whenComplete((message, throwable) -> {

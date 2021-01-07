@@ -37,9 +37,10 @@ public class IrcChannelFlagSelector implements Selector {
 	
 	@Override
 	public boolean check(ChrislieChannel channel) {
-		if (!(channel instanceof IrcChannel chan))
+		if (!(channel instanceof IrcChannel))
 			return false;
 		
+		var chan = (IrcChannel) channel;
 		Channel c = chan.channel();
 		
 		for (char ch : chars) {
