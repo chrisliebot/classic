@@ -1,8 +1,5 @@
 # gradle related
 /.gradle
-/gradlew
-/gradlew.bat
-/gradle
 /build/
 /out/
 
@@ -14,7 +11,7 @@
 /config/
 
 # binaries
-*.jar
+/*.jar
 
 # kinda chaotic and possibly private list of ideas
 /ideas.txt

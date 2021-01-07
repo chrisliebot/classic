@@ -11,7 +11,7 @@ set -e
 
 git pull
 
-gradle :shadowJar
+./gradlew :shadowJar
 
 # fetch current config repo
 git -C "config" pull
