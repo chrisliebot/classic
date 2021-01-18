@@ -65,6 +65,8 @@ public class MensaCommand implements ChrislieListener.Command {
 	
 	private static final DecimalFormat PRICE_FORMAT = new DecimalFormat("0.00");
 	
+	private static final TimeZone MENSA_TIMEZONE = TimeZone.getTimeZone("Europe/Berlin");
+	
 	private Config cfg;
 	
 	private Chrisliebot bot;
@@ -112,6 +114,7 @@ public class MensaCommand implements ChrislieListener.Command {
 		var arg = invc.arg();
 		var flex = invc.ref().flexConf();
 		var dateFormat = new SimpleDateFormat("EE dd.MM.yyyy"); // not threadsafe
+		dateFormat.setTimeZone(MENSA_TIMEZONE);
 		
 		boolean useDisplay = true;
 		
@@ -285,7 +288,7 @@ public class MensaCommand implements ChrislieListener.Command {
 	 * @return Timestamp of beginning of same day.
 	 */
 	public static long timestampToDate(long timestamp) {
-		Calendar cal = Calendar.getInstance(); // mensa is actually using local time, so we have to as well
+		Calendar cal = Calendar.getInstance(MENSA_TIMEZONE); // mensa is actually using local time, so we have to as well
 		cal.setTimeInMillis(timestamp);
 		cal.set(Calendar.HOUR_OF_DAY, 0);
 		cal.set(Calendar.MINUTE, 0);
