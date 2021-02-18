@@ -11,7 +11,9 @@ import org.jetbrains.annotations.NotNull;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -144,9 +146,10 @@ public class KitEscapeRoutesCommand implements ChrislieListener.Command {
 			return;
 		}
 		
+		var edgeStore = new HashSet<Edge>();
 		for (String edgeSpec : edgeSpecs) {
 			// abort on error
-			if (!applyGraphSpec(invc, graph, edgeSpec))
+			if (!applyGraphSpec(invc, graph, edgeSpec, edgeStore))
 				return;
 		}
 		
@@ -179,7 +182,7 @@ public class KitEscapeRoutesCommand implements ChrislieListener.Command {
 			return;
 		}
 		
-		if (!applyGraphSpec(invc, graph, edgeSpec))
+		if (!applyGraphSpec(invc, graph, edgeSpec, new HashSet<>()))
 			return;
 		
 		// clear max flow cache
@@ -263,7 +266,7 @@ public class KitEscapeRoutesCommand implements ChrislieListener.Command {
 		simpleOutput(invc.reply(), "Ich habe aufgeräumt", ":)))").send();
 	}
 	
-	private boolean applyGraphSpec(Invocation invc, FlowGraph graph, String spec) throws ListenerException, IllegalGraphException {
+	private boolean applyGraphSpec(Invocation invc, FlowGraph graph, String spec, Set<Edge> edgeStore) throws ListenerException, IllegalGraphException {
 		var matcher = GRAPH_NODE_SPEC_PATTERN.matcher(spec);
 		
 		if (!matcher.matches()) {
@@ -276,9 +279,21 @@ public class KitEscapeRoutesCommand implements ChrislieListener.Command {
 		var from = Node.withName(matcher.group("from"));
 		var to = Node.withName(matcher.group("to"));
 		var edge = Edge.between(from, to);
+		
+		// check for duplicated edges
+		if (!edgeStore.add(edge)) {
+			ErrorOutputBuilder.generic(out -> out
+					.appendEscape("Duplizierte Kante: ")
+					.appendEscape(edge.toString(), ChrislieFormat.CODE))
+					.write(invc).send();
+			return false;
+		}
+		
 		int capacity;
 		try {
 			capacity = Integer.parseInt(matcher.group("capacity"));
+			if (capacity <= 0)
+				throw new NumberFormatException("edge capacity must be greater zero");
 		} catch (NumberFormatException e) {
 			ErrorOutputBuilder.generic(out -> out
 					.appendEscape("Ungültige Kapazität auf Kante: ")
