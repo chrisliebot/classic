@@ -32,6 +32,7 @@ public class DiceCommand implements ChrislieListener.Command {
 						.write(invc).send();
 				return;
 			}
+			
 			long n = ThreadLocalRandom.current().nextLong(1, max + 1);
 			invc.reply()
 					.title("Die Würfel sind gefallen")

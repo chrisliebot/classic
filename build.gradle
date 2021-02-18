@@ -1,12 +1,7 @@
-import java.time.ZonedDateTime
-import java.time.format.DateTimeFormatter
-import java.time.temporal.ChronoUnit
-
 plugins {
 	// gradle dependencyUpdates -Drevision=release
 	id "com.github.ben-manes.versions" version "0.28.0"
 	id "com.github.johnrengelman.shadow" version "6.0.0"
-	id 'com.palantir.git-version' version "0.12.3"
 	id 'java'
 }
 
@@ -22,32 +17,7 @@ compileJava {
 }
 
 group = "chrisliebaer"
-version gitVersion()
 mainClassName = "chrisliebaer.chrisliebot.Chrisliebot"
-
-// set up generation of ressources
-def generatedResources = "$buildDir/generated-resources/main"
-sourceSets.main.output.dir generatedResources, builtBy: "generateResources"
-
-task generateResources() {
-	dependsOn "generateBuildInfo"
-}
-
-task generateBuildInfo() {
-	doLast() {
-		def det = versionDetails()
-		new File(generatedResources).mkdirs()
-		def f = new File(generatedResources, "vcs.properties")
-		f.createNewFile()
-		f.text = """
-version: ${project.version}
-commit: ${det.gitHashFull}
-branch: ${det.branchName}
-clean: ${det.isCleanTag}
-buildTime: ${DateTimeFormatter.ISO_ZONED_DATE_TIME.format(ZonedDateTime.now().truncatedTo(ChronoUnit.SECONDS))}
-"""
-	}
-}
 
 repositories {
 	mavenLocal()
