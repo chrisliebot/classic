@@ -159,7 +159,7 @@ public class KitEscapeRoutesCommand implements ChrislieListener.Command {
 		
 		graphs.put(name, new GraphContainer(name, graph));
 		
-		simpleOutput(invc.reply(), "Graph `%s` angelegt".formatted(name), "Added new escape network with identifier %s".formatted(name)).send();
+		simpleOutput(invc.reply(), "Graph `%s` angelegt".formatted(name), "Added new escape network with identifier %s.".formatted(name)).send();
 	}
 	
 	private synchronized void actionModifyGraph(Invocation invc, ChrislieParser parser, GraphContainer container)
@@ -185,7 +185,8 @@ public class KitEscapeRoutesCommand implements ChrislieListener.Command {
 		// clear max flow cache
 		container.resultCache.clear();
 		
-		simpleOutput(invc.reply(), "Graph `%s` aktualisiert".formatted(container.name), "Added new escape network with identifier %s".formatted(container.name)).send();
+		simpleOutput(invc.reply(), "Graph `%s` aktualisiert".formatted(container.name),
+				"Added new section %s to escape network %s.".formatted(edgeSpec, container.name)).send();
 	}
 	
 	private synchronized void actionListFlows(Invocation invc, GraphContainer container) throws ListenerException {
@@ -305,7 +306,7 @@ public class KitEscapeRoutesCommand implements ChrislieListener.Command {
 		
 		private final String name;
 		private final FlowGraph graph;
-		private final HashMap<FlowQuery, Integer> resultCache = new HashMap<>();
+		private final HashMap<FlowQuery, Long> resultCache = new HashMap<>();
 		
 		@Override
 		public int compareTo(@NotNull KitEscapeRoutesCommand.GraphContainer o) {

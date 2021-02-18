@@ -23,10 +23,10 @@ public final class MaxFlowSolver {
 		return new MaxFlowSolver(graph.toEdgeMap());
 	}
 	
-	public int maxFlow(FlowQuery query) {
+	public long maxFlow(FlowQuery query) {
 		var flowState = new HashMap<>(edges);
 		
-		var maxFlow = 0;
+		long maxFlow = 0;
 		
 		while (true) {
 			var path = findPath(flowState.keySet(), query.from(), query.to());
