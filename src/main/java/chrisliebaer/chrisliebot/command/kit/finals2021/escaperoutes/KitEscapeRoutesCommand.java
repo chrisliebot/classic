@@ -182,6 +182,13 @@ public class KitEscapeRoutesCommand implements ChrislieListener.Command {
 			return;
 		}
 		
+		// parser spec may confuse user if they intent to add new graph but name already exists, this is due to poor parser design but we can account for that
+		if (edgeSpec.contains(";")) {
+			ErrorOutputBuilder.generic("Mehrere Kanten kannst du nur bei neuen Graphen hinzufügen. Der Graph `%s` existiert jedoch schon.".formatted(container.name))
+					.write(invc).send();
+			return;
+		}
+		
 		if (!applyGraphSpec(invc, graph, edgeSpec, new HashSet<>()))
 			return;
 		
