@@ -1,5 +1,6 @@
 package chrisliebaer.chrisliebot.command.kit.finals2021.escaperoutes;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -30,6 +31,10 @@ public final class FlowGraph {
 	 */
 	public Map<Edge, Integer> toEdgeMap() {
 		return Map.copyOf(edges);
+	}
+	
+	public Set<Node> nodes() {
+		return Collections.unmodifiableSet(nodes);
 	}
 	
 	/**

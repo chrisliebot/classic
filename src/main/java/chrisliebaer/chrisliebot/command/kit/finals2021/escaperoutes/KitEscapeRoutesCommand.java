@@ -162,7 +162,7 @@ public class KitEscapeRoutesCommand implements ChrislieListener.Command {
 		
 		graphs.put(name, new GraphContainer(name, graph));
 		
-		simpleOutput(invc.reply(), "Graph `%s` angelegt".formatted(name), "Added new escape network with identifier %s.".formatted(name)).send();
+		simpleOutput(warnInvalidGraph(graph, invc.reply()), "Graph `%s` angelegt".formatted(name), "Added new escape network with identifier %s.".formatted(name)).send();
 	}
 	
 	private synchronized void actionModifyGraph(Invocation invc, ChrislieParser parser, GraphContainer container)
@@ -195,7 +195,7 @@ public class KitEscapeRoutesCommand implements ChrislieListener.Command {
 		// clear max flow cache
 		container.resultCache.clear();
 		
-		simpleOutput(invc.reply(), "Graph `%s` aktualisiert".formatted(container.name),
+		simpleOutput(warnInvalidGraph(graph, invc.reply()), "Graph `%s` aktualisiert".formatted(container.name),
 				"Added new section %s to escape network %s.".formatted(edgeSpec, container.name)).send();
 	}
 	
@@ -266,6 +266,22 @@ public class KitEscapeRoutesCommand implements ChrislieListener.Command {
 		var maxFlow = container.resultCache.computeIfAbsent(FlowQuery.asQuery(from, to), query -> solver.maxFlow(FlowQuery.asQuery(from, to)));
 		simpleOutput(invc.reply(), "Max Flow in `%s` von `%s` nach `%s` ist `%d`"
 				.formatted(container.name, from.name(), to.name(), maxFlow), "%d".formatted(maxFlow)).send();
+	}
+	
+	private ChrislieOutput warnInvalidGraph(FlowGraph graph, ChrislieOutput out) {
+		var outOnly = new HashSet<>(graph.nodes());
+		var inOnly = new HashSet<>(graph.nodes());
+		
+		for (var edge : graph.toEdgeMap().keySet()) {
+			outOnly.remove(edge.to());
+			inOnly.remove(edge.from());
+		}
+		
+		if (outOnly.isEmpty() || inOnly.isEmpty()) {
+			out.footer("Dieser Graph ist eigentlich ungültig, da er keinen Start- oder Zielknoten hat.");
+		}
+		
+		return out;
 	}
 	
 	private synchronized void actionQuit(Invocation invc) throws ListenerException {
