@@ -43,15 +43,13 @@ public final class MaxFlowSolver {
 				
 				// update forward and backward edges but remove edges with no capacity
 				var forwardFlow = current - min;
-				if (forwardFlow > 0) {
+				if (forwardFlow > 0)
 					flowState.put(edge, forwardFlow);
-				} else {
+				else
 					flowState.remove(edge);
-				}
 				
 				// backwards edges can only gain capacity
-				var rev = edge.reverse();
-				flowState.compute(rev, ((k, v) -> (v == null ? 0 : v) + min));
+				flowState.compute(edge.reverse(), ((k, v) -> (v == null ? 0 : v) + min));
 			}
 		}
 	}
