@@ -50,7 +50,8 @@ public final class MaxFlowSolver {
 				}
 				
 				// backwards edges can only gain capacity
-				flowState.put(edge.reverse(), current + min);
+				var rev = edge.reverse();
+				flowState.compute(rev, ((k, v) -> (v == null ? 0 : v) + min));
 			}
 		}
 	}
@@ -70,14 +71,14 @@ public final class MaxFlowSolver {
 		visited.add(start);
 		pending.addFirst(start);
 		
-		while(!pending.isEmpty()) {
+		while (!pending.isEmpty()) {
 			var node = pending.removeLast();
 			
 			// we reached final node, backtrack with parent information
 			if (node.equals(finish)) {
 				var path = new ArrayList<Edge>();
 				var current = node;
-				while(parents.containsKey(current)) {
+				while (parents.containsKey(current)) {
 					var parent = parents.get(current);
 					path.add(Edge.between(parent, current));
 					current = parent;
