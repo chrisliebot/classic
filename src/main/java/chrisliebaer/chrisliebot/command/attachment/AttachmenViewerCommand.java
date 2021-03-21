@@ -31,7 +31,7 @@ public class AttachmenViewerCommand implements ChrislieListener.Command {
 	
 	@Override
 	public Optional<String> help(ChrislieContext ctx, ListenerReference ref) throws ListenerException {
-		return Optional.of("Generiert eine Vorschau für hochgeladene Textdateien aus der Referenzierten antwort, so dass der Anhang nicht runtergeladen werden muss.");
+		return Optional.of("Generiert eine Vorschau für hochgeladene Textdateien aus der referenzierten antwort, so dass der Anhang nicht runtergeladen werden muss.");
 	}
 	
 	@Override
@@ -44,9 +44,15 @@ public class AttachmenViewerCommand implements ChrislieListener.Command {
 		var msg = (DiscordMessage) invc.msg();
 		var discordMsg = msg.ev().getMessage();
 		var ref = discordMsg.getReferencedMessage();
+		
 		if (ref == null) {
-			ErrorOutputBuilder.generic("Du hast auf keine Nachricht geantwortet oder Discord hat gerade Probleme.").write(invc).send();
-			return;
+			// if no message is referenced, we provide viewer links for current message
+			if (!discordMsg.getAttachments().isEmpty()) {
+				ref = discordMsg;
+			} else {
+				ErrorOutputBuilder.generic("Du hast auf keine Nachricht geantwortet oder Discord hat gerade Probleme.").write(invc).send();
+				return;
+			}
 		}
 		
 		var attachments = ref.getAttachments();
