@@ -8,11 +8,13 @@ import com.google.common.collect.Multimap;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
 import net.engio.mbassy.listener.Handler;
 import org.kitteh.irc.client.library.Client;
 import org.kitteh.irc.client.library.element.Channel;
 import org.kitteh.irc.client.library.element.User;
 import org.kitteh.irc.client.library.event.channel.ChannelMessageEvent;
+import org.kitteh.irc.client.library.event.connection.ClientConnectionEndedEvent;
 import org.kitteh.irc.client.library.event.user.PrivateMessageEvent;
 
 import java.util.Collection;
@@ -24,6 +26,8 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+
+@Slf4j
 public class IrcService implements ChrislieService {
 	
 	/* IRC has a problem: it doesn't share a lot of information about clients without being asked. This means we have to get creative.
@@ -92,6 +96,18 @@ public class IrcService implements ChrislieService {
 		var sink = this.sink;
 		if (sink != null)
 			sink.accept(IrcMessage.of(this, ev));
+	}
+	
+	@Handler
+	public void onDisconnect(ClientConnectionEndedEvent ev) {
+		if (ev.canAttemptReconnect()) {
+			ev.getCause().ifPresentOrElse(
+					e -> log.info("service {} lost connection, attempting reconnect", identifier, e),
+					() -> log.info("service {} lost connection witout cause", identifier)
+			);
+			
+			ev.setAttemptReconnect(true);
+		}
 	}
 	
 	@Override
