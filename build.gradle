@@ -68,7 +68,6 @@ dependencies {
 
 	// features
 	implementation group: 'org.twitter4j', name: 'twitter4j-core', version: '4.0.7'
-
 	implementation 'com.joestelmach:natty:0.13'
 	implementation 'dnsjava:dnsjava:3.2.1'
 	implementation 'org.nibor.autolink:autolink:0.10.0'

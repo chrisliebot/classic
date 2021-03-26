@@ -7,6 +7,7 @@ import lombok.Getter;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.OkHttpClient;
+import okhttp3.logging.HttpLoggingInterceptor;
 import org.mariadb.jdbc.MariaDbPoolDataSource;
 
 import javax.sql.DataSource;
@@ -17,7 +18,7 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 @Slf4j
 public class SharedResources extends AbstractIdleService {
 	
-	private static final String DEFAULT_USER_AGENT = "Chrisliebot/" + VersionUtil.version() + " (+https://git.kd-tree.com/Chrisliebot/core)";
+	private static final String DEFAULT_USER_AGENT = "Chrisliebot/" + VersionUtil.version() + " (+https://github.com/chrisliebot)";
 	
 	@Getter private OkHttpClient httpClient;
 	@Getter private ScheduledExecutorService timer;
@@ -44,8 +45,13 @@ public class SharedResources extends AbstractIdleService {
 			throw new Exception("probe request to database failed", e);
 		}
 		
+		var httpLogger = new HttpLoggingInterceptor(s -> {
+			log.trace("HTTP REQUEST: {}", s);
+		});
+		httpLogger.setLevel(HttpLoggingInterceptor.Level.BASIC);
 		httpClient = new OkHttpClient.Builder()
 				.addNetworkInterceptor(c -> c.proceed(c.request().newBuilder().header("User-Agent", DEFAULT_USER_AGENT).build()))
+				.addNetworkInterceptor(httpLogger)
 				.build();
 		timer = new ScheduledThreadPoolExecutor(1, r -> {
 			var t = new Thread(r, "SharedTimerExecutor");
