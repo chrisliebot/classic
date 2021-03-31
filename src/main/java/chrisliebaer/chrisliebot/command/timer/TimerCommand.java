@@ -546,7 +546,7 @@ public class TimerCommand implements ChrislieListener.Command {
 		var maybeUser = service.user(timerInfo.user);
 		
 		if (maybeUser.isEmpty()) {
-			log.debug("user unknown, failed to deliver timer {}", timerInfo);
+			log.trace("user unknown, failed to deliver timer {}", timerInfo);
 			return;
 		}
 		var user = maybeUser.get();

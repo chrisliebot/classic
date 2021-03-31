@@ -106,7 +106,7 @@ public class RedditListener implements ChrislieListener {
 				out.send();
 			}
 			
-		} catch (IOException | ListenerException e) {
+		} catch (Exception e) {
 			log.warn("failed to feed feed for subreddit: {}", cfg.subreddit, e);
 		}
 	}
