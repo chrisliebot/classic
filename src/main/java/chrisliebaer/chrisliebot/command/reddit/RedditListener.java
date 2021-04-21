@@ -30,7 +30,7 @@ public class RedditListener implements ChrislieListener {
 	private static final int REDDIT_COLOR = 16721664;
 	
 	private Config cfg;
-	private String lastId;
+	private long lastTimestamp;
 	
 	private Chrisliebot bot;
 	private ContextResolver resolver;
@@ -61,11 +61,11 @@ public class RedditListener implements ChrislieListener {
 	
 	@Override
 	public void start(Chrisliebot bot, ContextResolver resolver) throws ListenerException {
-		// initial request gets most recent post for pagination
+		// initial request gets most recent posts timestamp
 		try {
 			fetch();
 		} catch (IOException e) {
-			throw new ListenerException("failed to fetch last id", e);
+			throw new ListenerException("failed to fetch last timestamp", e);
 		}
 		
 		feedUpdate.startAsync().awaitRunning();
@@ -112,17 +112,21 @@ public class RedditListener implements ChrislieListener {
 	}
 	
 	private SubredditListing fetch() throws IOException {
-		var call = service.getFeed(cfg.subreddit, lastId);
+		var call = service.getFeed(cfg.subreddit);
 		
 		var resp = call.execute();
 		if (!resp.isSuccessful())
 			throw new IOException("request failed: " + resp.code());
 		
-		// update last id
 		var feed = resp.body();
+		
+		// remove older entries
+		feed.data().children().removeIf(c -> c.data().createdUtc() <= lastTimestamp);
+		
+		// update last timestamp
 		if (feed.data().children() != null && !feed.data().children().isEmpty()) {
-			lastId = feed.data().children().get(0).data().name(); // sic
-			log.trace("most recent id for feed {}: {}", cfg.subreddit, lastId);
+			lastTimestamp = feed.data().children().get(0).data().createdUtc(); // sic
+			log.trace("most recent timestamp for feed {}: {}", cfg.subreddit, lastTimestamp);
 		}
 		
 		return feed;
