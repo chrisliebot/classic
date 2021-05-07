@@ -8,6 +8,7 @@ import chrisliebaer.chrisliebot.command.ListenerReference;
 import chrisliebaer.chrisliebot.config.ChrislieContext;
 import chrisliebaer.chrisliebot.config.flex.CommonFlex;
 import chrisliebaer.chrisliebot.util.ErrorOutputBuilder;
+import net.dv8tion.jda.api.exceptions.ErrorResponseException;
 import net.dv8tion.jda.api.utils.TimeUtil;
 
 import java.util.Optional;
@@ -51,14 +52,18 @@ public class ExplainCommand implements ChrislieListener.Command {
 			long channelId = Long.parseLong(matcher.group(2));
 			long messageId = Long.parseLong(matcher.group(3));
 			
-			if ("@me".equals(guildId)) {
-				var channel = jda.getPrivateChannelById(channelId);
-				if (channel != null)
-					ownMessage = channel.retrieveMessageById(messageId).complete();
-			} else {
-				var channel = jda.getTextChannelById(channelId);
-				if (channel != null)
-					ownMessage = channel.retrieveMessageById(messageId).complete();
+			try {
+				if ("@me".equals(guildId)) {
+					var channel = jda.getPrivateChannelById(channelId);
+					if (channel != null)
+						ownMessage = channel.retrieveMessageById(messageId).complete();
+				} else {
+					var channel = jda.getTextChannelById(channelId);
+					if (channel != null)
+						ownMessage = channel.retrieveMessageById(messageId).complete();
+				}
+			} catch (ErrorResponseException ignore) {
+				// we will simply ignore these exception since failing to resolve message is not going to change the output, since we are not leaking your access rights
 			}
 		}
 		
