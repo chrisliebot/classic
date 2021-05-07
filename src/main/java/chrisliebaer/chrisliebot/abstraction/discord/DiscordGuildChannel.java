@@ -1,7 +1,5 @@
 package chrisliebaer.chrisliebot.abstraction.discord;
 
-import chrisliebaer.chrisliebot.abstraction.ChrislieOutput;
-import chrisliebaer.chrisliebot.abstraction.LimiterConfig;
 import lombok.Getter;
 import lombok.NonNull;
 import net.dv8tion.jda.api.entities.MessageChannel;
@@ -51,9 +49,6 @@ public class DiscordGuildChannel implements DiscordChannel {
 	
 	@Override
 	public boolean isNSFW() {return channel.isNSFW();}
-	
-	@Override
-	public ChrislieOutput output(LimiterConfig limiterConfig) {return new DiscordOutput(channel);}
 	
 	@Override
 	public MessageChannel messageChannel() {

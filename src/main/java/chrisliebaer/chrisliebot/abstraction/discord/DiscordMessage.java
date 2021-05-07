@@ -1,6 +1,8 @@
 package chrisliebaer.chrisliebot.abstraction.discord;
 
 import chrisliebaer.chrisliebot.abstraction.ChrislieMessage;
+import chrisliebaer.chrisliebot.abstraction.ChrislieOutput;
+import chrisliebaer.chrisliebot.abstraction.LimiterConfig;
 import lombok.Getter;
 import lombok.NonNull;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
@@ -31,5 +33,10 @@ public class DiscordMessage implements ChrislieMessage {
 	@Override
 	public String message() {
 		return ev.getMessage().getContentRaw();
+	}
+	
+	@Override
+	public ChrislieOutput reply(LimiterConfig limiter) {
+		return channel.output(limiter, this);
 	}
 }

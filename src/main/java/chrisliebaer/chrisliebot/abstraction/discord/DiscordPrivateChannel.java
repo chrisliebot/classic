@@ -50,9 +50,6 @@ public class DiscordPrivateChannel implements DiscordChannel {
 	public boolean isDirectMessage() {return true;}
 	
 	@Override
-	public ChrislieOutput output(LimiterConfig limiterConfig) {return new DiscordOutput(channel);}
-	
-	@Override
 	public MessageChannel messageChannel() {
 		return channel;
 	}

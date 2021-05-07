@@ -15,7 +15,7 @@ import net.dv8tion.jda.api.entities.TextChannel;
 import net.dv8tion.jda.api.requests.RestAction;
 import net.dv8tion.jda.api.utils.MarkdownSanitizer;
 
-import java.awt.Color;
+import java.awt.*;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Optional;
@@ -24,6 +24,7 @@ import java.util.concurrent.CompletableFuture;
 @Slf4j
 public class DiscordOutput implements ChrislieOutput {
 	
+	private DiscordMessage source;
 	private MessageChannel channel;
 	private EmbedBuilder embedBuilder = new EmbedBuilder();
 	private DiscordPlainOutput plain = new DiscordPlainOutput(DiscordOutput::escape4Discord, DiscordFormatter::format);
@@ -43,6 +44,11 @@ public class DiscordOutput implements ChrislieOutput {
 	
 	public DiscordOutput(@NonNull MessageChannel channel) {
 		this.channel = channel;
+	}
+	
+	public DiscordOutput(@NonNull MessageChannel channel, @NonNull DiscordMessage source) {
+		this.channel = channel;
+		this.source = source;
 	}
 	
 	@Override
@@ -167,8 +173,15 @@ public class DiscordOutput implements ChrislieOutput {
 			
 			var future = restAction.submit();
 			return future.whenComplete((message, throwable) -> {
-				if (throwable != null)
+				if (throwable != null) {
 					log.error("failed to send message", throwable);
+					return;
+				}
+				
+				// link send message with source message in database
+				if (source != null) {
+					source.service().traceMessage(source.ev().getMessage(), message);
+				}
 			});
 		} catch (IllegalArgumentException e) { // if the message is too long or other undocumented shit inside jda
 			log.error("failed to queue message", e);

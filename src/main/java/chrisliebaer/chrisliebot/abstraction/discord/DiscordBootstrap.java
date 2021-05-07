@@ -17,6 +17,6 @@ public class DiscordBootstrap implements ServiceBootstrap {
 		var jda = JDABuilder.create(token, GatewayIntent.getIntents(GatewayIntent.ALL_INTENTS))
 				.setEventManager(new AnnotatedEventManager())
 				.build();
-		return new DiscordService(jda, identifier);
+		return new DiscordService(bot, jda, identifier);
 	}
 }
