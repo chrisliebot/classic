@@ -108,7 +108,7 @@ public class ExplainCommand implements ChrislieListener.Command {
 					.append("Nachrichteninhalt", ChrislieFormat.BOLD).newLine()
 					.appendEscape(source.content(), ChrislieFormat.QUOTE);
 			
-			out.author("%s%04d".formatted(source.nickname(), source.discriminator()));
+			out.author("%s#%04d".formatted(source.nickname(), source.discriminator()));
 			
 			var zoneId = CommonFlex.ZONE_ID().getOrFail(invc);
 			var formatter = CommonFlex.DATE_TIME_FORMAT().getOrFail(invc);

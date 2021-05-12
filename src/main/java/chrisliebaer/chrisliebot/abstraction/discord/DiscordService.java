@@ -149,7 +149,7 @@ public class DiscordService implements ChrislieService {
 			
 			var user = source.getAuthor();
 			stmt.setString(6, user.getName());
-			stmt.setInt(7, Integer.parseInt(user.getDiscriminator().substring(1)));
+			stmt.setInt(7, Integer.parseInt(user.getDiscriminator()));
 			stmt.setLong(8, user.getIdLong());
 			stmt.setString(9, source.getContentRaw());
 			
