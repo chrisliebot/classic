@@ -453,6 +453,8 @@ public class TimerCommand implements ChrislieListener.Command {
 		guild.ifPresent(g -> out.field("Gilde", g.displayName()));
 		out.field("Fällig", when);
 		
+		out.field("Erstellt", creation);
+		
 		if (!due)
 			out.field("Dauer", duration);
 		
@@ -467,7 +469,8 @@ public class TimerCommand implements ChrislieListener.Command {
 				.appendEscape(", Id: ").appendEscape(id)
 				.appendEscape(", Besitzer: ")
 				.appendEscape(user.map(ChrislieUser::mention).orElse("Unbekannt"), ChrislieFormat.HIGHLIGHT)
-				.appendEscape(", Fällig: ").appendEscape(when, ChrislieFormat.HIGHLIGHT);
+				.appendEscape(", Fällig: ").appendEscape(when, ChrislieFormat.HIGHLIGHT)
+				.appendEscape(", Erstellt: ").appendEscape(creation, ChrislieFormat.HIGHLIGHT);
 		
 		if (!due)
 			convert.appendEscape(", Dauer: ").appendEscape(duration, ChrislieFormat.HIGHLIGHT);
@@ -492,13 +495,11 @@ public class TimerCommand implements ChrislieListener.Command {
 	}
 	
 	/**
-	 * Creates a Predicate from a ChrislieMessage. The rules of this predicate are hardcoded and intented to prevent
-	 * users from accesing not only other users timers but also leaking their own timers on guilds or channels by
-	 * accident.
+	 * Creates a Predicate from a ChrislieMessage. The rules of this predicate are hardcoded and intented to prevent users from accesing not only other users timers but
+	 * also leaking their own timers on guilds or channels by accident.
 	 *
 	 * @param msg The message that should be used for the accessibility check.
-	 * @return A predicate that matches on all timers that are allowed to be displayed in the context of the given
-	 * message.
+	 * @return A predicate that matches on all timers that are allowed to be displayed in the context of the given message.
 	 */
 	private static Predicate<TimerInfo> accessPredicate(ChrislieMessage msg) {
 		var user = msg.user();
@@ -592,8 +593,7 @@ public class TimerCommand implements ChrislieListener.Command {
 	}
 	
 	/**
-	 * Calling this method will purge all timers that fullfil this instances purge requirement permanently from the
-	 * database, making it impossible to restore them.
+	 * Calling this method will purge all timers that fullfil this instances purge requirement permanently from the database, making it impossible to restore them.
 	 */
 	private void purgeExpired() {
 		
@@ -655,12 +655,11 @@ public class TimerCommand implements ChrislieListener.Command {
 	}
 	
 	/**
-	 * Potentially invalidates the timer with the given id, purging it from main memory and ending it's Runtime Timer.
-	 * If the timer is not a Runtime Timer, this method call will do nothing.
+	 * Potentially invalidates the timer with the given id, purging it from main memory and ending it's Runtime Timer. If the timer is not a Runtime Timer, this method
+	 * call will do nothing.
 	 *
 	 * @param id The id of the timer to invalidate.
-	 * @return {@code true} if the timer was a Runtime Timer in which case most callers should call {@link
-	 * #refreshRuntimeTimer()}.
+	 * @return {@code true} if the timer was a Runtime Timer in which case most callers should call {@link #refreshRuntimeTimer()}.
 	 */
 	private synchronized boolean removeRuntime(long id) {
 		var rt = runtimeTimer.remove(id);
@@ -696,8 +695,7 @@ public class TimerCommand implements ChrislieListener.Command {
 	}
 	
 	/**
-	 * Instances the given TimerInfo into a Runtime Timer. Note that this method will not prevent queueing of already
-	 * existing runtime timers.
+	 * Instances the given TimerInfo into a Runtime Timer. Note that this method will not prevent queueing of already existing runtime timers.
 	 *
 	 * @param timerInfo The timer to instance.
 	 */
@@ -776,8 +774,7 @@ public class TimerCommand implements ChrislieListener.Command {
 	}
 	
 	/**
-	 * This method resolves a given timer string by either calling {@link #encodeTimer(long)} or looking up alias
-	 * keywords.
+	 * This method resolves a given timer string by either calling {@link #encodeTimer(long)} or looking up alias keywords.
 	 *
 	 * @param msg
 	 * @return
