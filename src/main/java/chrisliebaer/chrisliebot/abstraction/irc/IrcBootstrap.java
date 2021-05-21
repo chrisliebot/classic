@@ -62,7 +62,7 @@ public class IrcBootstrap implements ServiceBootstrap {
 		
 		// log chat messages in database
 		if (chatlog)
-			chatLogger(client, bot);
+			chatLogger(client, bot, identifier);
 		
 		// connect and pass to service, service should not assume client to be still disconnected, setup is done here
 		client.connect();
@@ -112,8 +112,8 @@ public class IrcBootstrap implements ServiceBootstrap {
 			builder.realName(realname);
 	}
 	
-	private void chatLogger(Client client, Chrisliebot bot) {
-		client.getEventManager().registerEventListener(new IrcToSqlLogger(bot.sharedResources().dataSource()));
+	private void chatLogger(Client client, Chrisliebot bot, String identifier) {
+		client.getEventManager().registerEventListener(new IrcToSqlLogger(bot.sharedResources().dataSource(), identifier));
 	}
 	
 	private static void inLogger(String line) {

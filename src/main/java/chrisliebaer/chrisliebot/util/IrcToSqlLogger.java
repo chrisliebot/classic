@@ -33,10 +33,12 @@ public class IrcToSqlLogger {
 		NORMAL, CTCP, NOTICE, JOIN, PART, QUIT, NICK, KICK
 	}
 	
-	private DataSource dataSource;
+	private final DataSource dataSource;
+	private final String identifier;
 	
-	public IrcToSqlLogger(@NonNull DataSource dataSource) {
+	public IrcToSqlLogger(@NonNull DataSource dataSource, @NonNull String identifier) {
 		this.dataSource = dataSource;
+		this.identifier = identifier;
 	}
 	
 	private void ensureEncoding(Connection conn) {
@@ -106,21 +108,22 @@ public class IrcToSqlLogger {
 		log.trace("LOG: {} [{}] {}: {} ({})", when, context, sender.getNick(), message, type);
 		
 		try {
-			String sql = "INSERT INTO chatlog(timestamp, context, type, nickname, realname, ident, host, account, message) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+			String sql = "INSERT INTO chatlog(timestamp, service, context, type, nickname, realname, ident, host, account, message) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 			try (Connection connection = dataSource.getConnection();
 				 var stmt = connection.prepareStatement(sql)) {
 				
 				ensureEncoding(connection);
 				
 				stmt.setTimestamp(1, new Timestamp(when.getTime()));
-				stmt.setString(2, context);
-				stmt.setString(3, type.name());
-				stmt.setString(4, sender.getNick());
-				stmt.setString(5, sender.getRealName().orElse(null));
-				stmt.setString(6, sender.getUserString());
-				stmt.setString(7, sender.getHost());
-				stmt.setString(8, sender.getAccount().orElse(null));
-				stmt.setString(9, message);
+				stmt.setString(2, identifier);
+				stmt.setString(3, context);
+				stmt.setString(4, type.name());
+				stmt.setString(5, sender.getNick());
+				stmt.setString(6, sender.getRealName().orElse(null));
+				stmt.setString(7, sender.getUserString());
+				stmt.setString(8, sender.getHost());
+				stmt.setString(9, sender.getAccount().orElse(null));
+				stmt.setString(10, message);
 				stmt.execute();
 			}
 		} catch (SQLException e) {
