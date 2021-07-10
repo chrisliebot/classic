@@ -1,5 +1,8 @@
 package chrisliebaer.chrisliebot.command.qwant;
 
+import chrisliebaer.chrisliebot.util.GsonValidator;
+import com.google.gson.JsonElement;
+import com.google.gson.reflect.TypeToken;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import retrofit2.Call;
@@ -8,6 +11,7 @@ import retrofit2.http.Path;
 import retrofit2.http.Query;
 
 import javax.validation.constraints.NotNull;
+import java.util.ArrayList;
 import java.util.List;
 
 // https://github.com/NLDev/qwant-api/blob/master/DOCUMENTATION.md
@@ -40,7 +44,7 @@ public interface QwantService {
 	}
 	
 	@Deprecated // dont call directly
-	@GET("api/search/{type}?uiv=4&locale=" + DEFAULT_LOCALE)
+	@GET("v3/search/{type}?device=desktop&locale=" + DEFAULT_LOCALE)
 	@SuppressWarnings({"MissingDeprecatedAnnotation"})
 	public Call<QwantResponse> search(
 			@Path("type") String type,
@@ -61,28 +65,88 @@ public interface QwantService {
 		private int error; // only set if status is "error"
 		private QwantData data;
 		
-		public List<QwantItem> items() {
-			return data.result.items;
+		public List<QwantItem> items(GsonValidator gson, Type type) {
+			return data.result.getItemsAndUnfuckMess(gson, type);
+		}
+		
+		private static class QwantQuery {
+			
+			public String query;
 		}
 		
 		private static class QwantData {
 			
 			public QwantResult result;
+			public QwantQuery query;
+		}
+		
+		public static class QwantMainlineItemsBullshit {
+			
+			public List<QwantResult> mainline;
 		}
 		
 		private static class QwantResult {
 			
-			public List<QwantItem> items;
+			public JsonElement items;
+			public String type;
+			
+			// web type search returns a bunch of bullshit typed json, so we fix that
+			public List<QwantItem> getItemsAndUnfuckMess(GsonValidator gson, Type type) {
+				if (items == null || items.isJsonNull()) {
+					return List.of();
+				}
+				
+				if (items.isJsonArray()) {
+					return gson.fromJson(items, new TypeToken<List<QwantItem>>() {}.getType());
+				}
+				
+				var mainline = gson.fromJson(items, QwantMainlineItemsBullshit.class);
+				var list = new ArrayList<QwantItem>();
+				for (var result : mainline.mainline) {
+					if (result.type.equalsIgnoreCase(type.code)) {
+						list.addAll(result.getItemsAndUnfuckMess(gson, type)); // will actually end up in first branch so no recursion
+					}
+				}
+				return list;
+			}
 		}
 		
 		@Data
 		public static class QwantItem {
 			
 			private String title;
-			private String type; // should match query type
-			private String media;
+			private JsonElement media;
 			private String desc;
 			private String url;
+			
+			public String mediaUrl(GsonValidator gson) {
+				if (media == null || media.isJsonNull())
+					return null;
+				
+				if (media.isJsonPrimitive()) {
+					return media.getAsString();
+				}
+				
+				if (media.isJsonArray()) {
+					var array = media.getAsJsonArray();
+					if (array.size() == 0) {
+						return null;
+					}
+					
+					var media = gson.fromJson(array.get(0), QwantMediaSubObject.class);
+					return media.pict.url;
+				}
+				
+				return null;
+			}
+		}
+		
+		public static class QwantMediaSubObject {
+			public QwantMediaSubObject2 pict;
+		}
+		
+		public static class QwantMediaSubObject2 {
+			public String url;
 		}
 	}
 }

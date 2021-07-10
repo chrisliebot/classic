@@ -87,6 +87,8 @@ public final class C {
 	}
 	
 	public static String stripHtml(String html) {
+		if (html == null)
+			return null;
 		return Jsoup.parse(html).text();
 	}
 	

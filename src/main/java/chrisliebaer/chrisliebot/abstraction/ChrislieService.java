@@ -1,12 +1,13 @@
 package chrisliebaer.chrisliebot.abstraction;
 
+import chrisliebaer.chrisliebot.config.ContextResolver;
+
 import javax.annotation.Nullable;
 import java.util.Optional;
 import java.util.function.Consumer;
 
 /**
- * A service abstracts a chat protocol. Very few methods must actually be implemented by this interface to function
- * properly.
+ * A service abstracts a chat protocol. Very few methods must actually be implemented by this interface to function properly.
  */
 public interface ChrislieService {
 	
@@ -16,12 +17,10 @@ public interface ChrislieService {
 	public String identifier();
 	
 	/**
-	 * Implementations of this method must block until the service is fully operational. This does not mean that the
-	 * service has to be connected to the network unless a connection is required in order to be fully configured. It
-	 * does mean however that the service is fully ready to expect calls via Chrisliebot's abstraction layer.
+	 * Implementations of this method must block until the service is fully operational. This does not mean that the service has to be connected to the network unless a
+	 * connection is required in order to be fully configured. It does mean however that the service is fully ready to expect calls via Chrisliebot's abstraction layer.
 	 *
-	 * @throws Exception If a unrecoverable error is occured that prevents the service from ever entering a fully
-	 *                   operational state.
+	 * @throws Exception If a unrecoverable error is occured that prevents the service from ever entering a fully operational state.
 	 */
 	public void awaitReady() throws Exception;
 	
@@ -30,6 +29,14 @@ public interface ChrislieService {
 	 * @return This service for method chaining.
 	 */
 	public ChrislieService sink(@Nullable Consumer<ChrislieMessage> sink);
+	
+	/**
+	 * Called by bot framework once the resolver has been established and is ready to use. Services might use this information to register command suggestions on their
+	 * respective protocol.
+	 *
+	 * @param resolver The reesolver that is going to be used by this instance.
+	 */
+	public default void announceResolver(ContextResolver resolver) {}
 	
 	/**
 	 * @param identifier The unique channel identifier of a channel that's owned by this service.
@@ -55,8 +62,8 @@ public interface ChrislieService {
 	public default void reconnect() {}
 	
 	/**
-	 * Called by Chrisliebot to shutdown this service. The implementation should block until it has completly shut down.
-	 * After returning from this method, the service must no longer interact with the Chrisliebot framework.
+	 * Called by Chrisliebot to shutdown this service. The implementation should block until it has completly shut down. After returning from this method, the service
+	 * must no longer interact with the Chrisliebot framework.
 	 *
 	 * @throws ServiceException If a proper shutdown is not possible.
 	 */

@@ -1,6 +1,7 @@
 package chrisliebaer.chrisliebot.config.scope.selector;
 
 import chrisliebaer.chrisliebot.abstraction.ChrislieChannel;
+import chrisliebaer.chrisliebot.abstraction.ChrislieGuild;
 import chrisliebaer.chrisliebot.abstraction.ChrislieMessage;
 import chrisliebaer.chrisliebot.abstraction.ChrislieService;
 import chrisliebaer.chrisliebot.abstraction.ChrislieUser;
@@ -57,6 +58,11 @@ public class DiscordPermissionSelector implements Selector {
 	
 	@Override
 	public boolean check(ChrislieService service) {
+		return false;
+	}
+	
+	@Override
+	public boolean check(ChrislieGuild guild) {
 		return false;
 	}
 }

@@ -6,40 +6,38 @@ import chrisliebaer.chrisliebot.abstraction.ChrislieMessage;
 import chrisliebaer.chrisliebot.abstraction.ChrislieService;
 import chrisliebaer.chrisliebot.abstraction.ChrislieUser;
 import chrisliebaer.chrisliebot.config.scope.Selector;
-import chrisliebaer.chrisliebot.util.GsonValidator;
-import com.google.gson.JsonElement;
+import lombok.NonNull;
 
-public class ServiceIdentifierSelector implements Selector {
+public class GuildSelector implements Selector {
 	
-	private String identifier;
+	private final ChrislieGuild guild;
+	
+	public GuildSelector(@NonNull ChrislieGuild guild) {
+		this.guild = guild;
+	}
 	
 	@Override
 	public boolean check(ChrislieMessage message) {
-		return check(message.service());
+		return check(message.channel());
 	}
 	
 	@Override
 	public boolean check(ChrislieUser user) {
-		return check(user.service());
+		return false;
 	}
 	
 	@Override
 	public boolean check(ChrislieChannel channel) {
-		return check(channel.service());
+		return channel.guild().map(this::check).orElse(false);
 	}
 	
 	@Override
 	public boolean check(ChrislieService service) {
-		return service.identifier().equals(identifier);
+		return false;
 	}
 	
 	@Override
 	public boolean check(ChrislieGuild guild) {
-		return check(guild.service());
-	}
-	
-	@Override
-	public void fromJson(GsonValidator gson, JsonElement json) throws SelectorException {
-		identifier = json.getAsString();
+		return this.guild.identifier().equals(guild.identifier());
 	}
 }

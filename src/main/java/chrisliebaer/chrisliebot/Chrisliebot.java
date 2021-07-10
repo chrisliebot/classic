@@ -226,6 +226,9 @@ public class Chrisliebot extends AbstractIdleService {
 			}
 		}
 		
+		// announce the resolver that's going to be used to services for command suggestion
+		services.values().forEach(s -> s.announceResolver(resolver));
+		
 		// create dispatcher and hook into services
 		dispatcher = new ChrislieDispatcher(this, resolver);
 		services.values().forEach(s -> s.sink(dispatcher::dispatch));

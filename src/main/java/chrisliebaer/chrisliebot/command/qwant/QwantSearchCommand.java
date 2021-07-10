@@ -51,6 +51,7 @@ public class QwantSearchCommand implements ChrislieListener.Command {
 	
 	
 	private QwantService service;
+	private Chrisliebot bot;
 	
 	private Config cfg;
 	private Cache<ChrislieIdentifier.ChannelIdentifier, List<QwantResponse.QwantItem>> resultStorage;
@@ -67,6 +68,7 @@ public class QwantSearchCommand implements ChrislieListener.Command {
 	
 	@Override
 	public void init(Chrisliebot bot, ContextResolver resolver) throws ListenerException {
+		this.bot = bot;
 		resultStorage = CacheBuilder.newBuilder()
 				.expireAfterAccess(cfg.resultTimeout, TimeUnit.MILLISECONDS)
 				.build();
@@ -141,8 +143,8 @@ public class QwantSearchCommand implements ChrislieListener.Command {
 					return;
 				}
 				assert body != null; // shut up about body being null, it can't
-				List<QwantResponse.QwantItem> items = body.items();
-				if (body.items() == null || body.items().isEmpty()) {
+				List<QwantResponse.QwantItem> items = body.items(bot.sharedResources().gson(), cfg.type);
+				if (items == null || items.isEmpty()) {
 					ERROR_NO_MATCH.write(reply).send();
 					return;
 				}
@@ -169,7 +171,7 @@ public class QwantSearchCommand implements ChrislieListener.Command {
 	private void printResultItem(ChrislieOutput reply, QwantResponse.QwantItem item) {
 		StringSubstitutor strSub = new StringSubstitutor(key -> switch (key) {
 			case "title" -> C.stripHtml(item.title());
-			case "media" -> item.media();
+			case "media" -> item.mediaUrl(bot.sharedResources().gson());
 			case "desc" -> C.stripHtml(item.desc());
 			case "url" -> item.url();
 			default -> key.toUpperCase();

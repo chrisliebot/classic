@@ -65,6 +65,15 @@ public class RegExpSelector implements Selector {
 				.build());
 	}
 	
+	@Override
+	public boolean check(ChrislieGuild guild) {
+		return test(DataContainer.builder()
+				.service(guild.service().identifier())
+				.guild(guild.identifier())
+				
+				.build());
+	}
+	
 	private boolean test(DataContainer c) {
 		return fns.stream().allMatch(f -> f.apply(c));
 	}

@@ -5,24 +5,40 @@ import chrisliebaer.chrisliebot.abstraction.ChrislieChannel;
 import chrisliebaer.chrisliebot.abstraction.ChrislieMessage;
 import chrisliebaer.chrisliebot.abstraction.ChrislieService;
 import chrisliebaer.chrisliebot.abstraction.ServiceAttached;
+import chrisliebaer.chrisliebot.command.ChrislieListener;
+import chrisliebaer.chrisliebot.config.AliasSet;
+import chrisliebaer.chrisliebot.config.ContextResolver;
+import chrisliebaer.chrisliebot.config.scope.Selector;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import net.dv8tion.jda.api.JDA;
+import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.TextChannel;
 import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.events.ShutdownEvent;
+import net.dv8tion.jda.api.events.guild.GuildJoinEvent;
+import net.dv8tion.jda.api.events.interaction.SlashCommandEvent;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.hooks.SubscribeEvent;
+import net.dv8tion.jda.api.interactions.commands.OptionType;
+import net.dv8tion.jda.api.interactions.commands.build.CommandData;
+import net.dv8tion.jda.api.interactions.commands.build.OptionData;
+import org.apache.commons.lang.StringUtils;
 
 import java.sql.SQLException;
 import java.sql.Types;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
 @Slf4j
@@ -36,6 +52,12 @@ public class DiscordService implements ChrislieService {
 	@Getter private String identifier;
 	
 	@Setter private Consumer<ChrislieMessage> sink;
+	
+	private ContextResolver ctxResolver;
+	
+	// keeps track of which guilds we have already registered our commands
+	private final Set<Long> registeredGuilds = new HashSet<>();
+	private ScheduledFuture<?> commandUpdater;
 	
 	@SuppressWarnings("ThisEscapedInObjectConstruction")
 	public DiscordService(Chrisliebot bot, JDA jda, String identifier) {
@@ -99,6 +121,111 @@ public class DiscordService implements ChrislieService {
 	}
 	
 	@Override
+	public void announceResolver(@NonNull ContextResolver ctxResolver) {
+		this.ctxResolver = ctxResolver;
+		commandUpdater = bot.sharedResources().timer().scheduleWithFixedDelay(() -> {
+			try {
+				refreshGuildCommands();
+			} catch (Throwable e) {
+				log.error("error while updating guild commands", e);
+			}
+		}, 0, 60, TimeUnit.SECONDS);
+	}
+	
+	private void refreshGuildCommands() {
+		// need to wait for bot framework to announce resolver
+		if (ctxResolver == null)
+			return;
+		
+		try {
+			
+			// there is no easy way to check which guilds need to be updated with new commands, so we simply update all
+			synchronized (registeredGuilds) {
+				var guilds = new ArrayList<>(jda.getGuilds()); // returned list is immutable
+				guilds.removeIf(guild -> registeredGuilds.contains(guild.getIdLong()));
+				
+				for (var guild : guilds) {
+					try {
+						registerCommandsOnGuild(guild);
+						registeredGuilds.add(guild.getIdLong());
+					} catch (ExecutionException e) {
+						log.warn("failed to update commands on guild {}", guild, e);
+					}
+				}
+			}
+		} catch (InterruptedException ignore) {
+			Thread.currentThread().interrupt();
+		}
+	}
+	
+	private void registerCommandsOnGuild(Guild guild) throws ExecutionException, InterruptedException {
+		var update = guild.updateCommands();
+		var chrislieGuild = new DiscordGuild(this, guild);
+		
+		var ctx = ctxResolver.resolve(Selector::check, chrislieGuild);
+		var refs = ctx.listeners().values();
+		
+		// build list of command data for discord api from context refs
+		var commandDatas = new ArrayList<CommandData>();
+		for (var ref : refs) {
+			var aliases = ref.aliasSet();
+			
+			// ignore commands without alias (or listeners without commands)
+			if (aliases.isEmpty(true))
+				continue;
+			
+			var command = (ChrislieListener.Command) ref.envelope().listener();
+			
+			// get first alias as primary alias
+			var alias = ref.aliasSet().get().values().stream()
+					.filter(AliasSet.Alias::exposed)
+					.map(AliasSet.Alias::name)
+					.findFirst()
+					.orElseThrow();
+			
+			var help = Optional.ofNullable(ref.help());
+			if (help.isEmpty()) {
+				try {
+					help = command.help(ctx, ref);
+				} catch (ChrislieListener.ListenerException ignore) {}
+			}
+			if (help.isEmpty()) {
+				help = Optional.of("Keine Hilfe verfügbar.");
+			}
+			
+			commandDatas.add(new CommandData(alias, StringUtils.abbreviate(help.get(), 100))
+					.addOption(new OptionData(OptionType.STRING, "args", "Argumente für diesen befehl.")));
+		}
+		update.addCommands(commandDatas).submit().get();
+		log.trace("added {} commands to {}", commandDatas.size(), chrislieGuild);
+	}
+	
+	@SubscribeEvent
+	public void onGuildJoin(GuildJoinEvent ev) {
+		refreshGuildCommands();
+	}
+	
+	@SubscribeEvent
+	public void onSlashCommand(SlashCommandEvent ev) {
+		if (sink == null)
+			return;
+		
+		var argsOpt = ev.getOption("args");
+		var args = argsOpt == null ? "" : argsOpt.getAsString();
+
+		var slashCommand = new DiscordSlashCommandMessage(this, ev);
+		
+		/* TODO extend command dispatcher by forcefull invocation that skips prefix detection na takes message straigt as command
+		 * requires extending sink
+		 * requires writing alternative output that converts output to slash command reply
+		 */
+		
+		// if invoked command is doing asynchronous processing, we need to acknowledge the message ourself
+		if (!ev.isAcknowledged())
+			ev.acknowledge().submit();
+	}
+	
+	@Override
 	public void exit() throws ServiceException {
 		@SuppressWarnings("UnnecessaryFinalOnLocalVariableOrParameter") final var helper = new Object() {
 			private final CountDownLatch latch = new CountDownLatch(1);
@@ -111,6 +238,8 @@ public class DiscordService implements ChrislieService {
 		
 		// register helper to keep track shutdown event
 		jda.addEventListener(helper);
+		if (commandUpdater != null)
+			commandUpdater.cancel(true);
 		jda.removeEventListener(this);
 		jda.shutdown();
 		

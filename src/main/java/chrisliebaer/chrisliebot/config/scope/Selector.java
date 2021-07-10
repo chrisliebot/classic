@@ -1,6 +1,7 @@
 package chrisliebaer.chrisliebot.config.scope;
 
 import chrisliebaer.chrisliebot.abstraction.ChrislieChannel;
+import chrisliebaer.chrisliebot.abstraction.ChrislieGuild;
 import chrisliebaer.chrisliebot.abstraction.ChrislieMessage;
 import chrisliebaer.chrisliebot.abstraction.ChrislieService;
 import chrisliebaer.chrisliebot.abstraction.ChrislieUser;
@@ -17,6 +18,8 @@ public interface Selector {
 	public boolean check(ChrislieChannel channel);
 	
 	public boolean check(ChrislieService service);
+	
+	public boolean check(ChrislieGuild guild);
 	
 	public default void fromJson(GsonValidator gson, JsonElement json) throws SelectorException {}
 	
