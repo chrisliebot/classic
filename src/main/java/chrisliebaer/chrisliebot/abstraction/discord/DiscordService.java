@@ -146,7 +146,8 @@ public class DiscordService implements ChrislieService {
 				
 				for (var guild : guilds) {
 					try {
-						registerCommandsOnGuild(guild);
+						//registerCommandsOnGuild(guild);
+						hotfixRemoveCommandsFromGuild(guild);
 						registeredGuilds.add(guild.getIdLong());
 					} catch (ExecutionException e) {
 						log.warn("failed to update commands on guild {}", guild, e);
@@ -158,7 +159,20 @@ public class DiscordService implements ChrislieService {
 		}
 	}
 	
+	private void hotfixRemoveCommandsFromGuild(Guild guild) throws ExecutionException, InterruptedException {
+		var commands = guild.retrieveCommands().submit().get();
+		log.debug("purging commands in {}", guild.getName());
+		for (var command : commands) {
+			log.debug("removing command {} ({})", command.getName(), command.getIdLong());
+			guild.deleteCommandById(command.getIdLong()).submit().get();
+		}
+	}
+	
 	private void registerCommandsOnGuild(Guild guild) throws ExecutionException, InterruptedException {
+		/*
+			hotfix to remove leaked commands
+		 */
+		
 		var update = guild.updateCommands();
 		var chrislieGuild = new DiscordGuild(this, guild);
 		
