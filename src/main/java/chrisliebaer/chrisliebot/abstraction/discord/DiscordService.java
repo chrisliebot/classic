@@ -137,6 +137,9 @@ public class DiscordService implements ChrislieService {
 		if (ctxResolver == null)
 			return;
 		
+		if (true) // TODO: uncomment for future development
+			return;
+		
 		try {
 			
 			// there is no easy way to check which guilds need to be updated with new commands, so we simply update all
@@ -146,8 +149,7 @@ public class DiscordService implements ChrislieService {
 				
 				for (var guild : guilds) {
 					try {
-						//registerCommandsOnGuild(guild);
-						hotfixRemoveCommandsFromGuild(guild);
+						registerCommandsOnGuild(guild);
 						registeredGuilds.add(guild.getIdLong());
 					} catch (ExecutionException e) {
 						log.warn("failed to update commands on guild {}", guild, e);
@@ -159,25 +161,15 @@ public class DiscordService implements ChrislieService {
 		}
 	}
 	
-	private void hotfixRemoveCommandsFromGuild(Guild guild) throws ExecutionException, InterruptedException {
-		var commands = guild.retrieveCommands().submit().get();
-		log.debug("purging commands in {}", guild.getName());
-		for (var command : commands) {
-			log.debug("removing command {} ({})", command.getName(), command.getIdLong());
-			guild.deleteCommandById(command.getIdLong()).submit().get();
-		}
-	}
-	
 	private void registerCommandsOnGuild(Guild guild) throws ExecutionException, InterruptedException {
-		/*
-			hotfix to remove leaked commands
-		 */
 		
 		var update = guild.updateCommands();
 		var chrislieGuild = new DiscordGuild(this, guild);
 		
 		var ctx = ctxResolver.resolve(Selector::check, chrislieGuild);
 		var refs = ctx.listeners().values();
+		
+		// TODO check if dispatcher has been disabled
 		
 		// build list of command data for discord api from context refs
 		var commandDatas = new ArrayList<CommandData>();

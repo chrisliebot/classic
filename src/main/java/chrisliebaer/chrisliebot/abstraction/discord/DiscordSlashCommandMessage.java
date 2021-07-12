@@ -32,7 +32,7 @@ public class DiscordSlashCommandMessage implements ChrislieMessage {
 	
 	@Override
 	public String message() {
-		return ev.toString();
+		return ev.toString(); // TODO dafuq dis shit?
 	}
 	
 	@Override
