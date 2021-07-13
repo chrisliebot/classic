@@ -24,6 +24,7 @@ import net.dv8tion.jda.api.events.guild.GuildJoinEvent;
 import net.dv8tion.jda.api.events.interaction.SlashCommandEvent;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.hooks.SubscribeEvent;
+import net.dv8tion.jda.api.interactions.commands.Command;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.CommandData;
 import net.dv8tion.jda.api.interactions.commands.build.OptionData;
@@ -41,6 +42,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 @Slf4j
 public class DiscordService implements ChrislieService {
@@ -170,6 +172,8 @@ public class DiscordService implements ChrislieService {
 	
 	private void registerCommandsOnGuild(Guild guild) throws ExecutionException, InterruptedException {
 		
+		var existing = guild.retrieveCommands().submit().get().stream().map(Command::getName).collect(Collectors.toSet());
+		
 		var update = guild.updateCommands();
 		var chrislieGuild = new DiscordGuild(this, guild);
 		
@@ -212,8 +216,18 @@ public class DiscordService implements ChrislieService {
 			commandDatas.add(new CommandData(alias, StringUtils.abbreviate(help.get(), 100))
 					.addOption(new OptionData(OptionType.STRING, SLASH_COMMAND_ARG_NAME, "Argumente für diesen befehl.")));
 		}
-		update.addCommands(commandDatas).submit().get();
-		log.trace("added {} commands to {}", commandDatas.size(), chrislieGuild);
+		
+		// check if online and local commands match
+		for (var data : commandDatas) {
+			existing.remove(data.getName());
+		}
+		
+		if (!existing.isEmpty()) {
+			update.addCommands(commandDatas).submit().get();
+			log.trace("added {} new ({} total) commands to {}", existing.size(), commandDatas.size(), chrislieGuild);
+		} else {
+			log.trace("guild {} is already in sync", guild);
+		}
 	}
 	
 	@SubscribeEvent
