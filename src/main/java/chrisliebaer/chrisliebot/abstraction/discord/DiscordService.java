@@ -158,13 +158,13 @@ public class DiscordService implements ChrislieService {
 					try {
 						registerCommandsOnGuild(guild);
 						registeredGuilds.add(guild.getIdLong());
-					} catch (ExecutionException e) {
-						log.warn("failed to update commands on guild {}", guild, e);
 					} catch (ErrorResponseException e) {
 						if (e.getErrorCode() == 50001) {
 							log.debug("missing permission to modify slash commands on guild {}", guild);
 							registeredGuilds.add(guild.getIdLong());
 						}
+					} catch (ExecutionException e) {
+						log.warn("failed to update commands on guild {}", guild, e);
 					}
 				}
 			}
