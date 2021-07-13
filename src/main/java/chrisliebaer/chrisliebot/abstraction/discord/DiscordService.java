@@ -8,6 +8,7 @@ import chrisliebaer.chrisliebot.abstraction.ServiceAttached;
 import chrisliebaer.chrisliebot.command.ChrislieListener;
 import chrisliebaer.chrisliebot.config.AliasSet;
 import chrisliebaer.chrisliebot.config.ContextResolver;
+import chrisliebaer.chrisliebot.config.flex.FlexConf;
 import chrisliebaer.chrisliebot.config.scope.Selector;
 import lombok.Getter;
 import lombok.NonNull;
@@ -46,10 +47,12 @@ public class DiscordService implements ChrislieService {
 	
 	public static final String PREFIX_GUILD_CHANNEL = "G:";
 	public static final String PREFIX_PRIVATE_CHANNEL = "P:";
+	public static final String SLASH_COMMAND_ARG_NAME = "args";
 	
 	@Getter private Chrisliebot bot;
 	@Getter private JDA jda;
 	@Getter private String identifier;
+	private boolean updateSlashCommands;
 	
 	@Setter private Consumer<ChrislieMessage> sink;
 	
@@ -60,10 +63,11 @@ public class DiscordService implements ChrislieService {
 	private ScheduledFuture<?> commandUpdater;
 	
 	@SuppressWarnings("ThisEscapedInObjectConstruction")
-	public DiscordService(Chrisliebot bot, JDA jda, String identifier) {
+	public DiscordService(Chrisliebot bot, JDA jda, String identifier, boolean updateSlashCommands) {
 		this.bot = bot;
 		this.jda = jda;
 		this.identifier = identifier;
+		this.updateSlashCommands = updateSlashCommands;
 		
 		jda.addEventListener(this);
 	}
@@ -127,7 +131,7 @@ public class DiscordService implements ChrislieService {
 			try {
 				refreshGuildCommands();
 			} catch (Throwable e) {
-				log.error("error while updating guild commands", e);
+				log.error("error while updating guild commands", e); // TODO handle permission missing
 			}
 		}, 0, 60, TimeUnit.SECONDS);
 	}
@@ -137,7 +141,7 @@ public class DiscordService implements ChrislieService {
 		if (ctxResolver == null)
 			return;
 		
-		if (true) // TODO: uncomment for future development
+		if (!updateSlashCommands)
 			return;
 		
 		try {
@@ -168,12 +172,15 @@ public class DiscordService implements ChrislieService {
 		
 		var ctx = ctxResolver.resolve(Selector::check, chrislieGuild);
 		var refs = ctx.listeners().values();
-		
-		// TODO check if dispatcher has been disabled
-		
+
 		// build list of command data for discord api from context refs
 		var commandDatas = new ArrayList<CommandData>();
 		for (var ref : refs) {
+			
+			// check if dispatcher is disabled for command (inheritance will also make global disable flag visible)
+			if (ctx.flexConf().isSet(FlexConf.DISPATCHER_DISABLE))
+				continue;
+			
 			var aliases = ref.aliasSet();
 			
 			// ignore commands without alias (or listeners without commands)
@@ -200,7 +207,7 @@ public class DiscordService implements ChrislieService {
 			}
 			
 			commandDatas.add(new CommandData(alias, StringUtils.abbreviate(help.get(), 100))
-					.addOption(new OptionData(OptionType.STRING, "args", "Argumente für diesen befehl.")));
+					.addOption(new OptionData(OptionType.STRING, SLASH_COMMAND_ARG_NAME, "Argumente für diesen befehl.")));
 		}
 		update.addCommands(commandDatas).submit().get();
 		log.trace("added {} commands to {}", commandDatas.size(), chrislieGuild);
@@ -221,10 +228,7 @@ public class DiscordService implements ChrislieService {
 
 		var slashCommand = new DiscordSlashCommandMessage(this, ev);
 		
-		/* TODO extend command dispatcher by forcefull invocation that skips prefix detection na takes message straigt as command
-		 * requires extending sink
-		 * requires writing alternative output that converts output to slash command reply
-		 */
+		sink.accept(slashCommand);
 		
 		// if invoked command is doing asynchronous processing, we need to acknowledge the message ourself
 		if (!ev.isAcknowledged())

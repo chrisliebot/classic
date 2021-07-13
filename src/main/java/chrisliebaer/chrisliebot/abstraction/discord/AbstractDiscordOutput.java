@@ -10,9 +10,6 @@ import lombok.extern.slf4j.Slf4j;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.MessageBuilder;
 import net.dv8tion.jda.api.entities.Message;
-import net.dv8tion.jda.api.entities.MessageChannel;
-import net.dv8tion.jda.api.entities.TextChannel;
-import net.dv8tion.jda.api.requests.RestAction;
 import net.dv8tion.jda.api.utils.MarkdownSanitizer;
 
 import java.awt.*;
@@ -22,13 +19,12 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
 @Slf4j
-public class DiscordOutput implements ChrislieOutput {
+public abstract class AbstractDiscordOutput<RestObject> implements ChrislieOutput {
 	
-	private DiscordMessage source;
-	private MessageChannel channel;
-	private EmbedBuilder embedBuilder = new EmbedBuilder();
-	private DiscordPlainOutput plain = new DiscordPlainOutput(DiscordOutput::escape4Discord, DiscordFormatter::format);
-	private PlainOutputImpl descrption = new PlainOutputImpl(DiscordOutput::escape4Discord, DiscordFormatter::format);
+	
+	private final EmbedBuilder embedBuilder = new EmbedBuilder();
+	private final DiscordPlainOutput plain = new DiscordPlainOutput(AbstractDiscordOutput::escape4Discord, DiscordFormatter::format);
+	private final PlainOutputImpl description = new PlainOutputImpl(AbstractDiscordOutput::escape4Discord, DiscordFormatter::format);
 	
 	private String authorName, authorUrl, authorIcon;
 	
@@ -42,81 +38,72 @@ public class DiscordOutput implements ChrislieOutput {
 	private boolean colorSet = false;
 	private final Optional<Color> stackTraceColor = colorFromCallstack();
 	
-	public DiscordOutput(@NonNull MessageChannel channel) {
-		this.channel = channel;
-	}
-	
-	public DiscordOutput(@NonNull MessageChannel channel, @NonNull DiscordMessage source) {
-		this.channel = channel;
-		this.source = source;
-	}
-	
 	@Override
-	public DiscordOutput title(String title, String url) {
+	public AbstractDiscordOutput title(String title, String url) {
 		embedBuilder.setTitle(title, url);
 		return this;
 	}
 	
 	@Override
-	public DiscordOutput image(String url) {
+	public AbstractDiscordOutput image(String url) {
 		embedBuilder.setImage(url);
 		return this;
 	}
 	
 	@Override
-	public DiscordOutput thumbnail(String url) {
+	public AbstractDiscordOutput thumbnail(String url) {
 		embedBuilder.setThumbnail(url);
 		return this;
 	}
 	
 	@Override
 	public @NonNull PlainOutput description() {
-		return descrption;
+		return description;
 	}
 	
 	@Override
-	public DiscordOutput color(Color color) {
+	public AbstractDiscordOutput color(Color color) {
 		colorSet = true;
 		embedBuilder.setColor(color);
 		return this;
 	}
 	
 	@Override
-	public DiscordOutput color(int color) {
+	public AbstractDiscordOutput color(int color) {
 		colorSet = true;
 		embedBuilder.setColor(color);
 		return this;
 	}
 	
 	@Override
-	public DiscordOutput author(String name) {
+	public AbstractDiscordOutput author(String name) {
 		authorName = name;
 		embedBuilder.setAuthor(authorName, authorUrl, authorIcon);
 		return this;
 	}
 	
 	@Override
-	public DiscordOutput authorUrl(String url) {
+	public AbstractDiscordOutput authorUrl(String url) {
 		authorUrl = url;
 		embedBuilder.setAuthor(authorName, authorUrl, authorIcon);
 		return this;
 	}
 	
 	@Override
-	public DiscordOutput authorIcon(String url) {
+	public AbstractDiscordOutput authorIcon(String url) {
 		authorIcon = url;
 		embedBuilder.setAuthor(authorName, authorUrl, authorIcon);
 		return this;
 	}
 	
 	@Override
-	public DiscordOutput field(String field, String value, boolean inline) {
+	public AbstractDiscordOutput field(String field, String value, boolean inline) {
 		embedBuilder.addField(field, value, inline);
 		return this;
 	}
 	
 	@Override
-	public DiscordOutput footer(String text, String iconUrl) {
+	public AbstractDiscordOutput footer(String text, String iconUrl) {
 		embedBuilder.setFooter(text, iconUrl);
 		return this;
 	}
@@ -141,8 +128,8 @@ public class DiscordOutput implements ChrislieOutput {
 		discordSend();
 	}
 	
-	public CompletableFuture<Message> discordSend() {
-		embedBuilder.setDescription(descrption.string());
+	public CompletableFuture<RestObject> discordSend() {
+		embedBuilder.setDescription(description.string());
 		MessageBuilder mb = new MessageBuilder();
 		
 		// block all mentions by default and apply collected mention rules from output instance
@@ -158,36 +145,11 @@ public class DiscordOutput implements ChrislieOutput {
 			mb.setEmbed(embedBuilder.build());
 		}
 		
-		// TODO: properly catch and handle all sending errors via some way
-		try {
-			mb.append(plain.string());
-			RestAction<Message> restAction = channel.sendMessage(mb.build());
-			
-			// TODO: make this configurable via flex config
-			if (channel instanceof TextChannel) {
-				var textChannel = (TextChannel) channel;
-				if (textChannel.isNews()) {
-					restAction = restAction.flatMap(Message::crosspost);
-				}
-			}
-			
-			var future = restAction.submit();
-			return future.whenComplete((message, throwable) -> {
-				if (throwable != null) {
-					log.error("failed to send message", throwable);
-					return;
-				}
-				
-				// link send message with source message in database
-				if (source != null) {
-					source.service().traceMessage(source.ev().getMessage(), message);
-				}
-			});
-		} catch (IllegalArgumentException e) { // if the message is too long or other undocumented shit inside jda
-			log.error("failed to queue message", e);
-			return CompletableFuture.failedFuture(e);
-		}
+		mb.append(plain.string());
+		return sink(mb.build());
 	}
+	
+	protected abstract CompletableFuture<RestObject> sink(Message message);
 	
 	private static String escape4Discord(String s) {
 		return MarkdownSanitizer.escape(s);

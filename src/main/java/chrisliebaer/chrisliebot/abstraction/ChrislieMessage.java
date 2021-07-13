@@ -1,6 +1,9 @@
 package chrisliebaer.chrisliebot.abstraction;
 
+import chrisliebaer.chrisliebot.command.ChrislieDispatcher;
 import chrisliebaer.chrisliebot.command.ChrislieListener;
+
+import java.util.Optional;
 
 public interface ChrislieMessage extends ServiceAttached {
 	
@@ -9,6 +12,15 @@ public interface ChrislieMessage extends ServiceAttached {
 	public ChrislieUser user();
 	
 	public String message();
+	
+	/**
+	 * Forced invocations are special means of triggering commands. Usually done by service specific means and bypassing the usual prefix detection.
+	 *
+	 * @return A possible {@link ChrislieDispatcher.CommandParse} object.
+	 */
+	public default Optional<ChrislieDispatcher.CommandParse> forcedInvocation() {
+		return Optional.empty();
+	}
 	
 	/**
 	 * Helper method for providing a quick response without having to deal with the abstraction layer.

@@ -16,11 +16,11 @@ public interface DiscordChannel extends ChrislieChannel {
 	
 	@Override
 	public default ChrislieOutput output(LimiterConfig limiterConfig) {
-		return new DiscordOutput(messageChannel());
+		return new DiscordChannelOutput(messageChannel());
 	}
 	
 	public default ChrislieOutput output(LimiterConfig limiterConfig, DiscordMessage source) {
-		return new DiscordOutput(messageChannel(), source);
+		return new DiscordChannelOutput(messageChannel(), source);
 	}
 	
 }

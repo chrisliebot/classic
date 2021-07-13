@@ -2,8 +2,8 @@ package chrisliebaer.chrisliebot.command.specialchannel;
 
 import chrisliebaer.chrisliebot.Chrisliebot;
 import chrisliebaer.chrisliebot.abstraction.SerializedOutput;
+import chrisliebaer.chrisliebot.abstraction.discord.DiscordChannelOutput;
 import chrisliebaer.chrisliebot.abstraction.discord.DiscordMessage;
-import chrisliebaer.chrisliebot.abstraction.discord.DiscordOutput;
 import chrisliebaer.chrisliebot.abstraction.discord.DiscordService;
 import chrisliebaer.chrisliebot.command.ChrislieListener;
 import chrisliebaer.chrisliebot.config.ContextResolver;
@@ -108,9 +108,9 @@ public class SpecialChannel implements ChrislieListener {
 				case "message" -> ev.getMessage().getContentDisplay();
 				default -> key;
 			});
-			DiscordOutput out = (DiscordOutput) cfg.output.apply(
+			var out = (DiscordChannelOutput) cfg.output.apply(
 					cfg.sendDm ?
-							new DiscordOutput(ev.getAuthor().openPrivateChannel().complete())
+							new DiscordChannelOutput(ev.getAuthor().openPrivateChannel().complete())
 							: msg.reply(), substitutor::replace);
 			
 			var future = out.discordSend();

@@ -10,6 +10,8 @@ import chrisliebaer.chrisliebot.util.ErrorOutputBuilder;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
+import lombok.AllArgsConstructor;
+import lombok.Data;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 
@@ -34,7 +36,7 @@ public class ChrislieDispatcher {
 			.maximumSize(10)
 			.build(new CacheLoader<>() {
 				@Override
-				public Pattern load(String key) throws Exception {
+				public Pattern load(String key) {
 					return Pattern.compile(key);
 				}
 			});
@@ -81,7 +83,9 @@ public class ChrislieDispatcher {
 				return;
 			}
 			
-			var listener = handleCommandInvocation(m, ctx);
+			var parse = m.forcedInvocation();
+			parse = parse.or(() -> parseCommand(m, ctx));
+			var listener = parse.flatMap(p -> handleCommandInvocation(m, ctx, p));
 			var isCommand = listener.isPresent();
 			
 			// notify all listeners
@@ -123,17 +127,8 @@ public class ChrislieDispatcher {
 		}
 	}
 	
-	/**
-	 * This method attempts to execute the given message as a command. The success of this attempt depends on the
-	 * pattern that is present in the resolved context and if the command name can be resolved to an alias in the
-	 * context.
-	 *
-	 * @param m   The message that will be used for parsing.
-	 * @param ctx The context of this message.
-	 * @return The listener that was executed if this was a valid command invocation. This is required as listeners that
-	 * were part of a command invocation will not be called a second time as a regular listener.
-	 */
-	private Optional<ChrislieListener> handleCommandInvocation(ChrislieMessage m, ChrislieContext ctx) {
+	
+	private Optional<CommandParse> parseCommand(ChrislieMessage m, ChrislieContext ctx) {
 		var flexConf = ctx.flexConf();
 		var patternStr = flexConf.getString(FlexConf.DISPATCHER_PATTERN);
 		if (patternStr.isEmpty()) {
@@ -178,6 +173,23 @@ public class ChrislieDispatcher {
 		// there is no reason to differentiate between an empty argument or a null argument, so we make sure it is never null to simplify command logic
 		argument = argument == null ? "" : argument;
 		
+		return Optional.of(new CommandParse(alias, argument));
+	}
+	
+	/**
+	 * This method attempts to execute the given message as a command. The success of this attempt depends on the
+	 * pattern that is present in the resolved context and if the command name can be resolved to an alias in the
+	 * context.
+	 *
+	 * @param m   The message that will be used for parsing.
+	 * @param ctx The context of this message.
+	 * @return The listener that was executed if this was a valid command invocation. This is required as listeners that
+	 * were part of a command invocation will not be called a second time as a regular listener.
+	 */
+	private Optional<ChrislieListener> handleCommandInvocation(ChrislieMessage m, ChrislieContext ctx, CommandParse parse) {
+		var alias = parse.alias();
+		var args = parse.args();
+		
 		// lookup alias in context
 		var maybeRef = ctx.alias(alias);
 		if (maybeRef.isEmpty()) {
@@ -203,7 +215,7 @@ public class ChrislieDispatcher {
 				m,
 				maybeRef.get(),
 				ctx,
-				argument,
+				args,
 				alias
 		);
 		exceptionHandler.invc = invocation; // TODO: do we want to do this properly?
@@ -255,5 +267,11 @@ public class ChrislieDispatcher {
 				}
 			}
 		}
+	}
+	
+	@Data
+	@AllArgsConstructor
+	public static class CommandParse {
+		private String alias, args;
 	}
 }

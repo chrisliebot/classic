@@ -12,6 +12,7 @@ import javax.security.auth.login.LoginException;
 public class DiscordBootstrap implements ServiceBootstrap {
 	
 	private String token;
+	private boolean updateSlashCommands;
 	
 	@Override
 	public DiscordService service(Chrisliebot bot, String identifier) throws LoginException {
@@ -19,6 +20,6 @@ public class DiscordBootstrap implements ServiceBootstrap {
 				.setEventManager(new AnnotatedEventManager())
 				.setActivity(Activity.playing("mit dir"))
 				.build();
-		return new DiscordService(bot, jda, identifier);
+		return new DiscordService(bot, jda, identifier, updateSlashCommands);
 	}
 }

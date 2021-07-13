@@ -102,6 +102,7 @@ public final class ErrorOutputBuilder {
 	@CheckReturnValue
 	public ChrislieOutput write(ChrislieOutput out) {
 		out.color(ERROR_COLOR);
+		out.markAsError();
 		fn.out(out);
 		return out;
 	}

@@ -33,6 +33,8 @@ public interface ChrislieOutput {
 		return this;
 	}
 	
+	public default void markAsError() {}
+	
 	public ChrislieOutput color(Color color);
 	
 	public ChrislieOutput color(int color);
