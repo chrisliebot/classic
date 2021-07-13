@@ -33,8 +33,8 @@ public class ExplainCommand implements ChrislieListener.Command {
 	
 	@Override
 	public void execute(Invocation invc) throws ListenerException {
-		if (!DiscordService.isDiscord(invc) || invc.msg() instanceof DiscordMessage) {
-			ErrorOutputBuilder.generic("Dieser Befehlt steht nur auf Discord zur Verfügung.").write(invc).send();
+		if (!DiscordService.isDiscord(invc) || !(invc.msg() instanceof DiscordMessage)) {
+			ErrorOutputBuilder.generic("Dieser Befehlt steht nur auf Discord zur Verfügung oder ich habe Schwierigkeiten diese Nachricht zu erkennen.").write(invc).send();
 			return;
 		}
 		
