@@ -133,7 +133,7 @@ public class DiscordService implements ChrislieService {
 			} catch (Throwable e) {
 				log.error("error while updating guild commands", e); // TODO handle permission missing
 			}
-		}, 0, 60, TimeUnit.SECONDS);
+		}, 0, 2, TimeUnit.DAYS);
 	}
 	
 	private void refreshGuildCommands() {
@@ -154,9 +154,12 @@ public class DiscordService implements ChrislieService {
 				for (var guild : guilds) {
 					try {
 						registerCommandsOnGuild(guild);
-						registeredGuilds.add(guild.getIdLong());
+						
 					} catch (ExecutionException e) {
 						log.warn("failed to update commands on guild {}", guild, e);
+					} finally {
+						// never retry guild
+						registeredGuilds.add(guild.getIdLong());
 					}
 				}
 			}
