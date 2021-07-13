@@ -23,6 +23,7 @@ import net.dv8tion.jda.api.events.ShutdownEvent;
 import net.dv8tion.jda.api.events.guild.GuildJoinEvent;
 import net.dv8tion.jda.api.events.interaction.SlashCommandEvent;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
+import net.dv8tion.jda.api.exceptions.ErrorResponseException;
 import net.dv8tion.jda.api.hooks.SubscribeEvent;
 import net.dv8tion.jda.api.interactions.commands.Command;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
@@ -156,12 +157,14 @@ public class DiscordService implements ChrislieService {
 				for (var guild : guilds) {
 					try {
 						registerCommandsOnGuild(guild);
-						
+						registeredGuilds.add(guild.getIdLong());
 					} catch (ExecutionException e) {
 						log.warn("failed to update commands on guild {}", guild, e);
-					} finally {
-						// never retry guild
-						registeredGuilds.add(guild.getIdLong());
+					} catch (ErrorResponseException e) {
+						if (e.getErrorCode() == 50001) {
+							log.debug("missing permission to modify slash commands on guild {}", guild);
+							registeredGuilds.add(guild.getIdLong());
+						}
 					}
 				}
 			}
