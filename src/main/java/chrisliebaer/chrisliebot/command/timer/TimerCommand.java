@@ -134,7 +134,7 @@ public class TimerCommand implements ChrislieListener.Command {
 		timer.scheduleWithFixedDelay(() -> {
 			try {
 				refreshRuntimeTimer();
-			} catch (SQLException e) {
+			} catch (Exception e) {
 				log.warn("failed to refresh timers from database", e);
 			}
 		}, 0, cfg.prefetchInterval, TimeUnit.MILLISECONDS);
