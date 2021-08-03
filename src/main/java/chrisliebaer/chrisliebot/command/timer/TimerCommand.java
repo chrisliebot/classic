@@ -676,6 +676,8 @@ public class TimerCommand implements ChrislieListener.Command {
 	 * @throws SQLException If a database operation fails.
 	 */
 	private synchronized void refreshRuntimeTimer() throws SQLException {
+		log.trace("fetching new runtime timers from database");
+		
 		String sql = "SELECT * FROM timer WHERE deleted = FALSE AND TIMESTAMPDIFF(SECOND, NOW(), COALESCE(snooze, due)) < ?";
 		List<TimerInfo> timers = new ArrayList<>();
 		
@@ -691,6 +693,9 @@ public class TimerCommand implements ChrislieListener.Command {
 		
 		// convert new timers into runtime timers
 		timers.removeIf(timerInfo -> runtimeTimer.containsKey(timerInfo.id));
+		
+		log.trace("found {} new runtime timers", timers.size());
+		
 		timers.forEach(this::queueTimer);
 	}
 	
@@ -706,7 +711,7 @@ public class TimerCommand implements ChrislieListener.Command {
 		var task = timer.schedule(() -> {
 			try {
 				timerDue(timerInfo);
-			} catch (ListenerException e) {
+			} catch (Exception e) {
 				log.error("error during finishing of timer: {}", timerInfo, e);
 			}
 		}, delay, TimeUnit.MILLISECONDS);
