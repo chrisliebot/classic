@@ -10,6 +10,8 @@ import chrisliebaer.chrisliebot.config.AliasSet;
 import chrisliebaer.chrisliebot.config.ContextResolver;
 import chrisliebaer.chrisliebot.config.flex.FlexConf;
 import chrisliebaer.chrisliebot.config.scope.Selector;
+import chrisliebaer.chrisliebot.util.BetterScheduledService;
+import com.google.common.util.concurrent.AbstractScheduledService;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.Setter;
@@ -39,7 +41,6 @@ import java.util.Set;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
@@ -62,7 +63,8 @@ public class DiscordService implements ChrislieService {
 	
 	// keeps track of which guilds we have already registered our commands
 	private final Set<Long> registeredGuilds = new HashSet<>();
-	private ScheduledFuture<?> commandUpdater;
+	
+	private final BetterScheduledService commandUpdaterService;
 	
 	@SuppressWarnings("ThisEscapedInObjectConstruction")
 	public DiscordService(Chrisliebot bot, JDA jda, String identifier, boolean updateSlashCommands) {
@@ -72,6 +74,9 @@ public class DiscordService implements ChrislieService {
 		this.updateSlashCommands = updateSlashCommands;
 		
 		jda.addEventListener(this);
+		
+		commandUpdaterService = new BetterScheduledService(this::refreshGuildCommands,
+				AbstractScheduledService.Scheduler.newFixedDelaySchedule(0, 1, TimeUnit.HOURS));
 	}
 	
 	@Override
@@ -129,13 +134,10 @@ public class DiscordService implements ChrislieService {
 	@Override
 	public void announceResolver(@NonNull ContextResolver ctxResolver) {
 		this.ctxResolver = ctxResolver;
-		commandUpdater = bot.sharedResources().timer().scheduleWithFixedDelay(() -> {
-			try {
-				refreshGuildCommands();
-			} catch (Throwable e) {
-				log.error("error while updating guild commands", e); // TODO handle permission missing
-			}
-		}, 0, 2, TimeUnit.DAYS);
+		
+		if (!commandUpdaterService.isRunning()) {
+			commandUpdaterService.startAsync();
+		}
 	}
 	
 	private void refreshGuildCommands() {
@@ -172,6 +174,8 @@ public class DiscordService implements ChrislieService {
 			}
 		} catch (InterruptedException ignore) {
 			Thread.currentThread().interrupt();
+		} catch (Exception e) {
+			log.warn("failed to update guild commands", e);
 		}
 	}
 	
@@ -195,18 +199,20 @@ public class DiscordService implements ChrislieService {
 			
 			var aliases = ref.aliasSet();
 			
-			// ignore commands without alias (or listeners without commands)
-			if (aliases.isEmpty(true))
-				continue;
-			
-			var command = (ChrislieListener.Command) ref.envelope().listener();
-			
 			// get first alias as primary alias
-			var alias = ref.aliasSet().get().values().stream()
+			var maybeAlias = ref.aliasSet().get().values().stream()
 					.filter(AliasSet.Alias::exposed)
 					.map(AliasSet.Alias::name)
-					.findFirst()
-					.orElseThrow();
+					.sorted()
+					.filter(s -> s.length() >= 2) // magic number ¯\_(ツ)_/¯
+					.findFirst();
+			
+			if (maybeAlias.isEmpty())
+				continue;
+			
+			var alias = maybeAlias.get();
+			
+			var command = (ChrislieListener.Command) ref.envelope().listener();
 			
 			var help = Optional.ofNullable(ref.help());
 			if (help.isEmpty()) {
@@ -270,8 +276,8 @@ public class DiscordService implements ChrislieService {
 		
 		// register helper to keep track shutdown event
 		jda.addEventListener(helper);
-		if (commandUpdater != null)
-			commandUpdater.cancel(true);
+		if (commandUpdaterService.isRunning())
+			commandUpdaterService.stopAsync().awaitTerminated();
 		jda.removeEventListener(this);
 		jda.shutdown();
 		
