@@ -228,8 +228,8 @@ public class DiscordService implements ChrislieService {
 		}
 		
 		if (!existing.isEmpty()) {
+			log.trace("adding {} new ({} total) commands to {} (new: {})", existing.size(), commandDatas.size(), chrislieGuild, existing);
 			update.addCommands(commandDatas).submit().get();
-			log.trace("added {} new ({} total) commands to {} (new: {})", existing.size(), commandDatas.size(), chrislieGuild, existing);
 		} else {
 			log.trace("guild {} is already in sync", guild);
 		}
