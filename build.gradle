@@ -79,8 +79,8 @@ dependencies {
 
 	// protocols
 	implementation 'org.kitteh.irc:client-lib:7.2.2'
-	//implementation('net.dv8tion:JDA:5951675256') {
-	implementation('com.github.DV8FromTheWorld:JDA:5951675256') { // experimental slash commands
+	implementation('net.dv8tion:JDA:4.3.0_277') {
+	//implementation('com.github.DV8FromTheWorld:JDA:5951675256') { // experimental slash commands
 		exclude module: 'opus-java'
 	}
 }

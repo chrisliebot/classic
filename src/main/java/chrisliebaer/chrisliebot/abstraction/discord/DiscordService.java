@@ -28,7 +28,6 @@ import net.dv8tion.jda.api.hooks.SubscribeEvent;
 import net.dv8tion.jda.api.interactions.commands.Command;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.CommandData;
-import net.dv8tion.jda.api.interactions.commands.build.OptionData;
 import org.apache.commons.lang.StringUtils;
 
 import java.sql.SQLException;
@@ -158,9 +157,9 @@ public class DiscordService implements ChrislieService {
 					try {
 						registerCommandsOnGuild(guild);
 						registeredGuilds.add(guild.getIdLong());
-					}  catch (ExecutionException e) {
+					} catch (ExecutionException e) {
 						if (e.getCause() instanceof ErrorResponseException) {
-							var ere = (ErrorResponseException)e.getCause();
+							var ere = (ErrorResponseException) e.getCause();
 							if (ere.getErrorCode() == 50001) {
 								log.debug("missing permission to modify slash commands on guild {}", guild);
 								registeredGuilds.add(guild.getIdLong());
@@ -185,7 +184,7 @@ public class DiscordService implements ChrislieService {
 		
 		var ctx = ctxResolver.resolve(Selector::check, chrislieGuild);
 		var refs = ctx.listeners().values();
-
+		
 		// build list of command data for discord api from context refs
 		var commandDatas = new ArrayList<CommandData>();
 		for (var ref : refs) {
@@ -220,7 +219,7 @@ public class DiscordService implements ChrislieService {
 			}
 			
 			commandDatas.add(new CommandData(alias, StringUtils.abbreviate(help.get(), 100))
-					.addOption(new OptionData(OptionType.STRING, SLASH_COMMAND_ARG_NAME, "Argumente für diesen befehl.")));
+					.addOption(OptionType.STRING, SLASH_COMMAND_ARG_NAME, "Argumente für diesen befehl."));
 		}
 		
 		// check if online and local commands match
@@ -248,14 +247,14 @@ public class DiscordService implements ChrislieService {
 		
 		var argsOpt = ev.getOption("args");
 		var args = argsOpt == null ? "" : argsOpt.getAsString();
-
+		
 		var slashCommand = new DiscordSlashCommandMessage(this, ev);
 		
 		sink.accept(slashCommand);
 		
 		// if invoked command is doing asynchronous processing, we need to acknowledge the message ourself
 		if (!ev.isAcknowledged())
-			ev.acknowledge().submit();
+			ev.deferReply().submit();
 	}
 	
 	@Override
