@@ -124,10 +124,12 @@ public class RedditListener implements ChrislieListener {
 		feed.data().children().removeIf(c -> c.data().createdUtc() <= lastTimestamp);
 		
 		// update last timestamp
-		if (feed.data().children() != null && !feed.data().children().isEmpty()) {
-			lastTimestamp = feed.data().children().get(0).data().createdUtc(); // sic
-			log.trace("most recent timestamp for feed {}: {}", cfg.subreddit, lastTimestamp);
+		if (feed.data().children() != null) {
+			for (var child : feed.data().children()) {
+				lastTimestamp = Math.max(child.data().createdUtc(), lastTimestamp);
+			}
 		}
+		log.trace("most recent timestamp for feed {}: {}", cfg.subreddit, lastTimestamp);
 		
 		return feed;
 	}
