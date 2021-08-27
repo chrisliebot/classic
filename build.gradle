@@ -22,7 +22,6 @@ mainClassName = "chrisliebaer.chrisliebot.Chrisliebot"
 repositories {
 	mavenLocal()
 	mavenCentral()
-	jcenter()
 	maven { url 'https://m2.dv8tion.net/releases' }
 	maven { url 'https://jitpack.io' }
 }
@@ -70,7 +69,7 @@ dependencies {
 
 	// features
 	implementation group: 'org.twitter4j', name: 'twitter4j-core', version: '4.0.7'
-	implementation 'com.joestelmach:natty:0.13'
+	implementation 'com.github.chrisliebot:natty:fb30505e5e'
 	implementation 'dnsjava:dnsjava:3.2.1'
 	implementation 'org.nibor.autolink:autolink:0.10.0'
 	implementation 'org.jsoup:jsoup:1.13.1'

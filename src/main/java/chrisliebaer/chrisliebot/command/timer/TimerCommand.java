@@ -756,12 +756,14 @@ public class TimerCommand implements ChrislieListener.Command {
 	}
 	
 	private static Optional<Pair<Instant, String>> shrinkingParse(String arg, ZoneId zoneId) {
-		try {
-			var parser = new Parser(TimeZone.getTimeZone(zoneId));
-			
-			// shorten the input string one word at a time and find largest matching string as date
-			String[] w = arg.split(" ");
-			for (int i = w.length; i >= 0; i--) {
+		
+		var parser = new Parser(TimeZone.getTimeZone(zoneId));
+		
+		// shorten the input string one word at a time and find largest matching string as date
+		String[] w = arg.split(" ");
+		for (int i = w.length; i >= 0; i--) {
+			try {
+				
 				String part = String.join(" ", Arrays.copyOfRange(w, 0, i));
 				List<DateGroup> parse = parser.parse(part);
 				var dates = parse.stream().flatMap(in -> in.getDates().stream()).collect(Collectors.toList());
@@ -770,12 +772,12 @@ public class TimerCommand implements ChrislieListener.Command {
 					String message = String.join(" ", Arrays.copyOfRange(w, i, w.length));
 					return Optional.of(Pair.of(dates.get(0).toInstant(), message));
 				}
+				
+			} catch (Throwable ignore) {
+				// absolutely don't care about bugs in this library
 			}
-			return Optional.empty();
-		} catch (Throwable ignore) {
-			// absolutely don't care about bugs in this library
-			return Optional.empty();
 		}
+		return Optional.empty();
 	}
 	
 	/**
