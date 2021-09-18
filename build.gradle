@@ -68,6 +68,7 @@ dependencies {
 	implementation 'org.zeroturnaround:zt-exec:1.11'
 
 	// features
+	implementation 'com.google.re2j:re2j:1.6'
 	implementation group: 'org.twitter4j', name: 'twitter4j-core', version: '4.0.7'
 	implementation 'com.github.chrisliebot:natty:fb30505e5e'
 	implementation 'dnsjava:dnsjava:3.2.1'

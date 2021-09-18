@@ -1,7 +1,10 @@
 package chrisliebaer.chrisliebot.command.generator;
 
 import chrisliebaer.chrisliebot.command.ChrislieListener;
+import chrisliebaer.chrisliebot.util.ErrorOutputBuilder;
 import com.google.common.base.Charsets;
+import com.google.re2j.Pattern;
+import com.google.re2j.PatternSyntaxException;
 import lombok.NonNull;
 import org.apache.commons.io.FileUtils;
 
@@ -10,8 +13,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
-import java.util.regex.Pattern;
-import java.util.regex.PatternSyntaxException;
+
 
 public class FileGenerator implements Generator {
 	
@@ -33,8 +35,8 @@ public class FileGenerator implements Generator {
 			var lines = FileUtils.readLines(file, Charsets.UTF_8);
 			
 			if (search && !arg.isEmpty()) {
-				var pred = Pattern.compile(arg, Pattern.CASE_INSENSITIVE).asPredicate().negate();
-				lines.removeIf(pred);
+				var pred = Pattern.compile(arg, Pattern.CASE_INSENSITIVE);
+				lines.removeIf((item) -> !pred.matcher(item).find());
 			}
 			
 			if (lines.isEmpty())
@@ -45,7 +47,8 @@ public class FileGenerator implements Generator {
 			
 		} catch (IOException e) {
 			throw new ChrislieListener.ListenerException("failed to open generator file", e);
-		} catch (PatternSyntaxException ignore) {
+		} catch (PatternSyntaxException e) {
+			ErrorOutputBuilder.generic("Fehler in Suchmuster: " + e.getDescription()).write(invc).send();
 			return null; // we simply return no result
 		}
 	}

@@ -51,14 +51,14 @@ public class SedListener implements ChrislieListener {
 		var m = msg.msg();
 		
 		// compile pattern from user input
-		Pattern searchPattern = Pattern.compile(matcher.group("search").replaceAll("\\\\/", "/"));
+		var searchPattern = com.google.re2j.Pattern.compile(matcher.group("search").replaceAll("\\\\/", "/"));
 		
 		// extract groups and reverse escaped slash
 		String replace = matcher.group("replace").replaceAll("\\\\/", "/");
 		String flags = matcher.group("flags");
 		
 		Optional<StoredMessage> match = Optional.empty();
-		Predicate<String> searchPredicate = searchPattern.asPredicate();
+		Predicate<String> searchPredicate = (item) -> searchPattern.matcher(item).find();
 		
 		var queue = backlog.getIfPresent(ChannelIdentifier.of(m.channel()));
 		
@@ -82,7 +82,7 @@ public class SedListener implements ChrislieListener {
 			return;
 		
 		StoredMessage found = match.get();
-		Matcher searchMatcher = searchPattern.matcher(found.message);
+		var searchMatcher = searchPattern.matcher(found.message);
 		String replaced;
 		
 		// g: enables global replacement
