@@ -194,8 +194,11 @@ public class MensaCommand implements ChrislieListener.Command {
 		var maybeDay = mensa.records().stream().dropWhile(in -> in.timestamp() < finalTimestamp).findFirst();
 		
 		if (maybeDay.isEmpty()) {
+			// find last day with information
+			var lastDay = new Date(mensa.records().get(mensa.records.size() - 1).timestamp);
+			
 			ErrorOutputBuilder.generic(out -> out
-					.appendEscape("Ich habe leider keine Daten ab dem ").appendEscape(dateFormat.format(new Date(finalTimestamp)))).write(invc).send();
+					.appendEscape("Ich habe leider keine Daten ab dem ").appendEscape(dateFormat.format(lastDay))).write(invc).send();
 			return;
 		}
 		var day = maybeDay.get();
@@ -210,6 +213,11 @@ public class MensaCommand implements ChrislieListener.Command {
 				.appendEscape(" am ")
 				.appendEscape(dateFormat.format(new Date(day.timestamp())), ChrislieFormat.HIGHLIGHT)
 				.newLine();
+		
+		// inform user if we have skipped to the next available day
+		if (day.timestamp != timestamp) {
+			reply.footer("VORISCHT: Ich haben für dich den nächsten möglichen Tag ausgewählt.");
+		}
 		
 		// load symbols used to mark food
 		var symbolFish = flex.getString(FLEX_FISH_CODE).orElse("");
