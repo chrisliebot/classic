@@ -22,7 +22,7 @@ public class MensaApiMeal {
 	@Getter private boolean fish;
 	@Getter private boolean pork;
 	
-	@Getter @SerializedName("pork_raw") private boolean porkRaw;
+	@Getter @SerializedName("pork_aw") private boolean porkRaw;
 	@Getter private boolean cow;
 	@Getter @SerializedName("cow_aw") private boolean cowRaw;
 	@Getter private boolean vegan;
