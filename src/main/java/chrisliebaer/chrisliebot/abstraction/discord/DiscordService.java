@@ -4,6 +4,7 @@ import chrisliebaer.chrisliebot.Chrisliebot;
 import chrisliebaer.chrisliebot.abstraction.ChrislieChannel;
 import chrisliebaer.chrisliebot.abstraction.ChrislieMessage;
 import chrisliebaer.chrisliebot.abstraction.ChrislieService;
+import chrisliebaer.chrisliebot.abstraction.ChrislieUser;
 import chrisliebaer.chrisliebot.abstraction.ServiceAttached;
 import chrisliebaer.chrisliebot.command.ChrislieListener;
 import chrisliebaer.chrisliebot.config.AliasSet;
@@ -122,6 +123,11 @@ public class DiscordService implements ChrislieService {
 	public Optional<DiscordGuild> guild(String identifier) {
 		return Optional.ofNullable(jda.getGuildById(identifier))
 				.map(guild -> new DiscordGuild(this, guild));
+	}
+	
+	@Override
+	public ChrislieUser botUser() {
+		return new DiscordUser(this, jda.getSelfUser());
 	}
 	
 	@SubscribeEvent

@@ -62,6 +62,11 @@ public interface ChrislieService {
 	public default void reconnect() {}
 	
 	/**
+	 * @return A user that represents the online identity of this service itself.
+	 */
+	public ChrislieUser botUser();
+	
+	/**
 	 * Called by Chrisliebot to shutdown this service. The implementation should block until it has completly shut down. After returning from this method, the service
 	 * must no longer interact with the Chrisliebot framework.
 	 *

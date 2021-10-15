@@ -1,4 +1,4 @@
-package chrisliebaer.chrisliebot.util;
+package chrisliebaer.chrisliebot.util.typeadapter;
 
 import com.google.gson.TypeAdapter;
 import com.google.gson.stream.JsonReader;

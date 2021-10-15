@@ -9,8 +9,13 @@ import chrisliebaer.chrisliebot.config.CoreConfig;
 import chrisliebaer.chrisliebot.config.JsonBotConfig;
 import chrisliebaer.chrisliebot.config.scope.ScopeMapping;
 import chrisliebaer.chrisliebot.util.GsonValidator;
-import chrisliebaer.chrisliebot.util.PatternTypeAdapter;
 import chrisliebaer.chrisliebot.util.SystemProperty;
+import chrisliebaer.chrisliebot.util.typeadapter.CronTypeAdapter;
+import chrisliebaer.chrisliebot.util.typeadapter.PatternTypeAdapter;
+import chrisliebaer.chrisliebot.util.typeadapter.ZoneIdTypeAdapter;
+import com.cronutils.model.Cron;
+import com.cronutils.model.CronType;
+import com.cronutils.model.definition.CronDefinitionBuilder;
 import com.google.common.util.concurrent.AbstractIdleService;
 import com.google.gson.GsonBuilder;
 import lombok.Getter;
@@ -21,6 +26,7 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.nio.charset.Charset;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -53,6 +59,8 @@ public class Chrisliebot extends AbstractIdleService {
 			.disableHtmlEscaping()
 			.setPrettyPrinting()
 			.registerTypeAdapter(Pattern.class, new PatternTypeAdapter().nullSafe())
+			.registerTypeAdapter(Cron.class, new CronTypeAdapter(CronDefinitionBuilder.instanceDefinitionFor(CronType.UNIX)))
+			.registerTypeAdapter(ZoneId.class, new ZoneIdTypeAdapter())
 			.create(), Validation.buildDefaultValidatorFactory().getValidator());
 	
 	/**
@@ -69,7 +77,7 @@ public class Chrisliebot extends AbstractIdleService {
 	/**
 	 * Dispatcher instance for services.
 	 */
-	private ChrislieDispatcher dispatcher;
+	@Getter private ChrislieDispatcher dispatcher;
 	
 	/**
 	 * Resolver that's used in dispatcher.

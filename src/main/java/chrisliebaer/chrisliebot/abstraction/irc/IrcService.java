@@ -3,6 +3,7 @@ package chrisliebaer.chrisliebot.abstraction.irc;
 import chrisliebaer.chrisliebot.abstraction.ChrislieChannel;
 import chrisliebaer.chrisliebot.abstraction.ChrislieMessage;
 import chrisliebaer.chrisliebot.abstraction.ChrislieService;
+import chrisliebaer.chrisliebot.abstraction.ChrislieUser;
 import chrisliebaer.chrisliebot.abstraction.ServiceAttached;
 import com.google.common.collect.Multimap;
 import lombok.Getter;
@@ -113,6 +114,11 @@ public class IrcService implements ChrislieService {
 	@Override
 	public void reconnect() {
 		client.reconnect();
+	}
+	
+	@Override
+	public ChrislieUser botUser() {
+		return new IrcUser(this, client.getUser().orElseThrow());
 	}
 	
 	@Override
