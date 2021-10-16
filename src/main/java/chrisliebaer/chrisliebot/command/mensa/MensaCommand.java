@@ -216,7 +216,7 @@ public class MensaCommand implements ChrislieListener.Command {
 		
 		// inform user if we have skipped to the next available day
 		if (day.timestamp != timestamp) {
-			reply.footer("VORISCHT: Ich haben für dich den nächsten möglichen Tag ausgewählt.");
+			reply.footer("VORSICHT: Ich haben für dich den nächsten möglichen Tag ausgewählt.");
 		}
 		
 		// load symbols used to mark food
