@@ -555,11 +555,14 @@ public class TimerCommand implements ChrislieListener.Command {
 		// if the original channel is not available, the message will be delivered via dm
 		boolean dmRedirected = false;
 		var maybeChannel = service.channel(timerInfo.channel);
-		if (maybeChannel.isEmpty() || maybeChannel.get().user(user.identifier()).isEmpty()) { // channel doesn't exist or user is not in channel
+		if (maybeChannel.isEmpty()
+				|| maybeChannel.get().user(user.identifier()).isEmpty()
+				|| !maybeChannel.get().canTalk()) { // channel doesn't exist or user is not in channel or we cant talk in it
 			dmRedirected = true;
 			maybeChannel = user.directMessage();
 			if (maybeChannel.isEmpty()) {
-				log.debug("failed to open dm channel");
+				log.debug("failed to open dm channel, user must have blocked us");
+				deleteTimerRecord(timerInfo.id);
 				return;
 			}
 		}
@@ -583,12 +586,16 @@ public class TimerCommand implements ChrislieListener.Command {
 		formatTimerOutput(out, timerInfo, ref.flexConf(), true);
 		out.send();
 		
+		deleteTimerRecord(timerInfo.id);
+	}
+	
+	private void deleteTimerRecord(long id) {
 		String sql = "UPDATE timer SET deleted = TRUE WHERE id = ?";
 		try (var conn = dataSource.getConnection(); var stmt = conn.prepareStatement(sql)) {
-			stmt.setLong(1, timerInfo.id);
+			stmt.setLong(1, id);
 			stmt.execute();
 		} catch (SQLException e) {
-			log.error("failed to mark deletion for due timer: {}", timerInfo, e);
+			log.error("failed to mark deletion for due timer: {}", id, e);
 		}
 	}
 	

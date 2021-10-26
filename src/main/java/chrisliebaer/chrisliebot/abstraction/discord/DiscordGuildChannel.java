@@ -54,4 +54,9 @@ public class DiscordGuildChannel implements DiscordChannel {
 	public MessageChannel messageChannel() {
 		return channel;
 	}
+	
+	@Override
+	public boolean canTalk() {
+		return channel.canTalk();
+	}
 }

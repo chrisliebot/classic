@@ -36,6 +36,13 @@ public interface ChrislieChannel extends ServiceAttached {
 	}
 	
 	/**
+	 * @return {@code true} if the bot can write messages to this channel.
+	 */
+	public default boolean canTalk() {
+		return true;
+	}
+	
+	/**
 	 * @param identifier The identifier of the user.
 	 * @return A potential user if the user can be found in this channel.
 	 */
