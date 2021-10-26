@@ -20,6 +20,7 @@ import twitter4j.TwitterFactory;
 import twitter4j.User;
 import twitter4j.conf.ConfigurationBuilder;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
@@ -39,6 +40,7 @@ public class TwitterTimelineNotifier implements ChrislieListener {
 	
 	private Chrisliebot bot;
 	private ContextResolver resolver;
+	private List<TimelineSubscription> subscriptions;
 	
 	@Override
 	public void fromConfig(GsonValidator gson, JsonElement json) throws ListenerException {
@@ -58,6 +60,7 @@ public class TwitterTimelineNotifier implements ChrislieListener {
 		twitter = new TwitterFactory(config).getInstance();
 		
 		// we need the account name and the last tweet id, luckily we can do this with a single request per subscrition
+		subscriptions = new ArrayList<>(cfg.subscriptions.size());
 		var partitions = Lists.partition(cfg.subscriptions, 100); // endpoints allows 100 users per request
 		for (var part : partitions) {
 			try {
@@ -68,14 +71,22 @@ public class TwitterTimelineNotifier implements ChrislieListener {
 				var map = users.stream().collect(Collectors.toMap(User::getId, Function.identity()));
 				
 				// now match requested users to keys in map
-				part.forEach(subscription -> {
+				for (TimelineSubscription subscription : part) {
 					var result = map.get(subscription.userId);
+					if (result == null) {
+						log.warn("unknown twitter account: {}", subscription);
+						continue;
+					}
+					
 					subscription.screenName = result.getScreenName();
 					
 					// user might not have a status or we are not allowed to access it
 					var status = result.getStatus();
 					subscription.lastId = status == null ? 0 : status.getId();
-				});
+					
+					// only store resolved users and ignore deleted ones
+					subscriptions.add(subscription);
+				}
 			} catch (TwitterException e) {
 				throw new ListenerException("failed to lookup subscribed twitter users", e);
 			}
@@ -100,7 +111,7 @@ public class TwitterTimelineNotifier implements ChrislieListener {
 			return;
 		
 		// poll all subscribed timelines for new tweets
-		for (var sub : cfg.subscriptions) {
+		for (var sub : subscriptions) {
 			try {
 				// twitter4j provides no return value for easy pagination but we don't care about more than 20 tweets
 				// also: yes, we need to differentiate here because twitter4j is really broken
