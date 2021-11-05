@@ -297,7 +297,7 @@ public class DiscordService implements ChrislieService {
 		if (commandUpdaterService.isRunning())
 			commandUpdaterService.stopAsync().awaitTerminated();
 		jda.removeEventListener(this);
-		jda.shutdown();
+		jda.shutdownNow();
 		
 		// wait for shutdown event to occur
 		try {
