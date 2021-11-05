@@ -44,6 +44,7 @@ import java.util.concurrent.CancellationException;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -178,6 +179,8 @@ public class DiscordService implements ChrislieService {
 						} else {
 							log.warn("failed to update commands on guild {}", guild, e);
 						}
+					} catch (TimeoutException e) {
+						log.warn("ran out of time while updating guild {}", guild);
 					}
 				}
 			}
@@ -188,7 +191,7 @@ public class DiscordService implements ChrislieService {
 		}
 	}
 	
-	private void registerCommandsOnGuild(Guild guild) throws ExecutionException, InterruptedException {
+	private void registerCommandsOnGuild(Guild guild) throws ExecutionException, InterruptedException, TimeoutException {
 		
 		var existing = guild.retrieveCommands().submit().get().stream().map(Command::getName).collect(Collectors.toSet());
 		
@@ -250,7 +253,7 @@ public class DiscordService implements ChrislieService {
 		
 		if (!existing.isEmpty() || !neww.isEmpty()) {
 			log.trace("updating commands for {}: (new: {}, removed: {}) {} total", chrislieGuild, neww, existing, commandDatas.size());
-			update.addCommands(commandDatas).submit().get();
+			update.addCommands(commandDatas).submit().get(5, TimeUnit.MINUTES);
 		} else {
 			log.trace("guild {} is already in sync", guild);
 		}
