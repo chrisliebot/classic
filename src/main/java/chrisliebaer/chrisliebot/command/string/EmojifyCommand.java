@@ -1,4 +1,4 @@
-package chrisliebaer.chrisliebot.command.emojify;
+package chrisliebaer.chrisliebot.command.string;
 
 import chrisliebaer.chrisliebot.Chrisliebot;
 import chrisliebaer.chrisliebot.command.ChrislieListener;

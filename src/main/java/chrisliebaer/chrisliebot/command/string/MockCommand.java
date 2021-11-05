@@ -1,4 +1,4 @@
-package chrisliebaer.chrisliebot.command.mock;
+package chrisliebaer.chrisliebot.command.string;
 
 import chrisliebaer.chrisliebot.command.ChrislieListener;
 import chrisliebaer.chrisliebot.command.ListenerReference;

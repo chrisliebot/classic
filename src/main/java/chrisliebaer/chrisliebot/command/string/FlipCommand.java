@@ -1,4 +1,4 @@
-package chrisliebaer.chrisliebot.command.flip;
+package chrisliebaer.chrisliebot.command.string;
 
 import chrisliebaer.chrisliebot.command.ChrislieListener;
 import chrisliebaer.chrisliebot.command.ListenerReference;
