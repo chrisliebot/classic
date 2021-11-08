@@ -767,7 +767,7 @@ public class TimerCommand implements ChrislieListener.Command {
 		var parser = new Parser(TimeZone.getTimeZone(zoneId));
 		
 		// shorten the input string one word at a time and find largest matching string as date
-		String[] w = arg.split("\\\\s+");
+		String[] w = arg.split("\\s+");
 		for (int i = w.length; i >= 0; i--) {
 			try {
 				
