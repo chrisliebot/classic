@@ -25,10 +25,13 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Predicate;
+import java.util.regex.Pattern;
 
 @Slf4j
 public abstract class AbstractDiscordOutput<RestObject> implements ChrislieOutput {
 	
+	private static final Predicate<String> EMBED_SUPPORTED_IMAGE_ENDINGS = Pattern.compile("\\.(jpeg|jpg|png|gif)$", Pattern.CASE_INSENSITIVE).asPredicate();
 	
 	private final EmbedBuilder embedBuilder = new EmbedBuilder();
 	private final DiscordPlainOutput plain = new DiscordPlainOutput(AbstractDiscordOutput::escape4Discord, DiscordFormatter::format);
@@ -232,10 +235,12 @@ public abstract class AbstractDiscordOutput<RestObject> implements ChrislieOutpu
 				var file = filePath.getFileName();
 				if (file != null) {
 					var filename = file.toString();
-					// TODO: when supporting multiple files, generate random file names to avoid clashes
-					files.add(new SinkMessageData.UploadFile(okHttpClient, filename, imageUrl));
-					
-					localEmbedBuilder.setImage("attachment://" + filename); // update embed file name
+					if (EMBED_SUPPORTED_IMAGE_ENDINGS.test(filename)) {
+						// TODO: when supporting multiple files, generate random file names to avoid clashes
+						files.add(new SinkMessageData.UploadFile(okHttpClient, filename, imageUrl));
+						
+						localEmbedBuilder.setImage("attachment://" + filename); // update embed file name
+					}
 				}
 			}
 			
