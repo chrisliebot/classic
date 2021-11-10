@@ -15,12 +15,15 @@ public interface DiscordChannel extends ChrislieChannel {
 	public Optional<DiscordGuild> guild();
 	
 	@Override
+	public DiscordService service();
+	
+	@Override
 	public default ChrislieOutput output(LimiterConfig limiterConfig) {
-		return new DiscordChannelOutput(messageChannel());
+		return new DiscordChannelOutput(service(), messageChannel());
 	}
 	
 	public default ChrislieOutput output(LimiterConfig limiterConfig, DiscordMessage source) {
-		return new DiscordChannelOutput(messageChannel(), source);
+		return new DiscordChannelOutput(service(), messageChannel(), source);
 	}
 	
 }

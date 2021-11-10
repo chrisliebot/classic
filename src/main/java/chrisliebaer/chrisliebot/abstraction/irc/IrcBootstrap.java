@@ -66,7 +66,7 @@ public class IrcBootstrap implements ServiceBootstrap {
 		
 		// connect and pass to service, service should not assume client to be still disconnected, setup is done here
 		client.connect();
-		return new IrcService(client, identifier, buildGuildMap(guilds), ignore);
+		return new IrcService(bot, client, identifier, buildGuildMap(guilds), ignore);
 	}
 	
 	private static Multimap<String, Pattern> buildGuildMap(Map<String, List<String>> guilds) {

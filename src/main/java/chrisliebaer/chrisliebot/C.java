@@ -3,10 +3,14 @@ package chrisliebaer.chrisliebot;
 import lombok.NonNull;
 import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
 import org.apache.commons.lang3.StringUtils;
 import org.jsoup.Jsoup;
 
-import java.awt.Color;
+import java.awt.*;
+import java.io.IOException;
+import java.net.URL;
 import java.time.DayOfWeek;
 import java.time.Duration;
 import java.util.Arrays;
@@ -164,5 +168,18 @@ public final class C {
 		double f = Math.abs((int) crc.getValue());
 		f /= Integer.MAX_VALUE;
 		return new Color(Color.HSBtoRGB((float) f, 1f, 1f));
+	}
+	
+	public byte[] downloadFile(OkHttpClient client, URL url) throws IOException {
+		var request = new Request.Builder()
+				.url(url)
+				.build();
+		
+		try (var response = client.newCall(request).execute(); var body = response.body()) {
+			if (response.isSuccessful() && body != null) {
+				return body.bytes();
+			}
+			throw new IOException("failed request %s with %s: %s".formatted(request, response.code(), response.message()));
+		}
 	}
 }

@@ -1,5 +1,6 @@
 package chrisliebaer.chrisliebot.abstraction;
 
+import chrisliebaer.chrisliebot.Chrisliebot;
 import chrisliebaer.chrisliebot.config.ContextResolver;
 
 import javax.annotation.Nullable;
@@ -73,6 +74,11 @@ public interface ChrislieService {
 	 * @throws ServiceException If a proper shutdown is not possible.
 	 */
 	public void exit() throws ServiceException;
+	
+	/**
+	 * @return That bot that this service belongs to.
+	 */
+	public Chrisliebot bot();
 	
 	public static class ServiceException extends Exception {
 		

@@ -110,7 +110,7 @@ public class SpecialChannel implements ChrislieListener {
 			});
 			var out = (DiscordChannelOutput) cfg.output.apply(
 					cfg.sendDm ?
-							new DiscordChannelOutput(ev.getAuthor().openPrivateChannel().complete())
+							new DiscordChannelOutput(message.service(), ev.getAuthor().openPrivateChannel().complete())
 							: msg.reply(), substitutor::replace);
 			
 			var future = out.discordSend();

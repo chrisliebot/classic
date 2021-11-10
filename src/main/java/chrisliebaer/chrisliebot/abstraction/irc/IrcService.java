@@ -1,5 +1,6 @@
 package chrisliebaer.chrisliebot.abstraction.irc;
 
+import chrisliebaer.chrisliebot.Chrisliebot;
 import chrisliebaer.chrisliebot.abstraction.ChrislieChannel;
 import chrisliebaer.chrisliebot.abstraction.ChrislieMessage;
 import chrisliebaer.chrisliebot.abstraction.ChrislieService;
@@ -46,6 +47,7 @@ public class IrcService implements ChrislieService {
 	
 	public static final String PREFIX_USER_BY_NICKNAME = "NICK:";
 	
+	@Getter private final Chrisliebot bot;
 	@Getter private final Client client;
 	@Getter private final String identifier;
 	private final Multimap<String, Pattern> guildMap;
@@ -53,7 +55,8 @@ public class IrcService implements ChrislieService {
 	
 	@Setter private Consumer<ChrislieMessage> sink;
 	
-	public IrcService(@NonNull Client client, @NonNull String identifier, Multimap<String, Pattern> guildMap, Set<String> ignore) {
+	public IrcService(@NonNull Chrisliebot bot, @NonNull Client client, @NonNull String identifier, Multimap<String, Pattern> guildMap, Set<String> ignore) {
+		this.bot = bot;
 		this.client = client;
 		this.identifier = identifier;
 		this.guildMap = guildMap;

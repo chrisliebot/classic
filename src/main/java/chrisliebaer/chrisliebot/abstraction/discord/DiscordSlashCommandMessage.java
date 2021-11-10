@@ -6,12 +6,16 @@ import chrisliebaer.chrisliebot.abstraction.LimiterConfig;
 import chrisliebaer.chrisliebot.command.ChrislieDispatcher;
 import lombok.Getter;
 import lombok.NonNull;
+import lombok.extern.slf4j.Slf4j;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.events.interaction.SlashCommandEvent;
+import net.dv8tion.jda.api.requests.restaction.WebhookMessageAction;
 
+import java.io.IOException;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
+@Slf4j
 public class DiscordSlashCommandMessage implements ChrislieMessage {
 	
 	@Getter private final DiscordService service;
@@ -52,8 +56,9 @@ public class DiscordSlashCommandMessage implements ChrislieMessage {
 	
 	@Override
 	public ChrislieOutput reply(LimiterConfig limiter) {
-		return new AbstractDiscordOutput<>() {
+		return new AbstractDiscordOutput<Message>() { // the generic types are so broken
 			private boolean isError;
+			private WebhookMessageAction<Message> messageAction;
 			
 			@Override
 			public void markAsError() {
@@ -61,12 +66,26 @@ public class DiscordSlashCommandMessage implements ChrislieMessage {
 			}
 			
 			@Override
-			protected CompletableFuture sink(Message message) {
-				if (ev.isAcknowledged()) {
-					return ev.getHook().sendMessage(message).setEphemeral(isError).submit();
-				} else {
-					return ev.reply(message).setEphemeral(isError).submit();
+			protected CompletableFuture<Message> sink(SinkMessage message) {
+				// file uploads my cause delays, so we have to ack message in all cases
+				if (!ev.isAcknowledged()) {
+					ev.deferReply(isError).queue();
 				}
+				var hook = ev.getHook();
+				
+				// now we can pull files for upload (slash commands are always allowed to upload files)
+				var sinkData = message.canUpload(service.bot().sharedResources().httpClient());
+				var restAction = hook.sendMessage(sinkData.message()).setEphemeral(isError);
+				try {
+					for (var file : sinkData.files()) {
+						restAction = restAction.addFile(file.download(), file.filename());
+					}
+				} catch (IOException e) {
+					log.warn("failed to upload attachments, falling back to regular message", e);
+					restAction = hook.sendMessage(message.noUpload()).setEphemeral(isError);
+				}
+				
+				return restAction.submit();
 			}
 		};
 	}

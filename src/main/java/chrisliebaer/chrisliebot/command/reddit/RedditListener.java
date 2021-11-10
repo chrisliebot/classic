@@ -151,6 +151,9 @@ public class RedditListener implements ChrislieListener {
 				&& !post.preview().images().isEmpty()) {
 			var preview = post.preview().images().get(0);
 			var imgUrl = StringEscapeUtils.unescapeXml(preview.source().url());
+			
+			
+			
 			out.image(imgUrl);
 		}
 		
