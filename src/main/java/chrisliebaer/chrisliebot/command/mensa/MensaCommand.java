@@ -54,7 +54,8 @@ public class MensaCommand implements ChrislieListener.Command {
 	// symbols to prefix various kinds of meals
 	private static final String FLEX_FISH_CODE = "mensa.symbol.fish";
 	private static final String FLEX_MEAT_CODE = "mensa.symbol.meat";
-	private static final String FLEX_VEG_CODE = "mensa.symbol.veg";
+	private static final String FLEX_VEGAN_CODE = "mensa.symbol.vegan";
+	private static final String FLEX_VEGETARIAN_CODE = "mensa.symbol.vegetarian";
 	
 	private static final String FLEX_DEFAULT_MENSA = "mensa.default"; // default mensa if no mensa is given
 	private static final String FLEX_FILTER = "mensa.filter"; // array with lines in form of "$mensa.$line|*" to filter
@@ -214,15 +215,14 @@ public class MensaCommand implements ChrislieListener.Command {
 				.appendEscape(dateFormat.format(new Date(day.timestamp())), ChrislieFormat.HIGHLIGHT)
 				.newLine();
 		
-		// inform user if we have skipped to the next available day
-		if (day.timestamp != timestamp) {
-			reply.footer("VORSICHT: Ich habe für dich den nächsten möglichen Tag ausgewählt.");
-		}
-		
 		// load symbols used to mark food
 		var symbolFish = flex.getString(FLEX_FISH_CODE).orElse("");
-		var symbolmeat = flex.getString(FLEX_MEAT_CODE).orElse("");
-		var symbolVeg = flex.getString(FLEX_VEG_CODE).orElse("");
+		var symbolMeat = flex.getString(FLEX_MEAT_CODE).orElse("");
+		var symbolVegan = flex.getString(FLEX_VEGAN_CODE).orElse("");
+		var symbolVegetarian = flex.getString(FLEX_VEGETARIAN_CODE).orElse("");
+		
+		reply.footer("%s Fleisch, %s Fisch, %s Vegetarisch, %s Vegan".formatted(
+				symbolMeat, symbolFish, symbolVegetarian, symbolVegan));
 		
 		// load ignore list
 		Set<String> ignoreLines;
@@ -243,13 +243,14 @@ public class MensaCommand implements ChrislieListener.Command {
 			String lineName = useDisplay ? line.displayName() : line.name();
 			
 			// build meals of line
-			StringJoiner joiner = new StringJoiner(", ").setEmptyValue("");
+			StringJoiner joiner = new StringJoiner("\n").setEmptyValue("");
 			for (MensaApiMeal meal : line.meals()) {
 				// highlight meal type with unicode
-				boolean meat = meal.cow() || meal.cowRaw() || meal.pork() || meal.porkRaw();
-				boolean veg = meal.veg() || meal.vegan();
-				boolean fish = meal.fish();
-				String mealSymbol = meat ? symbolmeat : (veg ? symbolVeg : (fish ? symbolFish : ""));
+				String mealSymbol = "";
+				mealSymbol = meal.vegan() ? symbolVegan : mealSymbol;
+				mealSymbol = meal.veg() ? symbolVegetarian : mealSymbol;
+				mealSymbol = meal.fish() ? symbolFish : mealSymbol;
+				mealSymbol = meal.cow() || meal.cowRaw() || meal.pork() || meal.porkRaw() ? symbolMeat : mealSymbol;
 				
 				// skip meals below cutoff
 				if (meal.price1().doubleValue() < cutoff)
@@ -273,6 +274,12 @@ public class MensaCommand implements ChrislieListener.Command {
 			}
 		}
 		
+		// inform user if we have skipped to the next available day
+		// may override symbol table, but who cares
+		if (day.timestamp != timestamp) {
+			reply.footer("⚠️VORSICHT: Ich habe für dich den nächsten möglichen Tag ausgewählt.");
+		}
+		
 		// TODO: verify that at least one line is preset
 		
 		reply.send();
@@ -289,8 +296,7 @@ public class MensaCommand implements ChrislieListener.Command {
 	}
 	
 	/**
-	 * Converts the given timestamp into a timestamp of the same day but at 0 o'clock. That is exactle when the day
-	 * began.
+	 * Converts the given timestamp into a timestamp of the same day but at 0 o'clock. That is exactle when the day began.
 	 *
 	 * @param timestamp Timestamp of arbitrary day.
 	 * @return Timestamp of beginning of same day.
