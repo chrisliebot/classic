@@ -11,6 +11,9 @@ import net.dv8tion.jda.api.requests.restaction.MessageAction;
 
 import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 @Slf4j
 public class DiscordChannelOutput extends AbstractDiscordOutput<Message> {
@@ -54,7 +57,10 @@ public class DiscordChannelOutput extends AbstractDiscordOutput<Message> {
 			try {
 				if (canUpload) {
 					// inform user that we are processing request
-					channel.sendTyping().queue();
+					try {
+						channel.sendTyping().submit().get(200, TimeUnit.MILLISECONDS); // attempt to wait for short period to reduce bugged typing states
+					} catch (InterruptedException | ExecutionException | TimeoutException ignore) {
+					}
 					
 					var sinkData = message.canUpload(service.bot().sharedResources().httpClient());
 					var messageAction = channel.sendMessage(sinkData.message());
