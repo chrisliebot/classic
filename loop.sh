@@ -8,6 +8,7 @@ while true; do
 		-Dfile.encoding=UTF-8 \
 		-Dlog4j.configurationFile=log4j2.xml \
 		-Dchrisliebot.core=prod-core.json \
+		-Dlog4j2.formatMsgNoLookups=true \
 		-Xmx200m \
 		-XX:+UseStringDeduplication \
 		--enable-preview \
