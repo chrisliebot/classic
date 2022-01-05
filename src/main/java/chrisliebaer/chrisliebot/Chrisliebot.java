@@ -156,7 +156,10 @@ public class Chrisliebot extends AbstractIdleService {
 		sharedResources = new SharedResources(coreCfg.databasePool(), gson);
 		sharedResources.startAsync().awaitRunning();
 		
-		// bot config requires running serivces, so services go first
+		// listener must go first to prevent reconnect loops in case listener fail to load
+		loadBotConfig();
+		
+		// start services
 		coreCfg.ensureDisjoint();
 		Map<String, ServiceBootstrap> bootstraps = new HashMap<>();
 		bootstraps.putAll(coreCfg.irc());
@@ -183,8 +186,6 @@ public class Chrisliebot extends AbstractIdleService {
 			}
 		}
 		
-		// on the first load, we abort on errors, since we have no fallback
-		loadBotConfig();
 	}
 	
 	private void loadBotConfig() throws ChrisliebotException {
