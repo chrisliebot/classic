@@ -78,4 +78,11 @@ public interface ChrislieChannel extends ServiceAttached {
 	 * @return A ChrislieOutput instance that can be used to post to this channel.
 	 */
 	public ChrislieOutput output(LimiterConfig limiterConfig);
+	
+	/**
+	 * @return String that will create a mention for the given channel.
+	 */
+	public default String mention() {
+		return displayName();
+	}
 }

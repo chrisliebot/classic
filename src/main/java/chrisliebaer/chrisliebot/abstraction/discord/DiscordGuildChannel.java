@@ -30,6 +30,11 @@ public class DiscordGuildChannel implements DiscordChannel {
 	}
 	
 	@Override
+	public String mention() {
+		return channel.getAsMention();
+	}
+	
+	@Override
 	public List<DiscordUser> users() {
 		return channel.getMembers().stream()
 				.map(member -> new DiscordUser(service, member.getUser()))

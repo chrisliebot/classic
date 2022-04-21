@@ -1,7 +1,5 @@
 package chrisliebaer.chrisliebot.abstraction.discord;
 
-import chrisliebaer.chrisliebot.abstraction.ChrislieOutput;
-import chrisliebaer.chrisliebot.abstraction.LimiterConfig;
 import lombok.Getter;
 import lombok.NonNull;
 import net.dv8tion.jda.api.entities.MessageChannel;

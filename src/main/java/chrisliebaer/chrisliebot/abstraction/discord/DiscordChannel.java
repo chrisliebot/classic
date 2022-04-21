@@ -25,5 +25,4 @@ public interface DiscordChannel extends ChrislieChannel {
 	public default ChrislieOutput output(LimiterConfig limiterConfig, DiscordMessage source) {
 		return new DiscordChannelOutput(service(), messageChannel(), source);
 	}
-	
 }

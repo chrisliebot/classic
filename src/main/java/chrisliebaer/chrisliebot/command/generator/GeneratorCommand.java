@@ -91,6 +91,8 @@ public class GeneratorCommand implements ChrislieListener.Command {
 			HashMap<String, String> map = new HashMap<>();
 			map.put("arg", escapeStrSubstitution(invocation.arg().strip()));
 			map.put("displayName", escapeStrSubstitution(user.displayName()));
+			map.put("channel.name", escapeStrSubstitution(msg.channel().displayName()));
+			map.put("channel.mention", escapeStrSubstitution(msg.channel().mention()));
 			map.put("mention", escapeStrSubstitution(user.mention()));
 			map.put("guild.displayName", escapeStrSubstitution(msg.channel().guild().map(ChrislieGuild::displayName).orElse(msg.channel().displayName())));
 			
