@@ -14,7 +14,7 @@ import java.util.Map;
 
 public interface MensaApiService {
 	
-	public static final String MENSA_BASE_URL = "https://www.sw-ka.de/json_interface/";
+	public static final String MENSA_BASE_URL = "https://www.sw-ka.de/en/json_interface/";
 	
 	@GET("general/")
 	public Call<MensaApiMeta> getMeta(@Header("Authorization") String credentials);
