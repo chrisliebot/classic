@@ -118,6 +118,7 @@ public class MensaCommand implements ChrislieListener.Command {
 		dateFormat.setTimeZone(MENSA_TIMEZONE);
 		
 		boolean useDisplay = true;
+		boolean isCron = false;
 		
 		// required since Arrays.asList doesn't support remove
 		var args = new ArrayList<>(Arrays.asList(arg.split(" ")));
@@ -125,9 +126,13 @@ public class MensaCommand implements ChrislieListener.Command {
 		// check for raw name flag and remove from argument stack
 		var it = args.iterator();
 		while (it.hasNext()) {
-			if ("-r".equals(it.next())) {
+			var next = it.next();
+			if ("-r".equals(next)) {
 				useDisplay = false;
 				it.remove();
+			} else if ("--cron".equals(next)) {
+				it.remove();
+				isCron = true;
 			}
 		}
 		
@@ -188,7 +193,8 @@ public class MensaCommand implements ChrislieListener.Command {
 		Mensa mensa = menu.get(mensaName);
 		
 		if (mensa == null) {
-			ErrorOutputBuilder.generic("Ich habe keine Daten für diese Mensa.").write(invc).send();
+			if (!isCron)
+				ErrorOutputBuilder.generic("Ich habe keine Daten für diese Mensa.").write(invc).send();
 			return;
 		}
 		
@@ -198,8 +204,9 @@ public class MensaCommand implements ChrislieListener.Command {
 			// find last day with information
 			var lastDay = new Date(mensa.records().get(mensa.records.size() - 1).timestamp);
 			
-			ErrorOutputBuilder.generic(out -> out
-					.appendEscape("Ich habe leider keine Daten ab dem ").appendEscape(dateFormat.format(lastDay))).write(invc).send();
+			if (!isCron)
+				ErrorOutputBuilder.generic(out -> out
+						.appendEscape("Ich habe leider keine Daten ab dem ").appendEscape(dateFormat.format(lastDay))).write(invc).send();
 			return;
 		}
 		var day = maybeDay.get();
@@ -278,9 +285,12 @@ public class MensaCommand implements ChrislieListener.Command {
 		// may override symbol table, but who cares
 		if (day.timestamp != timestamp) {
 			reply.footer("⚠️VORSICHT: Ich habe für dich den nächsten möglichen Tag ausgewählt.");
+			
+			// do not any message if this is a cron job and we have to advance to next day
+			if (isCron) {
+				return;
+			}
 		}
-		
-		// TODO: verify that at least one line is preset
 		
 		reply.send();
 	}
