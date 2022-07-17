@@ -186,6 +186,7 @@ public class SearXNGSearchCommand implements ChrislieListener.Command {
                     (item.imgSrc == null) ? null : (!item.imgSrc.startsWith("//")) ? item.imgSrc : "https:" + item.imgSrc;
             case "desc" -> C.stripHtml(item.content);
             case "url" -> item.prettyUrl;
+            case "engine" -> String.join(", ", item.engines);
             default -> key.toUpperCase();
         });
 
