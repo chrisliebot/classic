@@ -49,6 +49,7 @@ public class SearXNGSearchCommand implements ChrislieListener.Command {
 	private static final int RATE_LIMIT_CODE = 429;
 	
 	private ErrorOutputBuilder errorRateLimited;
+	private ErrorOutputBuilder errorExternalBang;
 
 	
 	private SearXNGService service;
@@ -89,6 +90,7 @@ public class SearXNGSearchCommand implements ChrislieListener.Command {
 		service = retrofit.create(SearXNGService.class);
 		
 		errorRateLimited = ErrorOutputBuilder.generic(out -> out.appendEscape("Ich wurde ausgesperrt. Tja, kann man nix machen. Hau doch bitte @Chrisliebär von mir."));
+		errorExternalBang = ErrorOutputBuilder.generic(out -> out.appendEscape("Tut mir leid. External Bangs (!!) supporte ich nicht."));
 	}
 	
 	@Override
@@ -100,6 +102,11 @@ public class SearXNGSearchCommand implements ChrislieListener.Command {
 		
 		if (query.isEmpty()) {
 			ERROR_NO_QUERY.write(reply).send();
+			return;
+		}
+
+		if (query.contains("!!")) {
+			errorExternalBang.write(reply).send();
 			return;
 		}
 		
@@ -129,13 +136,14 @@ public class SearXNGSearchCommand implements ChrislieListener.Command {
 			public void onResponse(Call<SearXNGResult> c, Response<SearXNGResult> resp) {
 				SearXNGResult body = resp.body();
 				if (!resp.isSuccessful() || body == null) { // bad error code or "error" in status field of json
-					if (resp.code() == RATE_LIMIT_CODE) {
-						errorRateLimited.write(reply).send();
-					} else {
-						ErrorOutputBuilder.remoteErrorCode(c.request(), resp).write(reply).send();
-						log.warn("remote host {} response code: {} ({})", c.request().url(), resp.code(), resp.message());
+					switch(resp.code()) {
+						case RATE_LIMIT_CODE -> errorRateLimited.write(reply).send();
+						default -> {
+							ErrorOutputBuilder.remoteErrorCode(c.request(), resp).write(reply).send();
+							log.warn("remote host {} response code: {} ({})", c.request().url(), resp.code(), resp.message());
+						}
 					}
-					
+
 					// clear search cache, so we don't confuse user with old results
 					synchronized (resultStorage) {
 						resultStorage.invalidate(identifier);
