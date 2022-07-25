@@ -41,7 +41,7 @@ public interface SearXNGService {
 	}
 	
 	@Deprecated // dont call directly
-	@GET("search?format=json&lang=" + DEFAULT_LOCALE)
+	@GET("search?format=json&language=" + DEFAULT_LOCALE)
 	@SuppressWarnings({"MissingDeprecatedAnnotation"})
 	Call<SearXNGResult> search(
 			@Query("categories") String categories,
