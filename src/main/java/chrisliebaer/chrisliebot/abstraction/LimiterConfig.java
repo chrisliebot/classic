@@ -117,7 +117,7 @@ public class LimiterConfig {
 					}
 					
 					// commit current string buffer to output
-					out.add(prefix + sb.toString());
+					out.add(prefix + sb);
 					sb.setLength(0);
 				} else {
 					// append current string to string builder
@@ -130,7 +130,7 @@ public class LimiterConfig {
 			
 			// append pending string builer, if not empty
 			if (sb.length() != 0)
-				out.add(prefix + sb.toString());
+				out.add(prefix + sb);
 		}
 		
 		// we need to check if the output exceeds our limits and take appropriate action
