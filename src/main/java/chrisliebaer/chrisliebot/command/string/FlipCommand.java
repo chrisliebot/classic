@@ -36,7 +36,7 @@ public class FlipCommand implements ChrislieListener.Command {
 			else
 				sb.append(LOOKUP_FLIP.charAt(idx));
 		}
-		invc.reply("(╯°□°）╯ " + sb.reverse().toString());
+		invc.reply("(╯°□°）╯ " + sb.reverse());
 	}
 	
 	@Override
