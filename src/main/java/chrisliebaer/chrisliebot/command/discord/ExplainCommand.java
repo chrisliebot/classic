@@ -118,7 +118,6 @@ public class ExplainCommand implements ChrislieListener.Command {
 		} else {
 			ErrorOutputBuilder.generic("Ich konnte diese Nachricht leider nicht finden. Sie wurde entweder gelöscht oder du bist nicht berechtigt" +
 					" Informationen über diese Nachricht abzufragen.").write(invc).send();
-			return;
 		}
 	}
 }
