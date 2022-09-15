@@ -14,8 +14,8 @@ public class OutOfBandTransmission {
 	private static final String FILE_EXTENSION = ".txt";
 	private static final Charset CHARSET = StandardCharsets.UTF_8;
 	
-	 @NotBlankprivate String generator;
-	 @NotBlankprivate String path;
+	private @NotBlank String generator;
+	private @NotBlank String path;
 	
 	public String send(String content) throws IOException {
 		var uuid = UUID.randomUUID();
