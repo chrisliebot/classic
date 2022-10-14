@@ -9,6 +9,7 @@ import com.google.common.collect.Multimap;
 import lombok.extern.slf4j.Slf4j;
 import net.engio.mbassy.listener.Handler;
 import org.kitteh.irc.client.library.Client;
+import org.kitteh.irc.client.library.Client.Builder.Server.SecurityType;
 import org.kitteh.irc.client.library.command.CapabilityRequestCommand;
 import org.kitteh.irc.client.library.element.CapabilityState;
 import org.kitteh.irc.client.library.event.capabilities.CapabilitiesAcknowledgedEvent;
@@ -91,7 +92,7 @@ public class IrcBootstrap implements ServiceBootstrap {
 		server.host(host);
 		
 		if (port != null)
-			server.port(port);
+			server.port(port, secure ? SecurityType.SECURE : SecurityType.INSECURE);
 		
 		if (user != null)
 			builder.user(user);
@@ -101,9 +102,6 @@ public class IrcBootstrap implements ServiceBootstrap {
 		
 		if (serverPassword != null)
 			server.password(serverPassword);
-		
-		if (secure)
-			server.secure(true);
 		
 		if (flooding != null)
 			builder.management().messageSendingQueueSupplier(SingleDelaySender.getSupplier(flooding));

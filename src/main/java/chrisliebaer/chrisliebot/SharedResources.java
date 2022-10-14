@@ -31,7 +31,7 @@ public class SharedResources extends AbstractIdleService {
 	
 	private MariaDbPoolDataSource dataSource;
 	
-	public SharedResources(@NonNull String dataSource, @NonNull GsonValidator gson) {
+	public SharedResources(@NonNull String dataSource, @NonNull GsonValidator gson) throws SQLException {
 		this.dataSource = new MariaDbPoolDataSource(dataSource);
 		this.gson = gson;
 	}
