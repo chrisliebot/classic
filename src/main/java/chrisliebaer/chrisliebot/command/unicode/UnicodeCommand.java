@@ -55,7 +55,7 @@ public class UnicodeCommand implements ChrislieListener.Command {
 		var reply = invc.reply();
 		var maxCodepoints = invc.ref().flexConf().getIntegerOrFail("unicode.limit");
 		reply.title("Codepointanalyse (limitiert auf " + maxCodepoints + ")");
-		reply.field("Eingabe", input);
+		reply.field("Eingabe", input + " "); // add space because if discord strips the input, field will be empty which is api error
 		reply.field("Anzahl Codepoints", String.valueOf(cps.size()));
 		
 		cps.stream().limit(maxCodepoints).forEachOrdered(i -> printCodePoint(i, reply.description()));
