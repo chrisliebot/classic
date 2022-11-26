@@ -1,23 +1,15 @@
 package chrisliebaer.chrisliebot.command.searxng;
 
-import chrisliebaer.chrisliebot.command.searxng.generated.Result;
 import chrisliebaer.chrisliebot.command.searxng.generated.SearXNGResult;
-import chrisliebaer.chrisliebot.util.GsonValidator;
-import com.google.gson.JsonElement;
-import com.google.gson.reflect.TypeToken;
 import lombok.AllArgsConstructor;
-import lombok.Data;
 import retrofit2.Call;
 import retrofit2.http.GET;
 import retrofit2.http.Query;
 
 import javax.validation.constraints.NotNull;
-import java.util.ArrayList;
 import java.util.List;
-public interface SearXNGService {
 
-	//TODO: Move to config
-	String BASE_URL = "http://localhost:8080/";
+public interface SearXNGService {
 	
 	String DEFAULT_LOCALE = "en";
 	
@@ -29,7 +21,7 @@ public interface SearXNGService {
 	enum SafeSearch {
 		OFF(0),
 		ON(1);
-		private int code;
+		private final int code;
 	}
 	
 	@AllArgsConstructor
@@ -37,20 +29,20 @@ public interface SearXNGService {
 		WEB("general"),
 		NEWS("news"),
 		IMAGE("images");
-		private String code;
+		private final String code;
 	}
 	
 	@Deprecated // dont call directly
 	@GET("search?format=json&language=" + DEFAULT_LOCALE)
-	@SuppressWarnings({"MissingDeprecatedAnnotation"})
+	@SuppressWarnings("MissingDeprecatedAnnotation")
 	Call<SearXNGResult> search(
 			@Query("categories") String categories,
 			@Query("q") String query,
-			@Query("safesearch") int safesearch
-			// @Query("count") int count
+			@Query("safesearch") int safesearch,
+			@Query("engines") String engines
 	);
 	
-	default Call<SearXNGResult> search(String query, SafeSearch safesearch, @NotNull Type type) {
-		return search(type.code, query, safesearch.code);
+	default Call<SearXNGResult> search(String query, SafeSearch safesearch, @NotNull Type type, List<String> engines) {
+		return search(type.code, query, safesearch.code, String.join(",", engines));
 	}
 }
