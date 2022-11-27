@@ -317,26 +317,40 @@ public class DiscordService implements ChrislieService {
 						`sourceContent`
 					) VALUES (
 						?, ?, ?, ?, ?, ?, ?, ?, ?
-					)
+					) ON DUPLICATE KEY UPDATE
+						`sourceGuildId` = ?,
+						`sourceChannelId` = ?,
+						`sourceMessageId` = ?,
+						`sourceUserNickname` = ?,
+						`sourceUserDiscriminator` = ?,
+						`sourceUserId` = ?,
+						`sourceContent` = ?
 				""";
 		
 		try (var conn = bot.sharedResources().dataSource().getConnection(); var stmt = conn.prepareStatement(sql)) {
 			stmt.setLong(1, result.getChannel().getIdLong());
 			stmt.setLong(2, result.getIdLong());
 			
-			if (source.isFromGuild())
-				stmt.setLong(3, source.getGuild().getIdLong());
-			else
-				stmt.setNull(3, Types.BIGINT);
+			// required twice because of ON DUPLICATE KEY UPDATE
+			for (int i = 0; i < 2; i++) {
+				int k = i * 7;
+				
+				if (source.isFromGuild())
+					stmt.setLong(3 + k, source.getGuild().getIdLong());
+				else
+					stmt.setNull(3 + k, Types.BIGINT);
+				
+				stmt.setLong(4 + k, source.getChannel().getIdLong());
+				stmt.setLong(5 + k, source.getIdLong());
+				
+				var user = source.getAuthor();
+				stmt.setString(6 + k, user.getName());
+				stmt.setInt(7 + k, Integer.parseInt(user.getDiscriminator()));
+				stmt.setLong(8 + k, user.getIdLong());
+				stmt.setString(9 + k, source.getContentRaw());
+			}
 			
-			stmt.setLong(4, source.getChannel().getIdLong());
-			stmt.setLong(5, source.getIdLong());
 			
-			var user = source.getAuthor();
-			stmt.setString(6, user.getName());
-			stmt.setInt(7, Integer.parseInt(user.getDiscriminator()));
-			stmt.setLong(8, user.getIdLong());
-			stmt.setString(9, source.getContentRaw());
 			
 			stmt.executeUpdate();
 		} catch (SQLException e) {

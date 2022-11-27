@@ -3,6 +3,9 @@ package chrisliebaer.chrisliebot.command.mensa;
 import chrisliebaer.chrisliebot.C;
 import chrisliebaer.chrisliebot.Chrisliebot;
 import chrisliebaer.chrisliebot.abstraction.ChrislieFormat;
+import chrisliebaer.chrisliebot.abstraction.discord.DiscordChannelOutput;
+import chrisliebaer.chrisliebot.abstraction.discord.DiscordMessage;
+import chrisliebaer.chrisliebot.abstraction.discord.DiscordService;
 import chrisliebaer.chrisliebot.command.ChrislieListener;
 import chrisliebaer.chrisliebot.command.ListenerReference;
 import chrisliebaer.chrisliebot.command.mensa.api.MensaApiMeal;
@@ -119,6 +122,7 @@ public class MensaCommand implements ChrislieListener.Command {
 		
 		boolean useDisplay = true;
 		boolean isCron = false;
+		boolean isUpdate = false;
 		
 		// required since Arrays.asList doesn't support remove
 		var args = new ArrayList<>(Arrays.asList(arg.split(" ")));
@@ -133,6 +137,17 @@ public class MensaCommand implements ChrislieListener.Command {
 			} else if ("--cron".equals(next)) {
 				it.remove();
 				isCron = true;
+			} else if ("--update".equals(next)) {
+				if (invc.msg().forcedInvocation().isPresent()) {
+					isUpdate = true;
+					
+					// update is only supported on discord
+					if (!DiscordService.isDiscord(invc))
+						throw new ListenerException("Update is only supported on Discord");
+				} else {
+					log.trace("ignoring request for update since not triggered by forced invocation");
+				}
+				it.remove();
 			}
 		}
 		
@@ -292,7 +307,36 @@ public class MensaCommand implements ChrislieListener.Command {
 			}
 		}
 		
-		reply.send();
+		if (isUpdate && reply instanceof DiscordChannelOutput) {
+			var discordOutput = (DiscordChannelOutput) reply;
+			var discordMessage = (DiscordMessage)m;
+			var history = discordMessage.channel().messageChannel().getHistory();
+			history.retrievePast(1).submit().thenAccept(messages -> {
+				if (messages.isEmpty()) {
+					log.warn("Could not find message to update");
+					return;
+				}
+				
+				var lastMessage = messages.get(0);
+				if (!lastMessage.getAuthor().equals(lastMessage.getJDA().getSelfUser())) {
+					log.warn("Last message is not by bot");
+					return;
+				}
+				
+				// only update message if from today
+				if (!lastMessage.getTimeCreated().toLocalDate().equals(LocalDate.now())) {
+					log.warn("Last message is not from today");
+					return;
+				}
+				
+				discordOutput.discordEdit(lastMessage.getIdLong());
+			}).exceptionally(e -> {
+				log.error("Could not fetch message history for updating", e);
+				return null;
+			});
+		} else {
+			reply.send();
+		}
 	}
 	
 	private static long parseDayOffset(String s) {

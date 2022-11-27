@@ -9,7 +9,6 @@ import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.events.interaction.SlashCommandEvent;
-import net.dv8tion.jda.api.requests.restaction.WebhookMessageAction;
 
 import java.io.IOException;
 import java.util.Optional;
@@ -56,17 +55,9 @@ public class DiscordSlashCommandMessage implements ChrislieMessage {
 	
 	@Override
 	public ChrislieOutput reply(LimiterConfig limiter) {
-		return new AbstractDiscordOutput<Message>() { // the generic types are so broken
-			private boolean isError;
-			private WebhookMessageAction<Message> messageAction;
-			
+		return new AbstractDiscordOutput<Message>() {
 			@Override
-			public void markAsError() {
-				isError = true;
-			}
-			
-			@Override
-			protected CompletableFuture<Message> sink(SinkMessage message) {
+			protected CompletableFuture<Message> send(AbstractDiscordOutput<Message>.SinkMessage message) {
 				// file uploads my cause delays, so we have to ack message in all cases
 				if (!ev.isAcknowledged()) {
 					ev.deferReply(isError).queue();
@@ -86,6 +77,19 @@ public class DiscordSlashCommandMessage implements ChrislieMessage {
 				}
 				
 				return restAction.submit();
+			}
+			
+			@Override
+			protected CompletableFuture<Message> edit(AbstractDiscordOutput<Message>.SinkMessage message, long messageid) {
+				throw new UnsupportedOperationException("slash commands cannot edit arbitrary messages");
+			}
+			
+			// the generic types are so broken
+			private boolean isError;
+			
+			@Override
+			public void markAsError() {
+				isError = true;
 			}
 		};
 	}

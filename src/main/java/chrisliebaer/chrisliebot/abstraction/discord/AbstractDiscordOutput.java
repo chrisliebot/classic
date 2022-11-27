@@ -148,11 +148,15 @@ public abstract class AbstractDiscordOutput<RestObject> implements ChrislieOutpu
 	}
 	
 	public CompletableFuture<RestObject> discordSend() {
-		
-		return sink(new SinkMessage());
+		return send(new SinkMessage());
 	}
 	
-	protected abstract CompletableFuture<RestObject> sink(SinkMessage message);
+	public CompletableFuture<RestObject> discordEdit(long messageId) {
+		return edit(new SinkMessage(), messageId);
+	}
+	
+	protected abstract CompletableFuture<RestObject> send(SinkMessage message);
+	protected abstract CompletableFuture<RestObject> edit(SinkMessage message, long messageid);
 	
 	private static String escape4Discord(String s) {
 		return MarkdownSanitizer.escape(s);
