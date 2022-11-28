@@ -3,8 +3,8 @@ package chrisliebaer.chrisliebot.command.mensa;
 import chrisliebaer.chrisliebot.C;
 import chrisliebaer.chrisliebot.Chrisliebot;
 import chrisliebaer.chrisliebot.abstraction.ChrislieFormat;
+import chrisliebaer.chrisliebot.abstraction.discord.DiscordChannel;
 import chrisliebaer.chrisliebot.abstraction.discord.DiscordChannelOutput;
-import chrisliebaer.chrisliebot.abstraction.discord.DiscordMessage;
 import chrisliebaer.chrisliebot.abstraction.discord.DiscordService;
 import chrisliebaer.chrisliebot.command.ChrislieListener;
 import chrisliebaer.chrisliebot.command.ListenerReference;
@@ -309,8 +309,8 @@ public class MensaCommand implements ChrislieListener.Command {
 		
 		if (isUpdate && reply instanceof DiscordChannelOutput) {
 			var discordOutput = (DiscordChannelOutput) reply;
-			var discordMessage = (DiscordMessage)m;
-			var history = discordMessage.channel().messageChannel().getHistory();
+			var channel = ((DiscordChannel)m.channel()).messageChannel();
+			var history = channel.getHistory();
 			history.retrievePast(1).submit().thenAccept(messages -> {
 				if (messages.isEmpty()) {
 					log.warn("Could not find message to update");
