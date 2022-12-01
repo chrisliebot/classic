@@ -258,6 +258,11 @@ public class ChrislieDispatcher {
 		public void escalateException(Exception e) {
 			log.error("command invocation failed with exception: {}", invc, e);
 			
+			// forced invocations should not send error messages as there is no user expecting feedback
+			if (invc.msg().forcedInvocation().isPresent()) {
+				return;
+			}
+			
 			// if verbose mode is enabled, we output generic error message (note that we are not using the exception text, as it might contain private information)
 			if (invc.ref().flexConf().isSet(FlexConf.DISPATCHER_VERBOSE)) {
 				try {
