@@ -105,7 +105,7 @@ public class LimiterConfig {
 				if (remain.peekFirst().length() + sb.length() + 1 > limit) { // adding one for space
 					
 					// force split string if stringbuffer is empty, this happens if next word is too big even when on a single line
-					if (sb.length() == 0) {
+					if (sb.isEmpty()) {
 						String s = remain.removeFirst();
 						sb.append(s, 0, limit + 1);
 						
