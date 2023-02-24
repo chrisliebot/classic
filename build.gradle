@@ -70,6 +70,7 @@ dependencies {
 	// features
 	implementation 'com.google.re2j:re2j:1.7'
 	implementation group: 'org.twitter4j', name: 'twitter4j-core', version: '4.0.7'
+	implementation 'com.github.sys1yagi.mastodon4j:mastodon4j:1.7.0'
 	implementation 'com.github.chrisliebot:natty:fb30505e5e'
 	implementation 'dnsjava:dnsjava:3.5.1'
 	implementation 'org.nibor.autolink:autolink:0.10.0'
