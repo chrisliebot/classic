@@ -24,6 +24,7 @@ import javax.validation.constraints.NotEmpty;
 import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
 
@@ -155,7 +156,11 @@ public class MastodonTimelineNotifier extends AbstractIdleService implements Chr
 		
 		// wait for websocket to signal end
 		try {
-			latch.await();
+			while(!latch.await(5, TimeUnit.MINUTES)) {
+				// send ping every 5 minutes to keep connection alive
+				webSocket.send("ping");
+				log.trace("websocket ping sent");
+			}
 		} catch (InterruptedException e) {
 			log.warn("websocket monitor interrupted, closing websocket and terminating websocket connection");
 			webSocket.close(WebSocketCloseStatus.SERVICE_RESTART.code(), "endpoint shutting down");
@@ -224,7 +229,7 @@ public class MastodonTimelineNotifier extends AbstractIdleService implements Chr
 			if (ignoreReply && (status.getInReplyToId() != null || status.getInReplyToAccountId() != null))
 				return false;
 			
-			return handle.equals(status.getAccount().getAcct());
+			return handle.equalsIgnoreCase(status.getAccount().getAcct());
 		}
 	}
 	
