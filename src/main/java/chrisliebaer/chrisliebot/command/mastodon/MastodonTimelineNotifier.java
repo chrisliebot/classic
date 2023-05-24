@@ -77,6 +77,7 @@ public class MastodonTimelineNotifier extends AbstractIdleService implements Chr
 	private void run() {
 		while (!Thread.currentThread().isInterrupted()) {
 			try {
+				// function will return periodically, since mastodon will purge our timeline and stop sending events
 				startStream();
 			} catch (IOException e) {
 				log.warn("error during websocket connection, reconnecting", e);
@@ -156,10 +157,10 @@ public class MastodonTimelineNotifier extends AbstractIdleService implements Chr
 		
 		// wait for websocket to signal end
 		try {
-			while(!latch.await(5, TimeUnit.MINUTES)) {
-				// send ping every 5 minutes to keep connection alive
-				webSocket.send("ping");
-				log.trace("websocket ping sent");
+			while(!latch.await(1, TimeUnit.HOURS)) {
+				// mastodon is unable to handle long-lived connections, so we need to reconnect periodically
+				log.info("closing websocket to refresh connection");
+				webSocket.close(WebSocketCloseStatus.NORMAL_CLOSURE.code(), "refreshing connection");
 			}
 		} catch (InterruptedException e) {
 			log.warn("websocket monitor interrupted, closing websocket and terminating websocket connection");
