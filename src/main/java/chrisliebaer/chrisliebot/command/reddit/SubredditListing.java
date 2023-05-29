@@ -27,6 +27,7 @@ public class SubredditListing {
 		private String selftext;
 		private String title;
 		private String author;
+		@SerializedName("ups") private int upvotes;
 		@SerializedName("author_flair_text") private String authorFlairText;
 		private String permalink; // missing reddit domain prefix
 		@SerializedName("created_utc") private long createdUtc;

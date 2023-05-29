@@ -22,6 +22,7 @@ import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Positive;
 import java.io.IOException;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.concurrent.TimeUnit;
 
 @Slf4j
@@ -30,7 +31,8 @@ public class RedditListener implements ChrislieListener {
 	private static final int REDDIT_COLOR = 16721664;
 	
 	private Config cfg;
-	private long lastTimestamp;
+	
+	private final HashSet<String> posted = new HashSet<>();
 	
 	private Chrisliebot bot;
 	private ContextResolver resolver;
@@ -99,10 +101,30 @@ public class RedditListener implements ChrislieListener {
 			// reverse so we post in correct order
 			Collections.reverse(feed.data().children());
 			
+			// on first run, we just store the ids and assume that all posta have been posted
+			if (posted.isEmpty()) {
+				for (var container : feed.data().children()) {
+					var post = container.data();
+					
+					// on reddit, name is the id
+					posted.add(post.name());
+				}
+				return;
+			}
+			
 			for (var container : feed.data().children()) {
+				if (posted.contains(container.data().name()))
+					continue;
+				
+				// only post if enough upvotes
+				if (container.data().upvotes() < cfg.requiredUpvotes)
+					continue;
+				
 				var post = container.data();
 				var out = maybeChannel.get().output(limiterConf);
 				fillOutput(post, out);
+				
+				posted.add(post.name());
 				out.send();
 			}
 			
@@ -118,20 +140,7 @@ public class RedditListener implements ChrislieListener {
 		if (!resp.isSuccessful())
 			throw new IOException("request failed: " + resp.code());
 		
-		var feed = resp.body();
-		
-		// remove older entries
-		feed.data().children().removeIf(c -> c.data().createdUtc() <= lastTimestamp);
-		
-		// update last timestamp
-		if (feed.data().children() != null) {
-			for (var child : feed.data().children()) {
-				lastTimestamp = Math.max(child.data().createdUtc(), lastTimestamp);
-			}
-		}
-		log.trace("most recent timestamp for feed {}: {}", cfg.subreddit, lastTimestamp);
-		
-		return feed;
+		return resp.body();
 	}
 	
 	private void fillOutput(SubredditListing.PostData post, ChrislieOutput out) {
@@ -172,6 +181,7 @@ public class RedditListener implements ChrislieListener {
 		
 		@NotNull private ChrislieIdentifier.ChannelIdentifier channel;
 		@Positive private long delay;
+		@Positive private int requiredUpvotes;
 		@NotEmpty private String subreddit;
 	}
 }
