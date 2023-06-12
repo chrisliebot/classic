@@ -77,6 +77,9 @@ public class MastodonTimelineNotifier extends AbstractIdleService implements Chr
 	private void run() {
 		while (!Thread.currentThread().isInterrupted()) {
 			try {
+				// mastodon will cease sending events if the home feed is not requested for extended periods of time, so we request it every hour
+				requestHomeFeed();
+				
 				// function will return periodically, since mastodon will purge our timeline and stop sending events
 				startStream();
 			} catch (IOException e) {
@@ -158,14 +161,35 @@ public class MastodonTimelineNotifier extends AbstractIdleService implements Chr
 		// wait for websocket to signal end
 		try {
 			while(!latch.await(1, TimeUnit.HOURS)) {
-				// mastodon is unable to handle long-lived connections, so we need to reconnect periodically
-				log.info("closing websocket to refresh connection");
+				// home feed is already a mess, so lets also refresh the websocket every hour
 				webSocket.close(WebSocketCloseStatus.NORMAL_CLOSURE.code(), "refreshing connection");
 			}
 		} catch (InterruptedException e) {
 			log.warn("websocket monitor interrupted, closing websocket and terminating websocket connection");
 			webSocket.close(WebSocketCloseStatus.SERVICE_RESTART.code(), "endpoint shutting down");
 			Thread.currentThread().interrupt();
+		} finally {
+			webSocket.cancel();
+		}
+	}
+	
+	private void requestHomeFeed() {
+		var http = bot.sharedResources().httpClient();
+		
+		var request = new Request.Builder()
+				.url("https://" + cfg.mastodonHost() + "/api/v1/timelines/home?access_token=" + cfg.accessToken)
+				.build();
+		try (var response = http.newCall(request).execute()) {
+			if (!response.isSuccessful()) {
+				log.warn("error during home feed request: {}", response);
+				return;
+			}
+			
+			var code = response.code();
+			log.trace("home feed request returned {}", code);
+			
+		} catch (IOException e) {
+			log.warn("error during home feed request", e);
 		}
 	}
 	
