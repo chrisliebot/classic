@@ -151,10 +151,13 @@ public class RedditListener implements ChrislieListener {
 			out.authorUrl("https://www.reddit.com/user/" + author + "/");
 		}
 		
-		if (post.title() == null)
+		if (post.title() == null) {
 			out.title("Zum Beitrag", "https://www.reddit.com" + post.permalink());
-		else
-			out.title(post.title(), "https://www.reddit.com" + post.permalink());
+		} else {
+			// limit to 200 characters
+			var title = StringUtils.abbreviate(post.title(), 200);
+			out.title(title, "https://www.reddit.com" + post.permalink());
+		}
 		
 		if (post.preview() != null
 				&& !post.preview().images().isEmpty()) {
