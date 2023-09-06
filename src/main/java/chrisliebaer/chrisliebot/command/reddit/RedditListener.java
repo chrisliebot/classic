@@ -116,8 +116,8 @@ public class RedditListener implements ChrislieListener {
 				if (posted.contains(container.data().name()))
 					continue;
 				
-				// only post if enough upvotes
-				if (container.data().upvotes() < cfg.requiredUpvotes)
+				// only post if enough upvotes and post is not too old
+				if (container.data().upvotes() < cfg.requiredUpvotes || container.data().createdUtc() * 1000 + cfg.maxAge < System.currentTimeMillis())
 					continue;
 				
 				var post = container.data();
@@ -185,6 +185,7 @@ public class RedditListener implements ChrislieListener {
 		@NotNull private ChrislieIdentifier.ChannelIdentifier channel;
 		@Positive private long delay;
 		@Positive private int requiredUpvotes;
+		@Positive private long maxAge;
 		@NotEmpty private String subreddit;
 	}
 }
