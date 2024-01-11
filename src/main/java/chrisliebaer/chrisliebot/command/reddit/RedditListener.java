@@ -63,13 +63,6 @@ public class RedditListener implements ChrislieListener {
 	
 	@Override
 	public void start(Chrisliebot bot, ContextResolver resolver) throws ListenerException {
-		// initial request gets most recent posts timestamp
-		try {
-			fetch();
-		} catch (IOException e) {
-			throw new ListenerException("failed to fetch last timestamp", e);
-		}
-		
 		feedUpdate.startAsync().awaitRunning();
 	}
 	

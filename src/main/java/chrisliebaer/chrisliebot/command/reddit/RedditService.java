@@ -6,7 +6,7 @@ import retrofit2.http.Path;
 
 public interface RedditService {
 	
-	public static final String BASE_URL = "https://www.reddit.com/";
+	public static final String BASE_URL = "https://old.reddit.com/";
 	
 	@GET("r/{subreddit}/new.json?sort=new")
 	public Call<SubredditListing> getFeed(
