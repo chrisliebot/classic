@@ -144,7 +144,7 @@ public class DiscordService implements ChrislieService {
 	}
 	
 	/**
-	 * Fetches a member from the Discord API.
+	 * Fetches a member from the Discord API. Results, including absent members, are cached for a limited time.
 	 *
 	 * @param guild  The guild to look up the member in.
 	 * @param userId The id of the user.
