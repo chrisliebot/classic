@@ -12,6 +12,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.reflect.TypeToken;
 import net.dv8tion.jda.api.Permission;
 
+import java.util.Objects;
 import java.util.Set;
 
 public class DiscordPermissionSelector implements Selector {
@@ -22,19 +23,22 @@ public class DiscordPermissionSelector implements Selector {
 	@SuppressWarnings("EmptyClass")
 	public void fromJson(GsonValidator gson, JsonElement json) throws SelectorException {
 		permissions = gson.fromJson(json, new TypeToken<Set<Permission>>(){}.getType());
+		
+		// gson maps unknown enum constants to null
+		if (permissions.contains(null))
+			throw new SelectorException("unknown permission in: " + json);
 	}
 	
 	@Override
 	public boolean check(ChrislieMessage chrislieMessage) {
 		if (chrislieMessage instanceof DiscordMessage) {
 			var message = (DiscordMessage) chrislieMessage;
-			var maybeGuild = message.channel().guild();
-			if (maybeGuild.isEmpty())
+			var ev = message.ev();
+			if (!ev.isFromGuild())
 				return false;
-			var guild = maybeGuild.get().guild();
-			var member = guild.getMember(message.user().user());
-			if (member == null)
-				return false;
+			
+			// the member cache is not populated without the privileged members intent, but guild messages carry their author's member
+			var member = Objects.requireNonNull(ev.getMember(), "guild message without member");
 			
 			for (var perm : permissions)
 				if (!member.hasPermission(perm))

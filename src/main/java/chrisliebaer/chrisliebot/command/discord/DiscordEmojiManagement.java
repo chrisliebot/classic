@@ -43,8 +43,8 @@ public class DiscordEmojiManagement implements ChrislieListener.Command {
 			
 			// read emoji we want to modify
 			var argEmote = parser.word(true).consume().expect("Emoji Mention");
-			var maybeEmote = resolve(argEmote, Message.MentionType.EMOTE.getPattern(),
-					guild::getEmoteById, s -> guild.getEmotesByName(s, false), 2);
+			var maybeEmote = resolve(argEmote, Message.MentionType.EMOJI.getPattern(),
+					guild::getEmojiById, s -> guild.getEmojisByName(s, false), 2);
 			
 			if (maybeEmote.isEmpty()) {
 				ErrorOutputBuilder.generic("Ich weiß leider nicht auf welchen Emote du dich beziehst oder deine Auswahl ist doppeldeutig.").write(invc).send();

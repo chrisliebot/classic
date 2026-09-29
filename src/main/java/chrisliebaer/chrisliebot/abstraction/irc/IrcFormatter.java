@@ -1,9 +1,7 @@
 package chrisliebaer.chrisliebot.abstraction.irc;
 
 import chrisliebaer.chrisliebot.abstraction.ChrislieFormat;
-import chrisliebaer.chrisliebot.abstraction.discord.DiscordFormatter;
 import lombok.experimental.UtilityClass;
-import net.dv8tion.jda.api.MessageBuilder.Formatting;
 import org.kitteh.irc.client.library.util.Format;
 
 @SuppressWarnings("OverloadedMethodsWithSameNumberOfParameters")
@@ -11,10 +9,6 @@ import org.kitteh.irc.client.library.util.Format;
 public class IrcFormatter {
 	
 	public static String format(Object format, String s) {
-		
-		// convert discord->chrisliebot
-		if (format instanceof Formatting)
-			format = DiscordFormatter.discord2ChrislieFormat((Formatting) format);
 		
 		// handle irc directly
 		if (format instanceof Format)

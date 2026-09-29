@@ -1,6 +1,7 @@
 package chrisliebaer.chrisliebot.command.discord;
 
 import chrisliebaer.chrisliebot.abstraction.ChrislieFormat;
+import chrisliebaer.chrisliebot.abstraction.discord.DiscordGuildChannel;
 import chrisliebaer.chrisliebot.abstraction.discord.DiscordMessage;
 import chrisliebaer.chrisliebot.abstraction.discord.DiscordService;
 import chrisliebaer.chrisliebot.command.ChrislieListener;
@@ -8,6 +9,8 @@ import chrisliebaer.chrisliebot.command.ListenerReference;
 import chrisliebaer.chrisliebot.config.ChrislieContext;
 import chrisliebaer.chrisliebot.config.flex.CommonFlex;
 import chrisliebaer.chrisliebot.util.ErrorOutputBuilder;
+import net.dv8tion.jda.api.entities.channel.concrete.PrivateChannel;
+import net.dv8tion.jda.api.entities.channel.middleman.GuildMessageChannel;
 import net.dv8tion.jda.api.exceptions.ErrorResponseException;
 import net.dv8tion.jda.api.utils.TimeUtil;
 
@@ -58,7 +61,7 @@ public class ExplainCommand implements ChrislieListener.Command {
 					if (channel != null)
 						ownMessage = channel.retrieveMessageById(messageId).complete();
 				} else {
-					var channel = jda.getTextChannelById(channelId);
+					var channel = jda.getChannelById(GuildMessageChannel.class, channelId);
 					if (channel != null)
 						ownMessage = channel.retrieveMessageById(messageId).complete();
 				}
@@ -71,13 +74,9 @@ public class ExplainCommand implements ChrislieListener.Command {
 		 * that they don't have access to. therefore it is important to merge the general case of a wrong message handle with the
 		 * case of missing permissions
 		 */
-		if (ownMessage != null && switch (ownMessage.getChannelType()) {
-			case TEXT -> {
-				var guild = ownMessage.getGuild();
-				var member = guild.getMember(requestee);
-				yield ownMessage.getTextChannel().getMembers().contains(member);
-			}
-			case PRIVATE -> ownMessage.getPrivateChannel().getUser().equals(requestee);
+		if (ownMessage != null && switch (ownMessage.getChannel()) {
+			case GuildMessageChannel channel -> new DiscordGuildChannel(service, channel).user(requestee.getId()).isPresent();
+			case PrivateChannel channel -> requestee.equals(channel.getUser());
 			default -> false;
 		}) {
 			if (!jda.getSelfUser().equals(ownMessage.getAuthor())) {
@@ -91,7 +90,7 @@ public class ExplainCommand implements ChrislieListener.Command {
 				return;
 			}
 			var source = maybeSource.get();
-			var user = jda.getUserById(source.userId());
+			var maybeUser = service.user(String.valueOf(source.userId()));
 			var guildTarget = source.guildId() == 0 ? "@me" : String.valueOf(source.guildId());
 			
 			var out = invc.reply();
@@ -100,7 +99,8 @@ public class ExplainCommand implements ChrislieListener.Command {
 			plain.append("[Meine Nachricht](" + ownMessage.getJumpUrl() +")").newLine().newLine();
 			plain.append("...war eine Reaktion auf...").newLine().newLine();
 			plain.append("[Link zur Nachricht](https://discord.com/channels/%s/%s/%s)".formatted(guildTarget, source.channelId(), source.messageId()));
-			if (user != null) {
+			if (maybeUser.isPresent()) {
+				var user = maybeUser.get().user();
 				plain.newLine().append("Nutzer: ").appendEscape(user.getAsMention());
 				out.authorIcon(user.getAvatarUrl());
 			}
@@ -108,7 +108,7 @@ public class ExplainCommand implements ChrislieListener.Command {
 					.append("Nachrichteninhalt", ChrislieFormat.BOLD).newLine()
 					.appendEscape(source.content(), ChrislieFormat.QUOTE);
 			
-			out.author("%s#%04d".formatted(source.nickname(), source.discriminator()));
+			out.author(source.nickname());
 			
 			var zoneId = CommonFlex.ZONE_ID().getOrFail(invc);
 			var formatter = CommonFlex.DATE_TIME_FORMAT().getOrFail(invc);

@@ -37,7 +37,7 @@ public class UserIsPartOfGuild implements Selector {
 	@Override
 	public boolean check(ChrislieUser user) {
 		var guild = user.service().guild(cfg.guild);
-		return guild.map(g -> g.users().contains(user)).orElse(false);
+		return guild.map(g -> g.isMember(user)).orElse(false);
 	}
 	
 	@Override

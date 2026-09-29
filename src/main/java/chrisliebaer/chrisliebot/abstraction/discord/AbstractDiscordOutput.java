@@ -10,9 +10,9 @@ import lombok.Data;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import net.dv8tion.jda.api.EmbedBuilder;
-import net.dv8tion.jda.api.MessageBuilder;
-import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.utils.MarkdownSanitizer;
+import net.dv8tion.jda.api.utils.messages.MessageCreateBuilder;
+import net.dv8tion.jda.api.utils.messages.MessageCreateData;
 import okhttp3.OkHttpClient;
 
 import java.awt.*;
@@ -151,12 +151,7 @@ public abstract class AbstractDiscordOutput<RestObject> implements ChrislieOutpu
 		return send(new SinkMessage());
 	}
 	
-	public CompletableFuture<RestObject> discordEdit(long messageId) {
-		return edit(new SinkMessage(), messageId);
-	}
-	
 	protected abstract CompletableFuture<RestObject> send(SinkMessage message);
-	protected abstract CompletableFuture<RestObject> edit(SinkMessage message, long messageid);
 	
 	private static String escape4Discord(String s) {
 		return MarkdownSanitizer.escape(s);
@@ -192,12 +187,11 @@ public abstract class AbstractDiscordOutput<RestObject> implements ChrislieOutpu
 	 */
 	public class SinkMessage {
 		
-		private Message prepare(EmbedBuilder localEmbedBuilder) {
+		private MessageCreateData prepare(EmbedBuilder localEmbedBuilder) {
 			localEmbedBuilder.setDescription(description.string());
-			MessageBuilder mb = new MessageBuilder();
+			var mb = new MessageCreateBuilder();
 			
 			// block all mentions by default and apply collected mention rules from output instance
-			mb.setAllowedMentions(List.of());
 			plain.applyMentionRules(mb);
 			
 			if (!localEmbedBuilder.isEmpty()) {
@@ -206,10 +200,10 @@ public abstract class AbstractDiscordOutput<RestObject> implements ChrislieOutpu
 				if (!colorSet)
 					stackTraceColor.ifPresent(localEmbedBuilder::setColor);
 				
-				mb.setEmbed(localEmbedBuilder.build());
+				mb.setEmbeds(localEmbedBuilder.build());
 			}
 			
-			mb.append(plain.string());
+			mb.setContent(plain.string());
 			return mb.build();
 		}
 		
@@ -218,7 +212,7 @@ public abstract class AbstractDiscordOutput<RestObject> implements ChrislieOutpu
 		 *
 		 * @return The requested message.
 		 */
-		public Message noUpload() {
+		public MessageCreateData noUpload() {
 			return prepare(embedBuilder);
 		}
 		
@@ -259,7 +253,7 @@ public abstract class AbstractDiscordOutput<RestObject> implements ChrislieOutpu
 	@AllArgsConstructor
 	public static class SinkMessageData {
 		
-		private final Message message;
+		private final MessageCreateData message;
 		private final List<UploadFile> files;
 		
 		@Data

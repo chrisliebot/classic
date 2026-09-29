@@ -2,11 +2,12 @@ package chrisliebaer.chrisliebot.abstraction.discord;
 
 import lombok.Getter;
 import lombok.NonNull;
-import net.dv8tion.jda.api.entities.MessageChannel;
-import net.dv8tion.jda.api.entities.PrivateChannel;
 import net.dv8tion.jda.api.entities.User;
+import net.dv8tion.jda.api.entities.channel.concrete.PrivateChannel;
+import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 public class DiscordPrivateChannel implements DiscordChannel {
@@ -20,7 +21,7 @@ public class DiscordPrivateChannel implements DiscordChannel {
 		this.service = service;
 		this.channel = channel;
 		
-		user = channel.getUser();
+		user = Objects.requireNonNull(channel.getUser(), "private channel without user");
 	}
 	
 	@Override

@@ -3,7 +3,6 @@ package chrisliebaer.chrisliebot.abstraction.discord;
 import chrisliebaer.chrisliebot.abstraction.ChrislieFormat;
 import chrisliebaer.chrisliebot.abstraction.irc.IrcFormatter;
 import lombok.experimental.UtilityClass;
-import net.dv8tion.jda.api.MessageBuilder.Formatting;
 import net.dv8tion.jda.api.utils.MarkdownUtil;
 import org.kitteh.irc.client.library.util.Format;
 
@@ -16,10 +15,6 @@ public class DiscordFormatter {
 		// convert irc->chrisliebot
 		if (format instanceof Format)
 			format = IrcFormatter.irc2ChrislieFormat((Format) format);
-		
-		// convert discord->chrisliebot (since jda requires message builder for applying formatting)
-		if (format instanceof Formatting)
-			format = discord2ChrislieFormat((Formatting) format);
 		
 		// handle chrisliebot formattings
 		if (format instanceof ChrislieFormat)
@@ -44,16 +39,6 @@ public class DiscordFormatter {
 			case QUOTE -> MarkdownUtil.quote(s);
 			case STRIKETHROUGH -> MarkdownUtil.strike(s);
 			case NONE -> s;
-		};
-	}
-	
-	public static ChrislieFormat discord2ChrislieFormat(Formatting format) {
-		return switch (format) {
-			case ITALICS -> ChrislieFormat.ITALIC;
-			case BOLD -> ChrislieFormat.BOLD;
-			case UNDERLINE -> ChrislieFormat.UNDERLINE;
-			case STRIKETHROUGH -> ChrislieFormat.STRIKETHROUGH;
-			case BLOCK -> ChrislieFormat.BLOCK;
 		};
 	}
 }

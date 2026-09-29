@@ -8,7 +8,8 @@ import lombok.Getter;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import net.dv8tion.jda.api.entities.Message;
-import net.dv8tion.jda.api.events.interaction.SlashCommandEvent;
+import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
+import net.dv8tion.jda.api.utils.FileUpload;
 
 import java.io.IOException;
 import java.util.Optional;
@@ -18,21 +19,17 @@ import java.util.concurrent.CompletableFuture;
 public class DiscordSlashCommandMessage implements ChrislieMessage {
 	
 	@Getter private final DiscordService service;
-	@Getter private final SlashCommandEvent ev;
+	@Getter private final SlashCommandInteractionEvent ev;
 	
 	@Getter private final DiscordChannel channel;
 	
 	private final ChrislieDispatcher.CommandParse parse;
 	
-	public DiscordSlashCommandMessage(@NonNull DiscordService service, @NonNull SlashCommandEvent ev) {
+	public DiscordSlashCommandMessage(@NonNull DiscordService service, @NonNull SlashCommandInteractionEvent ev) {
 		this.service = service;
 		this.ev = ev;
 		
-		switch (ev.getChannelType()) {
-			case TEXT -> channel = new DiscordGuildChannel(service, ev.getTextChannel());
-			case PRIVATE -> channel = new DiscordPrivateChannel(service, ev.getPrivateChannel());
-			default -> throw new RuntimeException("message was sent in unkown channel type");
-		}
+		channel = DiscordChannel.of(service, ev.getChannel());
 		
 		var arg = ev.getOption(DiscordService.SLASH_COMMAND_ARG_NAME);
 		parse = new ChrislieDispatcher.CommandParse(ev.getName(), arg == null ? "" : arg.getAsString());
@@ -69,7 +66,7 @@ public class DiscordSlashCommandMessage implements ChrislieMessage {
 				var restAction = hook.sendMessage(sinkData.message()).setEphemeral(isError);
 				try {
 					for (var file : sinkData.files()) {
-						restAction = restAction.addFile(file.download(), file.filename());
+						restAction = restAction.addFiles(FileUpload.fromData(file.download(), file.filename()));
 					}
 				} catch (IOException e) {
 					log.warn("failed to upload attachments, falling back to regular message", e);
@@ -77,11 +74,6 @@ public class DiscordSlashCommandMessage implements ChrislieMessage {
 				}
 				
 				return restAction.submit();
-			}
-			
-			@Override
-			protected CompletableFuture<Message> edit(AbstractDiscordOutput<Message>.SinkMessage message, long messageid) {
-				throw new UnsupportedOperationException("slash commands cannot edit arbitrary messages");
 			}
 			
 			// the generic types are so broken
