@@ -8,8 +8,6 @@ import lombok.ToString;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.channel.middleman.GuildMessageChannel;
-import net.dv8tion.jda.api.exceptions.ErrorResponseException;
-import net.dv8tion.jda.api.requests.ErrorResponse;
 
 import java.util.Collection;
 import java.util.Optional;
@@ -47,18 +45,11 @@ public class DiscordGuild implements ChrislieGuild {
 	}
 
 	/**
-	 * Fetches a member from Discord, since the member cache is not populated without the privileged members intent.
-	 *
 	 * @param userId The id of the user.
 	 * @return The member or an empty optional if the user is not part of this guild.
+	 * @see DiscordService#member(Guild, String)
 	 */
 	public Optional<Member> member(String userId) {
-		try {
-			return Optional.of(guild.retrieveMemberById(userId).complete());
-		} catch (ErrorResponseException e) {
-			if (e.getErrorResponse() == ErrorResponse.UNKNOWN_MEMBER)
-				return Optional.empty();
-			throw e;
-		}
+		return service.member(guild, userId);
 	}
 }

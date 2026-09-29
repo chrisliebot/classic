@@ -12,6 +12,8 @@ import chrisliebaer.chrisliebot.config.ContextResolver;
 import chrisliebaer.chrisliebot.config.flex.FlexConf;
 import chrisliebaer.chrisliebot.config.scope.Selector;
 import chrisliebaer.chrisliebot.util.BetterScheduledService;
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
 import com.google.common.util.concurrent.AbstractScheduledService;
 import lombok.Getter;
 import lombok.NonNull;
@@ -19,6 +21,7 @@ import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.Guild;
+import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.entities.channel.middleman.GuildMessageChannel;
@@ -71,7 +74,15 @@ public class DiscordService implements ChrislieService {
 	private final Set<Long> registeredGuilds = new HashSet<>();
 	
 	private final BetterScheduledService commandUpdaterService;
-	
+
+	/**
+	 * Caches member lookups, including absent members, since scope selectors query guild memberships for every direct
+	 * message.
+	 */
+	private final Cache<MemberKey, Optional<Member>> memberCache = CacheBuilder.newBuilder()
+			.expireAfterWrite(10, TimeUnit.MINUTES)
+			.build();
+
 	@SuppressWarnings("ThisEscapedInObjectConstruction")
 	public DiscordService(Chrisliebot bot, JDA jda, String identifier, boolean updateSlashCommands) {
 		this.bot = bot;
@@ -137,6 +148,31 @@ public class DiscordService implements ChrislieService {
 		}
 	}
 	
+	/**
+	 * Fetches a member from Discord, since the member cache is not populated without the privileged members intent.
+	 *
+	 * @param guild  The guild to look up the member in.
+	 * @param userId The id of the user.
+	 * @return The member or an empty optional if the user is not part of the guild.
+	 */
+	public Optional<Member> member(Guild guild, String userId) {
+		var key = new MemberKey(guild.getIdLong(), userId);
+		var cached = memberCache.getIfPresent(key);
+		if (cached != null)
+			return cached;
+
+		Optional<Member> member;
+		try {
+			member = Optional.of(guild.retrieveMemberById(userId).complete());
+		} catch (ErrorResponseException e) {
+			if (e.getErrorResponse() != ErrorResponse.UNKNOWN_MEMBER)
+				throw e;
+			member = Optional.empty();
+		}
+		memberCache.put(key, member);
+		return member;
+	}
+
 	@Override
 	public Optional<DiscordGuild> guild(String identifier) {
 		return Optional.ofNullable(jda.getGuildById(identifier))
@@ -398,4 +434,6 @@ public class DiscordService implements ChrislieService {
 	public static boolean isDiscord(ServiceAttached service) {
 		return service.service() instanceof DiscordService;
 	}
+	
+	private record MemberKey(long guildId, String userId) {}
 }
