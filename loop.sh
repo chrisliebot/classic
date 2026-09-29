@@ -11,7 +11,6 @@ while true; do
 		-Dlog4j2.formatMsgNoLookups=true \
 		-Xmx200m \
 		-XX:+UseStringDeduplication \
-		--enable-preview \
 		-jar ../chrisliebot-*.jar
 	code=$?
 

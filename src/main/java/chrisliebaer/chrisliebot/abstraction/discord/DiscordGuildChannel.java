@@ -2,19 +2,21 @@ package chrisliebaer.chrisliebot.abstraction.discord;
 
 import lombok.Getter;
 import lombok.NonNull;
-import net.dv8tion.jda.api.entities.MessageChannel;
-import net.dv8tion.jda.api.entities.TextChannel;
+import net.dv8tion.jda.api.Permission;
+import net.dv8tion.jda.api.entities.channel.attribute.IAgeRestrictedChannel;
+import net.dv8tion.jda.api.entities.channel.concrete.ThreadChannel;
+import net.dv8tion.jda.api.entities.channel.middleman.GuildMessageChannel;
+import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 public class DiscordGuildChannel implements DiscordChannel {
 	
 	@Getter private DiscordService service;
-	@Getter private TextChannel channel;
+	@Getter private GuildMessageChannel channel;
 	
-	public DiscordGuildChannel(@NonNull DiscordService service, @NonNull TextChannel channel) {
+	public DiscordGuildChannel(@NonNull DiscordService service, @NonNull GuildMessageChannel channel) {
 		this.service = service;
 		this.channel = channel;
 	}
@@ -34,11 +36,21 @@ public class DiscordGuildChannel implements DiscordChannel {
 		return channel.getAsMention();
 	}
 	
+	/**
+	 * Listing the members of a guild channel requires the privileged members intent.
+	 *
+	 * @throws UnsupportedOperationException Always.
+	 */
 	@Override
 	public List<DiscordUser> users() {
-		return channel.getMembers().stream()
-				.map(member -> new DiscordUser(service, member.getUser()))
-				.collect(Collectors.toList());
+		throw new UnsupportedOperationException("listing members of a guild channel requires the privileged members intent");
+	}
+	
+	@Override
+	public Optional<DiscordUser> user(String identifier) {
+		return new DiscordGuild(service, channel.getGuild()).member(identifier)
+				.filter(member -> member.hasPermission(channel, Permission.VIEW_CHANNEL))
+				.map(member -> new DiscordUser(service, member.getUser()));
 	}
 	
 	@Override
@@ -53,7 +65,10 @@ public class DiscordGuildChannel implements DiscordChannel {
 	public boolean isDirectMessage() {return false;}
 	
 	@Override
-	public boolean isNSFW() {return channel.isNSFW();}
+	public boolean isNSFW() {
+		var ageRestricted = channel instanceof ThreadChannel thread ? thread.getParentChannel() : channel;
+		return ageRestricted instanceof IAgeRestrictedChannel restricted && restricted.isNSFW();
+	}
 	
 	@Override
 	public MessageChannel messageChannel() {

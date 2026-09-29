@@ -12,6 +12,8 @@ import chrisliebaer.chrisliebot.config.ContextResolver;
 import chrisliebaer.chrisliebot.config.flex.FlexConf;
 import chrisliebaer.chrisliebot.config.scope.Selector;
 import chrisliebaer.chrisliebot.util.BetterScheduledService;
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
 import com.google.common.util.concurrent.AbstractScheduledService;
 import lombok.Getter;
 import lombok.NonNull;
@@ -19,20 +21,22 @@ import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.Guild;
+import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Message;
-import net.dv8tion.jda.api.entities.TextChannel;
 import net.dv8tion.jda.api.entities.User;
-import net.dv8tion.jda.api.events.ShutdownEvent;
+import net.dv8tion.jda.api.entities.channel.middleman.GuildMessageChannel;
 import net.dv8tion.jda.api.events.guild.GuildJoinEvent;
-import net.dv8tion.jda.api.events.interaction.SlashCommandEvent;
+import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
+import net.dv8tion.jda.api.events.session.ShutdownEvent;
 import net.dv8tion.jda.api.exceptions.ErrorResponseException;
 import net.dv8tion.jda.api.hooks.SubscribeEvent;
 import net.dv8tion.jda.api.interactions.commands.Command;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
-import net.dv8tion.jda.api.interactions.commands.build.BaseCommand;
-import net.dv8tion.jda.api.interactions.commands.build.CommandData;
-import org.apache.commons.lang.StringUtils;
+import net.dv8tion.jda.api.interactions.commands.build.Commands;
+import net.dv8tion.jda.api.interactions.commands.build.SlashCommandData;
+import net.dv8tion.jda.api.requests.ErrorResponse;
+import org.apache.commons.lang3.StringUtils;
 
 import java.sql.SQLException;
 import java.sql.Types;
@@ -71,6 +75,10 @@ public class DiscordService implements ChrislieService {
 	
 	private final BetterScheduledService commandUpdaterService;
 	
+	private final Cache<MemberKey, Optional<Member>> memberCache = CacheBuilder.newBuilder()
+			.expireAfterWrite(10, TimeUnit.MINUTES)
+			.build();
+	
 	@SuppressWarnings("ThisEscapedInObjectConstruction")
 	public DiscordService(Chrisliebot bot, JDA jda, String identifier, boolean updateSlashCommands) {
 		this.bot = bot;
@@ -92,14 +100,14 @@ public class DiscordService implements ChrislieService {
 	@Override
 	public Optional<ChrislieChannel> channel(String identifier) {
 		if (identifier.startsWith(PREFIX_GUILD_CHANNEL)) {
-			var channel = jda.getGuildChannelById(identifier.substring(PREFIX_GUILD_CHANNEL.length()));
-			return channel == null ? Optional.empty() : Optional.of(new DiscordGuildChannel(this, (TextChannel) channel));
+			var channel = jda.getChannelById(GuildMessageChannel.class, identifier.substring(PREFIX_GUILD_CHANNEL.length()));
+			return channel == null ? Optional.empty() : Optional.of(new DiscordGuildChannel(this, channel));
 		}
 		if (identifier.startsWith(PREFIX_PRIVATE_CHANNEL)) {
-			var user = jda.getUserById(identifier.substring(PREFIX_PRIVATE_CHANNEL.length()));
-			if (user == null)
+			var maybeUser = retrieveUser(identifier.substring(PREFIX_PRIVATE_CHANNEL.length()));
+			if (maybeUser.isEmpty())
 				return Optional.empty();
-			var future = user.openPrivateChannel().submit();
+			var future = maybeUser.get().openPrivateChannel().submit();
 			try {
 				var channel = future.get();
 				return Optional.of(new DiscordPrivateChannel(this, channel));
@@ -116,8 +124,48 @@ public class DiscordService implements ChrislieService {
 	
 	@Override
 	public Optional<DiscordUser> user(String identifier) {
-		User user = jda.getUserById(identifier);
-		return user == null ? Optional.empty() : Optional.of(new DiscordUser(this, user));
+		return retrieveUser(identifier).map(user -> new DiscordUser(this, user));
+	}
+	
+	/**
+	 * Fetches a user from the Discord API.
+	 *
+	 * @param identifier The id of the user.
+	 * @return The user or an empty optional if no such user exists.
+	 */
+	private Optional<User> retrieveUser(String identifier) {
+		try {
+			return Optional.of(jda.retrieveUserById(identifier).complete());
+		} catch (ErrorResponseException e) {
+			if (e.getErrorResponse() == ErrorResponse.UNKNOWN_USER)
+				return Optional.empty();
+			throw e;
+		}
+	}
+	
+	/**
+	 * Fetches a member from the Discord API. Results, including absent members, are cached for a limited time.
+	 *
+	 * @param guild  The guild to look up the member in.
+	 * @param userId The id of the user.
+	 * @return The member or an empty optional if the user is not part of the guild.
+	 */
+	public Optional<Member> member(Guild guild, String userId) {
+		var key = new MemberKey(guild.getIdLong(), userId);
+		var cached = memberCache.getIfPresent(key);
+		if (cached != null)
+			return cached;
+		
+		Optional<Member> member;
+		try {
+			member = Optional.of(guild.retrieveMemberById(userId).complete());
+		} catch (ErrorResponseException e) {
+			if (e.getErrorResponse() != ErrorResponse.UNKNOWN_MEMBER)
+				throw e;
+			member = Optional.empty();
+		}
+		memberCache.put(key, member);
+		return member;
 	}
 	
 	@Override
@@ -202,7 +250,7 @@ public class DiscordService implements ChrislieService {
 		var refs = ctx.listeners().values();
 		
 		// build list of command data for discord api from context refs
-		var commandDatas = new ArrayList<CommandData>();
+		var commandDatas = new ArrayList<SlashCommandData>();
 		for (var ref : refs) {
 			
 			// check if dispatcher is disabled for command (inheritance will also make global disable flag visible)
@@ -236,13 +284,13 @@ public class DiscordService implements ChrislieService {
 				help = Optional.of("Keine Hilfe verfügbar.");
 			}
 			
-			commandDatas.add(new CommandData(alias, StringUtils.abbreviate(help.get(), 100))
+			commandDatas.add(Commands.slash(alias, StringUtils.abbreviate(help.get(), 100))
 					.addOption(OptionType.STRING, SLASH_COMMAND_ARG_NAME, "Argumente für diesen befehl."));
 		}
 		
 		// collect new commands
 		var neww = commandDatas.stream()
-				.map(BaseCommand::getName)
+				.map(SlashCommandData::getName)
 				.filter(not(existing::contains))
 				.collect(Collectors.toList());
 		
@@ -265,7 +313,7 @@ public class DiscordService implements ChrislieService {
 	}
 	
 	@SubscribeEvent
-	public void onSlashCommand(SlashCommandEvent ev) {
+	public void onSlashCommand(SlashCommandInteractionEvent ev) {
 		if (sink == null)
 			return;
 		
@@ -313,16 +361,15 @@ public class DiscordService implements ChrislieService {
 					INSERT INTO `discord_message_trace`
 					(
 						`channelId`, `messageId`,
-						`sourceGuildId`, `sourceChannelId`, `sourceMessageId`, `sourceUserNickname`, `sourceUserDiscriminator`, `sourceUserId`,
+						`sourceGuildId`, `sourceChannelId`, `sourceMessageId`, `sourceUserNickname`, `sourceUserId`,
 						`sourceContent`
 					) VALUES (
-						?, ?, ?, ?, ?, ?, ?, ?, ?
+						?, ?, ?, ?, ?, ?, ?, ?
 					) ON DUPLICATE KEY UPDATE
 						`sourceGuildId` = ?,
 						`sourceChannelId` = ?,
 						`sourceMessageId` = ?,
 						`sourceUserNickname` = ?,
-						`sourceUserDiscriminator` = ?,
 						`sourceUserId` = ?,
 						`sourceContent` = ?
 				""";
@@ -333,7 +380,7 @@ public class DiscordService implements ChrislieService {
 			
 			// required twice because of ON DUPLICATE KEY UPDATE
 			for (int i = 0; i < 2; i++) {
-				int k = i * 7;
+				int k = i * 6;
 				
 				if (source.isFromGuild())
 					stmt.setLong(3 + k, source.getGuild().getIdLong());
@@ -345,9 +392,8 @@ public class DiscordService implements ChrislieService {
 				
 				var user = source.getAuthor();
 				stmt.setString(6 + k, user.getName());
-				stmt.setInt(7 + k, Integer.parseInt(user.getDiscriminator()));
-				stmt.setLong(8 + k, user.getIdLong());
-				stmt.setString(9 + k, source.getContentRaw());
+				stmt.setLong(7 + k, user.getIdLong());
+				stmt.setString(8 + k, source.getContentRaw());
 			}
 			
 			
@@ -360,7 +406,7 @@ public class DiscordService implements ChrislieService {
 	
 	public Optional<TraceMessageSource> fetchMessageTrace(@NonNull Message msg) {
 		var sql = """
-					SELECT `sourceGuildId`, `sourceChannelId`, `sourceMessageId`, `sourceUserNickname`, `sourceUserDiscriminator`, `sourceUserId`, `sourceContent`
+					SELECT `sourceGuildId`, `sourceChannelId`, `sourceMessageId`, `sourceUserNickname`, `sourceUserId`, `sourceContent`
 					FROM discord_message_trace
 					WHERE channelId = ? AND messageId = ?
 					LIMIT 1
@@ -383,4 +429,6 @@ public class DiscordService implements ChrislieService {
 	public static boolean isDiscord(ServiceAttached service) {
 		return service.service() instanceof DiscordService;
 	}
+	
+	private record MemberKey(long guildId, String userId) {}
 }

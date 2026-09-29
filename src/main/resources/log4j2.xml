@@ -20,14 +20,12 @@
 		<Logger name="io.netty" level="INFO"/>
 		<Logger name="chrisliebaer.chrisliebot.abstraction.irc.IrcLogger" level="INFO"/>
 		<Logger name="chrisliebaer.chrisliebot.config.ChrislieContext" level="DEBUG"/>
-		<Logger name="chrisliebaer.chrisliebot.command.mensa.MensaCommand" level="DEBUG"/>
 		<Logger name="chrisliebaer.chrisliebot.util.IrcToSqlLogger" level="DEBUG"/>
 		<Logger name="chrisliebaer.chrisliebot.command.ChrislieDispatcher" level="DEBUG"/>
 		<Logger name="org.zeroturnaround.exec.stream" level="DEBUG"/>
 		<Logger name="com.joestelmach.natty" level="ERROR"/>
 		<Logger name="net.dv8tion.jda" level="INFO"/>
 		<Logger name="org.hibernate.validator" level="WARN"/>
-		<Logger name="twitter4j" level="WARN"/>
 		
 		
 		<Root level="TRACE">

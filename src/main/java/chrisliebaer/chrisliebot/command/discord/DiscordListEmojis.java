@@ -7,8 +7,8 @@ import chrisliebaer.chrisliebot.abstraction.discord.DiscordService;
 import chrisliebaer.chrisliebot.command.ChrislieListener;
 import chrisliebaer.chrisliebot.command.ListenerReference;
 import chrisliebaer.chrisliebot.config.ChrislieContext;
-import net.dv8tion.jda.api.entities.Emote;
 import net.dv8tion.jda.api.entities.MessageEmbed;
+import net.dv8tion.jda.api.entities.emoji.RichCustomEmoji;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -36,8 +36,8 @@ public class DiscordListEmojis implements ChrislieListener.Command {
 		
 		// some emotes might be limited to certain roles, and can't be posted, but we still track them
 		int filtered = 0;
-		var list = new ArrayList<Emote>();
-		for (var emote : jda.getEmotes()) {
+		var list = new ArrayList<RichCustomEmoji>();
+		for (var emote : jda.getEmojis()) {
 			if (emote.canInteract(self, channel))
 				list.add(emote);
 			else

@@ -52,7 +52,7 @@ public class NickCommand implements ChrislieListener.Command {
 			guild = guild.or(() -> invc.msg().channel().guild().map(o -> ((DiscordGuild) o).guild()));
 		}
 		
-		var member = guild.map(g -> g.getMember(jda.getSelfUser()));
+		var member = guild.map(Guild::getSelfMember);
 		
 		// empty argument means clearing nickname if in guild
 		if (arg.isBlank() && member.isPresent()) {

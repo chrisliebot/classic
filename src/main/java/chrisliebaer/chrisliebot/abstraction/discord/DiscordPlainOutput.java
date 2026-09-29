@@ -3,10 +3,12 @@ package chrisliebaer.chrisliebot.abstraction.discord;
 
 import chrisliebaer.chrisliebot.abstraction.PlainOutputImpl;
 import lombok.NonNull;
-import net.dv8tion.jda.api.MessageBuilder;
+import net.dv8tion.jda.api.entities.Message.MentionType;
+import net.dv8tion.jda.api.utils.messages.MessageCreateBuilder;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.EnumSet;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -21,31 +23,36 @@ import static net.dv8tion.jda.api.entities.Message.MentionType.*;
  */
 public class DiscordPlainOutput extends PlainOutputImpl {
 	
-	private final List<Consumer<MessageBuilder>> mentionsTransformers = new ArrayList<>();
+	private final Set<MentionType> allowedMentions = EnumSet.noneOf(MentionType.class);
+	private final Set<String> mentionedUsers = new HashSet<>();
+	private final Set<String> mentionedRoles = new HashSet<>();
 	
 	public DiscordPlainOutput(@NonNull Function<String, String> escaper, @NonNull BiFunction<Object, String, String> formatResolver) {
 		super(escaper, formatResolver);
 	}
 	
 	/**
-	 * Applies the rules that were gathered by this output instance to the given message builder.
+	 * Applies the rules that were gathered by this output instance to the given message builder. All other mentions
+	 * are blocked.
 	 *
 	 * @param mb The message builder that's mentions should be configured by this output instance.
 	 */
-	public void applyMentionRules(MessageBuilder mb) {
-		mentionsTransformers.forEach(t -> t.accept(mb));
+	public void applyMentionRules(MessageCreateBuilder mb) {
+		mb.setAllowedMentions(allowedMentions);
+		mb.mentionUsers(mentionedUsers);
+		mb.mentionRoles(mentionedRoles);
 	}
 	
 	@Override
 	public DiscordPlainOutput append(String s, Object... format) {
 		if (EVERYONE.getPattern().matcher(s).find())
-			mentionsTransformers.add(mb -> mb.allowMentions(EVERYONE));
+			allowedMentions.add(EVERYONE);
 		
 		if (HERE.getPattern().matcher(s).find())
-			mentionsTransformers.add(mb -> mb.allowMentions(HERE));
+			allowedMentions.add(HERE);
 		
-		addMention(s, USER.getPattern(), id -> mentionsTransformers.add(mb -> mb.mentionUsers(id)));
-		addMention(s, ROLE.getPattern(), id -> mentionsTransformers.add(mb -> mb.mentionRoles(id)));
+		addMention(s, USER.getPattern(), mentionedUsers::add);
+		addMention(s, ROLE.getPattern(), mentionedRoles::add);
 		
 		super.append(s, format);
 		return this;

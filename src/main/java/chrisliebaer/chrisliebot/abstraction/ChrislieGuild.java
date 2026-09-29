@@ -1,7 +1,6 @@
 package chrisliebaer.chrisliebot.abstraction;
 
 import java.util.Collection;
-import java.util.stream.Collectors;
 
 public interface ChrislieGuild extends ServiceAttached {
 	
@@ -16,14 +15,10 @@ public interface ChrislieGuild extends ServiceAttached {
 	public String displayName();
 	
 	/**
-	 * @return A list of all users that are currently part of this guild.
+	 * @param user The user to look for.
+	 * @return {@code true} if the given user is currently part of this guild.
 	 */
-	public default Collection<? extends ChrislieUser> users() {
-		return channels().stream()
-				.map(ChrislieChannel::users)
-				.flatMap(Collection::stream)
-				.collect(Collectors.toSet());
-	}
+	public boolean isMember(ChrislieUser user);
 	
 	/**
 	 * @return A list of all channels that are part of this guild.

@@ -1,6 +1,7 @@
 package chrisliebaer.chrisliebot.abstraction.irc;
 
 import chrisliebaer.chrisliebot.abstraction.ChrislieGuild;
+import chrisliebaer.chrisliebot.abstraction.ChrislieUser;
 import lombok.Getter;
 import org.kitteh.irc.client.library.element.Channel;
 
@@ -31,5 +32,12 @@ public class IrcGuild implements ChrislieGuild {
 		return channels.stream()
 				.map(channel -> new IrcChannel(service, channel, this))
 				.collect(Collectors.toList());
+	}
+	
+	@Override
+	public boolean isMember(ChrislieUser user) {
+		return channels().stream()
+				.flatMap(channel -> channel.users().stream())
+				.anyMatch(user::equals);
 	}
 }

@@ -1,7 +1,7 @@
 plugins {
 	// gradle dependencyUpdates -Drevision=release
-	id "com.github.ben-manes.versions" version "0.42.0"
-	id "com.github.johnrengelman.shadow" version "6.0.0"
+	id "io.github.ben-manes.versions" version "0.64.0"
+	id "com.gradleup.shadow" version "9.6.1"
 	id 'java'
 }
 
@@ -9,28 +9,32 @@ apply plugin: 'java'
 apply plugin: 'application'
 apply plugin: 'idea'
 
-sourceCompatibility = 15
-targetCompatibility = 15
+java {
+	sourceCompatibility = JavaVersion.VERSION_25
+	targetCompatibility = JavaVersion.VERSION_25
+}
 
 compileJava {
 	options.encoding = 'UTF-8'
 }
 
 group = "chrisliebaer"
-mainClassName = "chrisliebaer.chrisliebot.Chrisliebot"
+
+application {
+	mainClass = "chrisliebaer.chrisliebot.Chrisliebot"
+}
 
 repositories {
 	mavenLocal()
 	mavenCentral()
-	maven { url 'https://m2.dv8tion.net/releases' }
-	maven { url 'https://jitpack.io' }
+	maven { url = 'https://jitpack.io' }
 }
 
 dependencies {
 	compileOnly 'org.jetbrains:annotations:23.0.0'
 
-	compileOnly "org.projectlombok:lombok:1.18.24"
-	annotationProcessor 'org.projectlombok:lombok:1.18.24'
+	compileOnly "org.projectlombok:lombok:1.18.48"
+	annotationProcessor 'org.projectlombok:lombok:1.18.48'
 
 	// beans
 	implementation 'javax.validation:validation-api:2.0.1.Final'
@@ -39,17 +43,17 @@ dependencies {
 	implementation 'org.glassfish:javax.el:3.0.1-b11'
 
 	// logging
-	def slf4j = "1.7.36"
-	def log4j2 = "2.19.0"
+	def slf4j = "2.0.20"
+	def log4j2 = "2.26.1"
 	implementation "org.slf4j:slf4j-api:$slf4j"
 	implementation "org.apache.logging.log4j:log4j-core:$log4j2"
-	implementation "org.apache.logging.log4j:log4j-slf4j-impl:$log4j2"
+	implementation "org.apache.logging.log4j:log4j-slf4j2-impl:$log4j2"
 	implementation 'com.djdch.log4j:log4j-staticshutdown:1.1.0'
 
 	// commons stuff you don't know you actually want until you realise it's missing
-	implementation group: 'commons-io', name: 'commons-io', version: '2.11.0'
-	implementation group: 'org.apache.commons', name: 'commons-lang3', version: '3.12.0'
-	implementation group: 'org.apache.commons', name: 'commons-text', version: '1.10.0'
+	implementation 'commons-io:commons-io:2.11.0'
+	implementation 'org.apache.commons:commons-lang3:3.12.0'
+	implementation 'org.apache.commons:commons-text:1.10.0'
 	implementation "com.google.code.gson:gson:2.9.1"
 	implementation "com.google.guava:guava:31.1-jre"
 
@@ -58,8 +62,8 @@ dependencies {
 	implementation "com.squareup.retrofit2:converter-gson:2.9.0"
 
 	// okhttp
-	implementation 'com.squareup.okhttp3:okhttp:4.10.0'
-	implementation 'com.squareup.okhttp3:logging-interceptor:4.10.0'
+	implementation 'com.squareup.okhttp3:okhttp:5.5.0'
+	implementation 'com.squareup.okhttp3:logging-interceptor:5.5.0'
 
 	// webserver
 	//implementation 'io.undertow:undertow-core:2.0.29.Final'
@@ -69,8 +73,6 @@ dependencies {
 
 	// features
 	implementation 'com.google.re2j:re2j:1.7'
-	implementation group: 'org.twitter4j', name: 'twitter4j-core', version: '4.0.7'
-	implementation 'com.github.sys1yagi.mastodon4j:mastodon4j:1.7.0'
 	implementation 'com.github.chrisliebot:natty:fb30505e5e'
 	implementation 'dnsjava:dnsjava:3.5.1'
 	implementation 'org.nibor.autolink:autolink:0.10.0'
@@ -82,8 +84,7 @@ dependencies {
 
 	// protocols
 	implementation 'org.kitteh.irc:client-lib:8.0.0'
-	implementation('net.dv8tion:JDA:4.3.0_277') {
-	//implementation('com.github.DV8FromTheWorld:JDA:5951675256') { // experimental slash commands
+	implementation('net.dv8tion:JDA:6.7.0') {
 		exclude module: 'opus-java'
 	}
 }
