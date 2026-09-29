@@ -17,20 +17,20 @@ import java.util.stream.Stream;
 @AllArgsConstructor
 @ToString
 public class DiscordGuild implements ChrislieGuild {
-
+	
 	@Getter private DiscordService service;
 	@Getter private Guild guild;
-
+	
 	@Override
 	public String displayName() {
 		return guild.getName();
 	}
-
+	
 	@Override
 	public String identifier() {
 		return guild.getId();
 	}
-
+	
 	@Override
 	public Collection<DiscordGuildChannel> channels() {
 		return Stream.concat(guild.getChannels().stream(), guild.getThreadChannels().stream())
@@ -38,12 +38,12 @@ public class DiscordGuild implements ChrislieGuild {
 				.map(channel -> new DiscordGuildChannel(service, (GuildMessageChannel) channel))
 				.collect(Collectors.toList());
 	}
-
+	
 	@Override
 	public boolean isMember(ChrislieUser user) {
 		return member(user.identifier()).isPresent();
 	}
-
+	
 	/**
 	 * @param userId The id of the user.
 	 * @return The member or an empty optional if the user is not part of this guild.

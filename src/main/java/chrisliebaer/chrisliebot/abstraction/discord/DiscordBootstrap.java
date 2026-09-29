@@ -16,10 +16,10 @@ public class DiscordBootstrap implements ServiceBootstrap {
 	
 	@Override
 	public DiscordService service(Chrisliebot bot, String identifier) {
-
+		
 		// message content is still delivered for direct messages and messages that mention the bot
 		Message.suppressContentIntentWarning();
-
+		
 		var jda = JDABuilder.create(token, GatewayIntent.GUILD_MESSAGES, GatewayIntent.DIRECT_MESSAGES, GatewayIntent.GUILD_EXPRESSIONS)
 				.disableCache(CacheFlag.ACTIVITY, CacheFlag.VOICE_STATE, CacheFlag.CLIENT_STATUS, CacheFlag.ONLINE_STATUS, CacheFlag.SCHEDULED_EVENTS)
 				.setEventManager(new AnnotatedEventManager())

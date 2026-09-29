@@ -22,15 +22,15 @@ import static net.dv8tion.jda.api.entities.Message.MentionType.*;
  * that are provided to the Discord API to prevent unwanted mentions without having to do the escaping ourself.
  */
 public class DiscordPlainOutput extends PlainOutputImpl {
-
+	
 	private final Set<MentionType> allowedMentions = EnumSet.noneOf(MentionType.class);
 	private final Set<String> mentionedUsers = new HashSet<>();
 	private final Set<String> mentionedRoles = new HashSet<>();
-
+	
 	public DiscordPlainOutput(@NonNull Function<String, String> escaper, @NonNull BiFunction<Object, String, String> formatResolver) {
 		super(escaper, formatResolver);
 	}
-
+	
 	/**
 	 * Applies the rules that were gathered by this output instance to the given message builder. All other mentions
 	 * are blocked.
@@ -42,22 +42,22 @@ public class DiscordPlainOutput extends PlainOutputImpl {
 		mb.mentionUsers(mentionedUsers);
 		mb.mentionRoles(mentionedRoles);
 	}
-
+	
 	@Override
 	public DiscordPlainOutput append(String s, Object... format) {
 		if (EVERYONE.getPattern().matcher(s).find())
 			allowedMentions.add(EVERYONE);
-
+		
 		if (HERE.getPattern().matcher(s).find())
 			allowedMentions.add(HERE);
-
+		
 		addMention(s, USER.getPattern(), mentionedUsers::add);
 		addMention(s, ROLE.getPattern(), mentionedRoles::add);
-
+		
 		super.append(s, format);
 		return this;
 	}
-
+	
 	private void addMention(String s, Pattern pattern, Consumer<String> callback) {
 		var matcher = pattern.matcher(s);
 		while (matcher.find()) {

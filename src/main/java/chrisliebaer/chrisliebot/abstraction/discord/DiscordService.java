@@ -74,7 +74,7 @@ public class DiscordService implements ChrislieService {
 	private final Set<Long> registeredGuilds = new HashSet<>();
 	
 	private final BetterScheduledService commandUpdaterService;
-
+	
 	/**
 	 * Caches member lookups, including absent members, since scope selectors query guild memberships for every direct
 	 * message.
@@ -82,7 +82,7 @@ public class DiscordService implements ChrislieService {
 	private final Cache<MemberKey, Optional<Member>> memberCache = CacheBuilder.newBuilder()
 			.expireAfterWrite(10, TimeUnit.MINUTES)
 			.build();
-
+	
 	@SuppressWarnings("ThisEscapedInObjectConstruction")
 	public DiscordService(Chrisliebot bot, JDA jda, String identifier, boolean updateSlashCommands) {
 		this.bot = bot;
@@ -160,7 +160,7 @@ public class DiscordService implements ChrislieService {
 		var cached = memberCache.getIfPresent(key);
 		if (cached != null)
 			return cached;
-
+		
 		Optional<Member> member;
 		try {
 			member = Optional.of(guild.retrieveMemberById(userId).complete());
@@ -172,7 +172,7 @@ public class DiscordService implements ChrislieService {
 		memberCache.put(key, member);
 		return member;
 	}
-
+	
 	@Override
 	public Optional<DiscordGuild> guild(String identifier) {
 		return Optional.ofNullable(jda.getGuildById(identifier))
