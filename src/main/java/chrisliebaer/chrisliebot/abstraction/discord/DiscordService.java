@@ -75,10 +75,6 @@ public class DiscordService implements ChrislieService {
 	
 	private final BetterScheduledService commandUpdaterService;
 	
-	/**
-	 * Caches member lookups, including absent members, since scope selectors query guild memberships for every direct
-	 * message.
-	 */
 	private final Cache<MemberKey, Optional<Member>> memberCache = CacheBuilder.newBuilder()
 			.expireAfterWrite(10, TimeUnit.MINUTES)
 			.build();
@@ -132,8 +128,7 @@ public class DiscordService implements ChrislieService {
 	}
 	
 	/**
-	 * Fetches a user from Discord, since the user cache only contains users with cached members, which are not
-	 * populated without the privileged members intent.
+	 * Fetches a user from the Discord API.
 	 *
 	 * @param identifier The id of the user.
 	 * @return The user or an empty optional if no such user exists.
@@ -149,7 +144,7 @@ public class DiscordService implements ChrislieService {
 	}
 	
 	/**
-	 * Fetches a member from Discord, since the member cache is not populated without the privileged members intent.
+	 * Fetches a member from the Discord API. Results, including absent members, are cached for ten minutes.
 	 *
 	 * @param guild  The guild to look up the member in.
 	 * @param userId The id of the user.

@@ -29,11 +29,9 @@ public interface DiscordChannel extends ChrislieChannel {
 	}
 	
 	/**
-	 * Wraps the channel of an incoming message or interaction.
-	 *
-	 * @param service The service that received the message.
-	 * @param channel The channel the message was received in.
-	 * @return The matching wrapper for guild or private channels.
+	 * @param service The service the channel belongs to.
+	 * @param channel A Discord channel.
+	 * @return The guild or private channel representing the given channel.
 	 * @throws IllegalArgumentException If the channel is neither a guild message channel nor a private channel.
 	 */
 	public static DiscordChannel of(DiscordService service, MessageChannel channel) {

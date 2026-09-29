@@ -37,7 +37,7 @@ public class DiscordPermissionSelector implements Selector {
 			if (!ev.isFromGuild())
 				return false;
 			
-			// the member cache is not populated without the privileged members intent, but guild messages carry their author's member
+			// the member cache is empty without the privileged members intent, but guild messages contain the author's member
 			var member = Objects.requireNonNull(ev.getMember(), "guild message without member");
 			
 			for (var perm : permissions)
